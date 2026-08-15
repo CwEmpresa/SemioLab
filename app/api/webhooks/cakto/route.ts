@@ -39,7 +39,42 @@ export async function POST(request: Request) {
   // comparar `secret` no CORPO da requisição (docs.cakto.com.br/conceitos/webhooks).
   const receivedSecret = typeof body?.secret === "string" ? body.secret : "";
   const expectedSecret = process.env.CAKTO_WEBHOOK_SECRET || "";
-  if (!expectedSecret || !timingSafeEqualStrings(receivedSecret, expectedSecret)) {
+
+  // Diagnóstico seguro: nunca loga nem retorna os valores, só metadados
+  // suficientes para diferenciar as 3 causas possíveis de 401/500.
+  const expectedSecretPresent = expectedSecret.length > 0;
+  const receivedSecretPresent = receivedSecret.length > 0;
+
+  if (!expectedSecretPresent) {
+    console.error("[webhooks/cakto] secret_check", {
+      reason: "expected_secret_missing_on_server",
+      expectedSecretPresent,
+      receivedSecretPresent,
+      expectedLength: expectedSecret.length,
+      receivedLength: receivedSecret.length,
+    });
+    return Response.json({ error: "configuração de servidor incompleta" }, { status: 500 });
+  }
+
+  if (!receivedSecretPresent) {
+    console.error("[webhooks/cakto] secret_check", {
+      reason: "received_secret_missing_in_payload",
+      expectedSecretPresent,
+      receivedSecretPresent,
+      expectedLength: expectedSecret.length,
+      receivedLength: receivedSecret.length,
+    });
+    return Response.json({ error: "não autorizado" }, { status: 401 });
+  }
+
+  if (!timingSafeEqualStrings(receivedSecret, expectedSecret)) {
+    console.error("[webhooks/cakto] secret_check", {
+      reason: "secret_mismatch",
+      expectedSecretPresent,
+      receivedSecretPresent,
+      expectedLength: expectedSecret.length,
+      receivedLength: receivedSecret.length,
+    });
     return Response.json({ error: "não autorizado" }, { status: 401 });
   }
 
