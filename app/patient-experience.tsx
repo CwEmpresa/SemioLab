@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Check,
@@ -62,358 +62,9 @@ type ConsultHistory = {
   gaps: string[];
   examLearning: string[];
 };
-type Intent =
-  | "onset"
-  | "previous"
-  | "pain"
-  | "dyspnea"
-  | "effort"
-  | "orthopnea"
-  | "pnd"
-  | "edema"
-  | "cough"
-  | "fever"
-  | "palpitations"
-  | "syncope"
-  | "fatigue"
-  | "weight"
-  | "urine"
-  | "medication"
-  | "adherence"
-  | "hypertension"
-  | "diabetes"
-  | "cardiac"
-  | "smoking"
-  | "alcohol"
-  | "allergy"
-  | "family"
-  | "occupation"
-  | "food"
-  | "sleep"
-  | "identity"
-  | "main"
-  | "greeting"
-  | "other";
 const PATIENT_SESSION_KEY = "semiolab:patient-session:v2";
 const PATIENT_HISTORY_KEY = "semiolab:consult-history:v1";
-const normalize = (v: string) =>
-  v
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-function identify(raw: string): Intent {
-  const q = normalize(raw);
-  if (/^(oi|ola|bom dia|boa tarde|boa noite)\b/.test(q)) return "greeting";
-  if (/(seu nome|como se chama|qual.*idade|quantos anos)/.test(q))
-    return "identity";
-  if (/(motivo|o que.*sentindo|o que.*trouxe|queixa principal)/.test(q))
-    return "main";
-  if (
-    /(primeira vez|ja teve|teve isso antes|problema parecido|episodio anterior)/.test(
-      q,
-    )
-  )
-    return "previous";
-  if (/(quando comecou|desde quando|ha quanto tempo|inicio.*sintoma)/.test(q))
-    return "onset";
-  if (/(acorda.*falta|falta.*durante a noite|dispneia.*noturna)/.test(q))
-    return "pnd";
-  if (/(quantos travesseiros|deitad|ortopneia|melhora.*sentad)/.test(q))
-    return "orthopnea";
-  if (/(esforco|escada|andar|caminhar|atividade)/.test(q)) return "effort";
-  if (/(falta de ar|respirar|dispneia|folego)/.test(q)) return "dyspnea";
-  if (/(dor|aperto|pressao.*peito|peito.*aperta)/.test(q)) return "pain";
-  if (/(inchaco|inchado|edema|tornozelo|perna)/.test(q)) return "edema";
-  if (/(tosse|catarro|expectora)/.test(q)) return "cough";
-  if (/(febre|calafrio|temperatura)/.test(q)) return "fever";
-  if (/(palpitacao|coracao.*aceler|coracao.*dispar)/.test(q))
-    return "palpitations";
-  if (/(desmai|tontura|sincope)/.test(q)) return "syncope";
-  if (/(cansaco|fadiga|fraqueza)/.test(q)) return "fatigue";
-  if (/(ganhou.*peso|perdeu.*peso|peso.*mudou|aumento.*peso)/.test(q))
-    return "weight";
-  if (/(urina|diurese|urinando)/.test(q)) return "urine";
-  if (/(esquece|toma.*direit|aderencia|regularmente)/.test(q))
-    return "adherence";
-  if (/(remedio|medicamento|medicacao|comprimido)/.test(q)) return "medication";
-  if (/(pressao alta|hipertens)/.test(q)) return "hypertension";
-  if (/(diabetes|glicose|acucar no sangue)/.test(q)) return "diabetes";
-  if (/(coracao|cardiac|infarto|insuficiencia cardiaca)/.test(q))
-    return "cardiac";
-  if (/(fuma|cigarro|tabag)/.test(q)) return "smoking";
-  if (/(alcool|bebida|bebe)/.test(q)) return "alcohol";
-  if (/(alerg)/.test(q)) return "allergy";
-  if (/(familia|pai|mae|irmao|familiar)/.test(q)) return "family";
-  if (/(trabalha|profissao|ocupacao)/.test(q)) return "occupation";
-  if (/(aliment|comida|sal)/.test(q)) return "food";
-  if (/(dorme|sono)/.test(q)) return "sleep";
-  return "other";
-}
-function identifyAll(raw: string): Intent[] {
-  const chunks = raw
-    .split(/\?|;|,\s*|\s+e\s+/i)
-    .map((part) => part.trim())
-    .filter(Boolean);
-  const intents = chunks.map(identify).filter((intent) => intent !== "other");
-  if (!intents.length) {
-    const single = identify(raw);
-    return single === "other" ? ["other"] : [single];
-  }
-  return [...new Set(intents)].slice(0, 4);
-}
-const facts: Record<Exclude<Intent, "other">, string> = {
-  greeting: "Bom dia, doutor. Estou preocupada com essa falta de ar.",
-  identity: "Meu nome é Marina Rocha e tenho 54 anos.",
-  main: "Vim porque estou muito cansada e com falta de ar desde ontem. Hoje piorou ao subir as escadas.",
-  onset:
-    "Começou ontem à tarde como um cansaço leve. Hoje de manhã a falta de ar ficou mais forte.",
-  previous:
-    "Já senti cansaço leve outras vezes, mas falta de ar desse jeito é a primeira vez.",
-  pain: "Dor forte não. Às vezes sinto um aperto leve no peito quando fico mais ofegante, sem irradiar.",
-  dyspnea:
-    "Parece que o ar não entra o suficiente. Em repouso melhora, mas ainda fico um pouco ofegante.",
-  effort:
-    "Piora bastante ao caminhar rápido ou subir escadas. Hoje precisei parar no meio do lance.",
-  orthopnea:
-    "Nas últimas duas noites fiquei melhor com dois travesseiros. Deitada totalmente parece piorar.",
-  pnd: "Ontem acordei de madrugada com falta de ar e precisei sentar na cama por alguns minutos.",
-  edema:
-    "Meus dois tornozelos incham no fim do dia. Nesta semana o inchaço aumentou.",
-  cough:
-    "Tenho tosse seca de vez em quando, principalmente quando me deito. Não sai catarro.",
-  fever: "Não tive febre nem calafrios.",
-  palpitations:
-    "Às vezes o coração acelera quando fico ofegante, mas melhora com repouso.",
-  syncope:
-    "Não desmaiei. Tive uma tontura leve hoje ao levantar rápido, mas passou.",
-  fatigue:
-    "Estou mais cansada há cerca de uma semana, até para tarefas simples de casa.",
-  weight:
-    "A balança marcou quase dois quilos a mais nesta semana, sem mudança na alimentação.",
-  urine:
-    "Acho que estou urinando um pouco menos desde ontem. Não sinto dor nem ardência.",
-  medication:
-    "Uso losartana de 50 mg para pressão, uma vez ao dia. Não uso outros remédios contínuos.",
-  adherence:
-    "Esqueço a losartana duas ou três vezes por semana, principalmente quando saio cedo.",
-  hypertension:
-    "Tenho pressão alta há oito anos. Na última consulta estava acima do normal.",
-  diabetes: "Nunca fui diagnosticada com diabetes.",
-  cardiac:
-    "Nunca tive infarto nem diagnóstico de insuficiência cardíaca. Já disseram que meu coração parecia aumentado numa radiografia antiga.",
-  smoking:
-    "Fumei por quinze anos, mas parei há seis. Era cerca de meio maço por dia.",
-  alcohol: "Bebo socialmente, uma ou duas taças no fim de semana.",
-  allergy: "Não conheço nenhuma alergia a medicamentos ou alimentos.",
-  family: "Meu pai morreu de infarto aos 62 anos e minha mãe tem pressão alta.",
-  occupation:
-    "Sou cozinheira em uma escola e fico muito tempo em pé. Nesta semana o trabalho ficou mais cansativo.",
-  food: "Uso bastante sal e como embutidos algumas vezes por semana.",
-  sleep:
-    "Tenho dormido mal porque deitada sinto mais falta de ar. Com dois travesseiros descanso melhor.",
-};
-function reply(raw: string, asked: Record<string, number>) {
-  const intents = identifyAll(raw);
-  if (intents[0] === "other") {
-    return {
-      intents,
-      text: "Desculpe, doutor, não entendi bem a pergunta. O senhor pode perguntar de outro jeito?",
-    };
-  }
-  const answers = intents.map((intent, index) => {
-    const statement = facts[intent as Exclude<Intent, "other">];
-    const repeated = (asked[intent] || 0) > 0 && !["greeting", "main"].includes(intent);
-    if (repeated && intents.length === 1)
-      return `Como eu tinha contado, ${statement.charAt(0).toLowerCase()}${statement.slice(1)}`;
-    if (index === 0) return statement;
-    return `Também, ${statement.charAt(0).toLowerCase()}${statement.slice(1)}`;
-  });
-  return { intents, text: answers.join(" ") };
-}
-function buildExamReport(order: string): ExamReport {
-  const q = normalize(order),
-    found: string[] = [],
-    labs: LabRow[] = [],
-    imaging: ExamImage[] = [];
-  // Política clínica: uma imagem só é anexada quando o tipo de exame, o caso
-  // e o achado da mídia validada coincidem. Solicitações fora do catálogo não
-  // recebem imagens aproximadas, genéricas ou inventadas.
-  if (/(raio x|radiografia|\brx\b|raio.*torax)/.test(q)) {
-    found.push(
-      "Radiografia de tórax: cardiomegalia, congestão vascular pulmonar e pequenos derrames pleurais bilaterais.",
-    );
-    imaging.push({
-      title: "Radiografia de tórax",
-      image: "/clinical/radiografia-ic-congestiva.png",
-      findings:
-        "Índice cardiotorácico aumentado, redistribuição vascular e velamento discreto dos seios costofrênicos.",
-      comparison: "Sem radiografia anterior disponível nesta simulação.",
-      caption:
-        "Referência real validada para radiografia de insuficiência cardíaca; não pertence à paciente simulada.",
-      source: "James Heilman, MD · Wikimedia Commons",
-      sourceUrl: "https://commons.wikimedia.org/wiki/File:CHF2016.png",
-      license: "CC BY-SA 4.0",
-    });
-  }
-  if (/(bnp|nt probnp|peptideo natriuretico)/.test(q)) {
-    found.push("BNP elevado.");
-    labs.push({
-      name: "BNP",
-      value: "1.280",
-      unit: "pg/mL",
-      reference: "< 100",
-      status: "high",
-    });
-  }
-  if (/(ecocardiograma|eco)/.test(q)) {
-    found.push(
-      "Ecocardiograma: FEVE 38%, disfunção sistólica global e aumento do átrio esquerdo.",
-    );
-    imaging.push({
-      title: "Ecocardiograma transtorácico",
-      findings:
-        "FEVE 38%, hipocinesia global, aumento do átrio esquerdo e insuficiência mitral funcional leve.",
-      comparison: "Sem ecocardiograma anterior para comparação.",
-    });
-  }
-  if (/(eletrocardiograma|\becg\b|\bekg\b)/.test(q)) {
-    found.push(
-      "ECG: ritmo sinusal, FC 104 bpm, hipertrofia ventricular esquerda, sem isquemia aguda.",
-    );
-    imaging.push({
-      title: "Eletrocardiograma de 12 derivações",
-      image: "/clinical/ecg-hve.jpg",
-      findings:
-        "Traçado de referência com critérios de hipertrofia ventricular esquerda e alterações secundárias da repolarização.",
-      comparison: "Sem eletrocardiograma anterior disponível nesta simulação.",
-      caption:
-        "Referência real validada para ECG com hipertrofia ventricular esquerda; não pertence à paciente simulada.",
-      source: "CardioNetworks ECGpedia · Wikimedia Commons",
-      sourceUrl:
-        "https://commons.wikimedia.org/wiki/File:E307_(CardioNetworks_ECGpedia).jpg",
-      license: "CC BY-SA 3.0",
-    });
-  }
-  if (/hemograma/.test(q)) {
-    found.push("Hemograma sem alterações relevantes.");
-    labs.push(
-      {
-        name: "Hemoglobina",
-        value: "12,8",
-        unit: "g/dL",
-        reference: "12,0–16,0",
-        status: "normal",
-      },
-      {
-        name: "Leucócitos",
-        value: "8.700",
-        unit: "/mm³",
-        reference: "4.000–11.000",
-        status: "normal",
-      },
-      {
-        name: "Plaquetas",
-        value: "248.000",
-        unit: "/mm³",
-        reference: "150.000–450.000",
-        status: "normal",
-      },
-    );
-  }
-  if (/(creatinina|ureia|funcao renal)/.test(q)) {
-    found.push("Discreta elevação da ureia, com creatinina limítrofe.");
-    labs.push(
-      {
-        name: "Creatinina",
-        value: "1,3",
-        unit: "mg/dL",
-        reference: "0,6–1,2",
-        status: "high",
-      },
-      {
-        name: "Ureia",
-        value: "52",
-        unit: "mg/dL",
-        reference: "15–45",
-        status: "high",
-      },
-    );
-  }
-  if (/(sodio|potassio|eletrolito)/.test(q)) {
-    found.push("Hiponatremia leve.");
-    labs.push(
-      {
-        name: "Sódio",
-        value: "132",
-        unit: "mEq/L",
-        reference: "135–145",
-        status: "low",
-      },
-      {
-        name: "Potássio",
-        value: "4,3",
-        unit: "mEq/L",
-        reference: "3,5–5,1",
-        status: "normal",
-      },
-    );
-  }
-  if (/(troponina|marcador.*cardiac)/.test(q)) {
-    found.push("Troponina ultrassensível negativa em duas dosagens.");
-    labs.push({
-      name: "Troponina I ultrassensível",
-      value: "7",
-      unit: "ng/L",
-      reference: "< 16",
-      status: "normal",
-    });
-  }
-  if (/(gasometria|gaso)/.test(q)) {
-    found.push("Gasometria com hipoxemia leve, sem retenção de CO₂.");
-    labs.push(
-      {
-        name: "pH",
-        value: "7,43",
-        unit: "",
-        reference: "7,35–7,45",
-        status: "normal",
-      },
-      {
-        name: "PaO₂",
-        value: "68",
-        unit: "mmHg",
-        reference: "80–100",
-        status: "low",
-      },
-      {
-        name: "PaCO₂",
-        value: "37",
-        unit: "mmHg",
-        reference: "35–45",
-        status: "normal",
-      },
-    );
-  }
-  if (/(exame.*sangue|exames.*laborator|laboratorio|painel.*sangu)/.test(q) && labs.length === 0) {
-    found.push(
-      "Painel sanguíneo: hemograma sem alterações relevantes, hiponatremia leve e função renal limítrofe.",
-    );
-    labs.push(
-      { name: "Hemoglobina", value: "12,8", unit: "g/dL", reference: "12,0–16,0", status: "normal" },
-      { name: "Leucócitos", value: "8.700", unit: "/mm³", reference: "4.000–11.000", status: "normal" },
-      { name: "Creatinina", value: "1,3", unit: "mg/dL", reference: "0,6–1,2", status: "high" },
-      { name: "Sódio", value: "132", unit: "mEq/L", reference: "135–145", status: "low" },
-      { name: "Potássio", value: "4,3", unit: "mEq/L", reference: "3,5–5,1", status: "normal" },
-    );
-  }
-  const summary = found.length
-    ? found.join(" ")
-    : "O setor de diagnóstico informou que o exame descrito não está disponível nesta simulação. Revise o nome da solicitação.";
-  return { summary, labs, imaging };
-}
+
 function messageTime(timestamp: number) {
   return new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
@@ -429,72 +80,6 @@ const Brand = () => (
     />
   </div>
 );
-function evaluateConsult(
-  asked: Record<string, number>,
-  physical: boolean,
-  order: string,
-  hypothesis: string,
-  differentials: string,
-  conduct: string,
-) {
-  const count = (keys: Intent[]) =>
-    keys.filter((k) => (asked[k] || 0) > 0).length;
-  const essentials = ["onset", "dyspnea", "effort", "orthopnea", "pnd", "edema"] as Intent[];
-  const context = ["pain", "weight", "urine", "medication", "adherence", "hypertension", "cardiac", "smoking", "family"] as Intent[];
-  const history = Math.min(30, count(essentials) * 5) + Math.min(10, count(context) * 2);
-  const q = normalize(order);
-  const appropriateExamGroups = [
-    /(raio x|radiografia|\brx\b)/,
-    /(eletrocardiograma|\becg\b|\bekg\b)/,
-    /(bnp|nt probnp|peptideo natriuretico)/,
-    /(ecocardiograma|\beco\b)/,
-    /(creatinina|ureia|funcao renal|sodio|potassio|eletrolito|laboratorio|exame.*sangue)/,
-  ].filter((rx) => rx.test(q)).length;
-  const exams = Math.min(15, appropriateExamGroups * 3);
-  const h = normalize(hypothesis),
-    diagnosis = /(insuficiencia cardiaca.*descompens|ic.*descompens|insuficiencia cardiaca congestiva)/.test(h)
-      ? 16
-      : /(insuficiencia cardiaca|edema pulmonar|congestao cardiaca)/.test(h)
-        ? 10
-        : 0;
-  const d = normalize(differentials),
-    diff = [/(sindrome coronariana|infarto)/, /(pneumonia)/, /(tromboembol)/, /(dpoc|asma)/, /(renal)/]
-      .filter((rx) => rx.test(d)).length >= 2 ? 6 : d ? 3 : 0;
-  const c = normalize(conduct),
-    plan = Math.min(8, [/(furosemida|diuret)/, /(oxigen)/, /(intern|encaminh|emergencia)/, /(monitor|sinais vitais)/]
-      .filter((rx) => rx.test(c)).length * 2);
-  const completedReasoning = Boolean(hypothesis.trim() && conduct.trim());
-  const reasoning = completedReasoning ? diagnosis + diff + plan : 0;
-  const score = completedReasoning ? Math.min(100, history + (physical ? 15 : 0) + exams + reasoning) : 0;
-  const strengths = [
-    count(["onset", "dyspnea", "effort"]) >= 2 && "Caracterizou início, evolução e relação da dispneia com esforço.",
-    count(["orthopnea", "pnd", "edema", "weight"]) >= 2 && "Investigou sinais de congestão sistêmica e pulmonar.",
-    count(["medication", "adherence", "hypertension", "cardiac"]) >= 2 && "Explorou antecedentes, medicações e adesão.",
-    physical && "Realizou exame físico direcionado com sinais vitais.",
-    appropriateExamGroups > 0 && "Solicitou exames pertinentes ao cenário apresentado.",
-    diagnosis >= 10 && "A hipótese principal é compatível com os dados coletados.",
-    plan >= 4 && "A conduta contempla medidas iniciais relevantes.",
-  ].filter(Boolean) as string[];
-  const gaps = [
-    !asked.onset && "Perguntar quando os sintomas começaram e como evoluíram.",
-    !asked.orthopnea && "Investigar ortopneia e número de travesseiros.",
-    !asked.pnd && "Perguntar sobre dispneia paroxística noturna.",
-    !asked.edema && "Investigar edema periférico e sua progressão.",
-    !asked.medication && "Revisar medicações em uso.",
-    !asked.adherence && "Confirmar adesão e doses esquecidas.",
-    !physical && "Realizar exame físico direcionado antes de concluir.",
-    diagnosis < 10 && "Relacionar dispneia, ortopneia, edema e congestão à hipótese de insuficiência cardíaca descompensada.",
-    plan < 4 && "Descrever monitorização, suporte inicial e necessidade de avaliação urgente/hospitalar.",
-  ].filter(Boolean) as string[];
-  const examLearning = [
-    /(raio x|radiografia|\brx\b)/.test(q) && "Na radiografia, cardiomegalia, redistribuição vascular e pequenos derrames apoiam congestão cardíaca.",
-    /(eletrocardiograma|\becg\b|\bekg\b)/.test(q) && "No ECG, hipertrofia ventricular esquerda sugere repercussão crônica da hipertensão; não há sinal de isquemia aguda no traçado apresentado.",
-    /(bnp|nt probnp|peptideo natriuretico)/.test(q) && "BNP elevado reforça insuficiência cardíaca no contexto clínico, mas não deve ser interpretado isoladamente.",
-    /(ecocardiograma|\beco\b)/.test(q) && "A FEVE reduzida e a hipocinesia global ajudam a definir disfunção sistólica e gravidade.",
-    !appropriateExamGroups && "Este caso podia ser fortemente suspeitado pela anamnese e pelo exame físico; exames serviriam para confirmar gravidade, etiologia e diagnósticos diferenciais.",
-  ].filter(Boolean) as string[];
-  return { score, history, physical: physical ? 15 : 0, exams, reasoning, strengths, gaps, examLearning, completedReasoning };
-}
 
 export default function PatientExperience({
   go,
@@ -507,6 +92,7 @@ export default function PatientExperience({
     [asked, setAsked] = useState<Record<string, number>>({}),
     [physical, setPhysical] = useState(false),
     [physicalOpen, setPhysicalOpen] = useState(false),
+    [physicalFindings, setPhysicalFindings] = useState<Record<string, string>>({}),
     [examOpen, setExamOpen] = useState(false),
     [examText, setExamText] = useState(""),
     [examOrder, setExamOrder] = useState(""),
@@ -521,7 +107,16 @@ export default function PatientExperience({
     [clock, setClock] = useState("--:--"),
     [hypothesis, setHypothesis] = useState(""),
     [differentials, setDifferentials] = useState(""),
-    [conduct, setConduct] = useState("");
+    [conduct, setConduct] = useState(""),
+    [sessionId, setSessionId] = useState<string | null>(null),
+    [caseInfo, setCaseInfo] = useState<{ title: string; specialty: string } | null>(null),
+    [blocked, setBlocked] = useState<{ checkoutUrls: { monthly: string; annual: string } } | null>(null),
+    [loadError, setLoadError] = useState(""),
+    [finishing, setFinishing] = useState(false),
+    [serverEvaluation, setServerEvaluation] = useState<{
+      score: number; historyScore: number; physicalScore: number; examsScore: number; reasoningScore: number;
+      strengths: string[]; gaps: string[]; examLearning: string[]; feedback: string;
+    } | null>(null);
   const chatRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -629,19 +224,7 @@ export default function PatientExperience({
     }, 650);
     return () => window.clearTimeout(timer);
   }, [restored, pendingReply]);
-  const evaluation = useMemo(
-      () =>
-        evaluateConsult(
-          asked,
-          physical,
-          examOrder,
-          hypothesis,
-          differentials,
-          conduct,
-        ),
-      [asked, physical, examOrder, hypothesis, differentials, conduct],
-    ),
-    score = evaluation.score,
+  const score = serverEvaluation?.score ?? 0,
     level =
       score >= 85
         ? "Excelente condução"
@@ -658,7 +241,7 @@ export default function PatientExperience({
           : score >= 50
             ? "Alguns dados importantes ficaram de fora."
             : "A consulta terminou antes de reunir dados essenciais.";
-  function start() {
+  async function start() {
     setAsked({});
     setTyping(false);
     setPhysical(false);
@@ -669,74 +252,175 @@ export default function PatientExperience({
     setDifferentials("");
     setConduct("");
     setNotes("");
-    setMessages([
-      {
-        who: "patient",
-        text: "Bom dia, doutor. Desde ontem estou muito cansada e hoje tive uma falta de ar estranha.",
-        createdAt: Date.now(),
-      },
-    ]);
+    setServerEvaluation(null);
+    setLoadError("");
+    setBlocked(null);
+    setMessages([]);
     setPhase("chat");
+    try {
+      const response = await fetch("/api/patient/session", { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 403 && data.requiresPro) {
+        setBlocked({ checkoutUrls: data.checkoutUrls });
+        return;
+      }
+      if (!response.ok) {
+        setLoadError(data.error || "Não foi possível iniciar o atendimento.");
+        return;
+      }
+      setSessionId(data.sessionId);
+      setCaseInfo({ title: data.caseTitle, specialty: data.specialty });
+      setMessages([{ who: "patient", text: data.openingLine, createdAt: Date.now() }]);
+    } catch {
+      setLoadError("Não foi possível conectar ao servidor. Tente novamente.");
+    }
   }
-  function send() {
+  async function send() {
     const question = input.trim();
-    if (!question) return;
-    const answer = reply(question, asked);
-    setAsked((current) => {
-      const next = { ...current };
-      answer.intents.forEach((intent) => { next[intent] = (next[intent] || 0) + 1; });
-      return next;
-    });
+    if (!question || !sessionId || typing) return;
     setMessages((m) => [...m, { who: "student", text: question, createdAt: Date.now() }]);
     setInput("");
     setTyping(true);
-    setPendingReply(answer.text);
+    try {
+      const response = await fetch("/api/patient/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sessionId, message: question }),
+      });
+      if (!response.ok || !response.body) {
+        const data = await response.json().catch(() => ({}));
+        setMessages((m) => [...m, { who: "patient", text: data.error || "Não consegui responder agora.", createdAt: Date.now() }]);
+        setTyping(false);
+        return;
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let full = "";
+      const createdAt = Date.now();
+      setMessages((m) => [...m, { who: "patient", text: "", createdAt }]);
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        full += decoder.decode(value, { stream: true });
+        setMessages((m) => {
+          const next = [...m];
+          const last = next[next.length - 1];
+          if (last && last.who === "patient" && last.createdAt === createdAt) next[next.length - 1] = { ...last, text: full };
+          return next;
+        });
+      }
+    } catch {
+      setMessages((m) => [...m, { who: "patient", text: "Desculpa, tive um problema para responder.", createdAt: Date.now() }]);
+    } finally {
+      setTyping(false);
+    }
   }
-  function requestExam() {
+  async function requestExam() {
     const order = examText.trim();
-    if (!order) return;
-    const report = buildExamReport(order);
+    if (!order || !sessionId) return;
     setExamOrder(order);
     setExamOpen(false);
-    setMessages((m) => [
-      ...m,
-      { who: "exam", text: "RESULTADOS LIBERADOS", report, createdAt: Date.now() },
-    ]);
     setExamText("");
+    try {
+      const response = await fetch("/api/patient/exam", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sessionId, order }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setMessages((m) => [...m, { who: "patient", text: data.error || "Não foi possível liberar o exame.", createdAt: Date.now() }]);
+        return;
+      }
+      setMessages((m) => [...m, { who: "exam", text: "RESULTADOS LIBERADOS", report: data.report, createdAt: Date.now() }]);
+    } catch {
+      setMessages((m) => [...m, { who: "patient", text: "Não foi possível liberar o exame agora.", createdAt: Date.now() }]);
+    }
+  }
+  async function requestPhysicalExam() {
+    if (!sessionId) return;
+    setPhysical(true);
+    setPhysicalOpen(true);
+    try {
+      const response = await fetch("/api/patient/exam", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sessionId, physical: true }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) setPhysicalFindings(data.physicalExam || {});
+    } catch {
+      /* mantém o modal com estado vazio; não é crítico */
+    }
   }
   function finishConsult() {
-    if (!hypothesis.trim() || !conduct.trim()) return;
-    const record: ConsultHistory = {
-      id: `${Date.now()}`,
-      finishedAt: Date.now(),
-      score,
-      level,
-      title,
-      hypothesis: hypothesis.trim(),
-      strengths: evaluation.strengths,
-      gaps: evaluation.gaps,
-      examLearning: evaluation.examLearning,
-    };
-    const next = [record, ...history].slice(0, 12);
-    setHistory(next);
-    window.localStorage.setItem(PATIENT_HISTORY_KEY, JSON.stringify(next));
-    fetch("/api/learning", {
+    if (!hypothesis.trim() || !conduct.trim() || !sessionId || finishing) return;
+    setFinishing(true);
+    fetch("/api/patient/finish", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        action: "patient_result",
-        topic: "Cardiovascular",
-        score,
-        historyScore: evaluation.history,
-        physicalScore: evaluation.physical,
-        examsScore: evaluation.exams,
-        reasoningScore: evaluation.reasoning,
-      }),
-    }).then((response) => {
-      if (response.ok) window.dispatchEvent(new Event("semiolab:learning-updated"));
-    }).catch(() => {});
-    setPhase("result");
+      body: JSON.stringify({ sessionId, hypothesis, differentials, conduct }),
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          setLoadError(data.error || "Não foi possível avaliar o atendimento.");
+          setFinishing(false);
+          return;
+        }
+        setServerEvaluation(data);
+        const record: ConsultHistory = {
+          id: `${Date.now()}`,
+          finishedAt: Date.now(),
+          score: data.score,
+          level: data.score >= 85 ? "Excelente condução" : data.score >= 70 ? "Boa condução" : data.score >= 50 ? "Condução parcial" : "Precisa aprofundar",
+          title: caseInfo?.title || "Atendimento",
+          hypothesis: hypothesis.trim(),
+          strengths: data.strengths,
+          gaps: data.gaps,
+          examLearning: data.examLearning,
+        };
+        const next = [record, ...history].slice(0, 12);
+        setHistory(next);
+        window.localStorage.setItem(PATIENT_HISTORY_KEY, JSON.stringify(next));
+        window.dispatchEvent(new Event("semiolab:learning-updated"));
+        setFinishing(false);
+        setPhase("result");
+      })
+      .catch(() => {
+        setLoadError("Não foi possível conectar ao servidor para avaliar o atendimento.");
+        setFinishing(false);
+      });
   }
+  if (blocked)
+    return (
+      <div className="patient-wait">
+        <div className="patient-wait-shade" />
+        <header className="patient-wait-header">
+          <button aria-label="Voltar ao início" onClick={() => go("home")}>
+            <ArrowLeft />
+          </button>
+          <Brand />
+          <span />
+        </header>
+        <main className="patient-wait-content">
+          <section className="patient-wait-intro">
+            <small><i /> RECURSO PRO</small>
+            <h1>A simulação com paciente-IA é exclusiva do plano Pro.</h1>
+            <p>Assine para conversar com pacientes virtuais gerados por IA, com casos clínicos reais e avaliação de raciocínio, comunicação, diagnóstico e conduta.</p>
+          </section>
+          <section className="patient-call-panel">
+            <a className="primary" href={blocked.checkoutUrls.monthly} target="_blank" rel="noopener noreferrer">
+              <span>Assinar mensal</span>
+            </a>
+            <a className="primary" href={blocked.checkoutUrls.annual} target="_blank" rel="noopener noreferrer">
+              <span>Assinar anual</span>
+            </a>
+            <button onClick={() => go("home")}>Voltar ao início</button>
+          </section>
+        </main>
+      </div>
+    );
   if (phase === "wait")
     return (
       <div className="patient-wait">
@@ -776,6 +460,7 @@ export default function PatientExperience({
               <span>Chamar próximo paciente</span>
               <DoorOpen />
             </button>
+            {loadError && <div role="alert" className="patient-load-error">{loadError}</div>}
             <em>
               <ShieldCheck /> Simulação educacional · Cenário fictício
             </em>
@@ -847,20 +532,20 @@ export default function PatientExperience({
           </section>
           <div className="score-breakdown">
             <span>
-              <b>{evaluation.history}<em>/40</em></b>
-              <small>Anamnese</small><i style={{ width: `${evaluation.history / 40 * 100}%` }} />
+              <b>{serverEvaluation?.historyScore ?? 0}<em>/30</em></b>
+              <small>Anamnese</small><i style={{ width: `${(serverEvaluation?.historyScore ?? 0) / 30 * 100}%` }} />
             </span>
             <span>
-              <b>{evaluation.physical}<em>/15</em></b>
-              <small>Exame físico</small><i style={{ width: `${evaluation.physical / 15 * 100}%` }} />
+              <b>{serverEvaluation?.physicalScore ?? 0}<em>/15</em></b>
+              <small>Exame físico</small><i style={{ width: `${(serverEvaluation?.physicalScore ?? 0) / 15 * 100}%` }} />
             </span>
             <span>
-              <b>{evaluation.exams}<em>/15</em></b>
-              <small>Exames</small><i style={{ width: `${evaluation.exams / 15 * 100}%` }} />
+              <b>{serverEvaluation?.examsScore ?? 0}<em>/15</em></b>
+              <small>Exames</small><i style={{ width: `${(serverEvaluation?.examsScore ?? 0) / 15 * 100}%` }} />
             </span>
             <span>
-              <b>{evaluation.reasoning}<em>/30</em></b>
-              <small>Raciocínio</small><i style={{ width: `${evaluation.reasoning / 30 * 100}%` }} />
+              <b>{serverEvaluation?.reasoningScore ?? 0}<em>/40</em></b>
+              <small>Raciocínio</small><i style={{ width: `${(serverEvaluation?.reasoningScore ?? 0) / 40 * 100}%` }} />
             </span>
           </div>
           <div className="feedback">
@@ -868,20 +553,20 @@ export default function PatientExperience({
               <h3>
                 <Check /> O que você conduziu bem
               </h3>
-              <ul>{evaluation.strengths.length ? evaluation.strengths.map((item) => <li key={item}>{item}</li>) : <li>Não houve evidência suficiente para pontuar esta parte.</li>}</ul>
+              <ul>{(serverEvaluation?.strengths.length ?? 0) ? serverEvaluation!.strengths.map((item) => <li key={item}>{item}</li>) : <li>Não houve evidência suficiente para pontuar esta parte.</li>}</ul>
             </article>
             <article>
               <h3>
                 <CircleAlert /> O que faltou investigar
               </h3>
-              <ul>{evaluation.gaps.length ? evaluation.gaps.map((item) => <li key={item}>{item}</li>) : <li>Os principais critérios deste caso foram cobertos.</li>}</ul>
+              <ul>{(serverEvaluation?.gaps.length ?? 0) ? serverEvaluation!.gaps.map((item) => <li key={item}>{item}</li>) : <li>Os principais critérios deste caso foram cobertos.</li>}</ul>
             </article>
           </div>
           <section className="clinical-learning">
             <header><Lightbulb /><span><small>APRENDIZADO DO CASO</small><h2>Como conectar os achados</h2></span></header>
             <p>Dispneia aos esforços, ortopneia, dispneia paroxística noturna, edema e ganho de peso formam um padrão de congestão. No exame, B3, turgência jugular, crepitações e edema reforçam insuficiência cardíaca descompensada.</p>
             <div>
-              {evaluation.examLearning.map((item) => <p key={item}><Check />{item}</p>)}
+              {(serverEvaluation?.examLearning ?? []).map((item) => <p key={item}><Check />{item}</p>)}
             </div>
             <aside><ShieldCheck /><span><b>Critério de segurança</b><small>A nota usa apenas perguntas, ações e respostas preenchidas nesta consulta. Exames não solicitados não contam, e imagens só aparecem quando há correspondência clínica e fonte validada.</small></span></aside>
           </section>
@@ -1042,10 +727,7 @@ export default function PatientExperience({
         <div className="consult-tools">
           <button
             className={physical ? "completed" : ""}
-            onClick={() => {
-              setPhysical(true);
-              setPhysicalOpen(true);
-            }}
+            onClick={requestPhysicalExam}
           >
             <Stethoscope /> {physical ? "Exame realizado" : "Exame físico"}
           </button>
@@ -1083,34 +765,15 @@ export default function PatientExperience({
             </button>
             <small>EXAME FÍSICO REALIZADO</small>
             <h2>Achados clínicos</h2>
-            <div className="vitals">
-              <span>
-                <b>158/96</b>
-                <small>PA mmHg</small>
-              </span>
-              <span>
-                <b>104</b>
-                <small>FC bpm</small>
-              </span>
-              <span>
-                <b>24</b>
-                <small>FR irpm</small>
-              </span>
-              <span>
-                <b>92%</b>
-                <small>SpO₂</small>
-              </span>
-            </div>
-            <p>
-              <b>Cardiovascular:</b> ritmo regular, B3 presente, turgência
-              jugular a 45°.
-            </p>
-            <p>
-              <b>Respiratório:</b> crepitações bibasais, sem sibilos.
-            </p>
-            <p>
-              <b>Extremidades:</b> edema bilateral 2+/4+, perfusão preservada.
-            </p>
+            {Object.keys(physicalFindings).length ? (
+              Object.entries(physicalFindings).map(([key, value]) => (
+                <p key={key}>
+                  <b>{key.replace(/_/g, " ")}:</b> {value}
+                </p>
+              ))
+            ) : (
+              <p>Examinando o paciente...</p>
+            )}
             <button className="primary" onClick={() => setPhysicalOpen(false)}>
               Registrar e continuar <ChevronRight />
             </button>
