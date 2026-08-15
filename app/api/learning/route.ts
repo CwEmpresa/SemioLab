@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { CAKTO_CHECKOUT_URLS, isProActive } from "@/lib/pro";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,22 @@ function unauthorized() {
   return Response.json({ error: "Não autenticado" }, { status: 401 });
 }
 
+async function getProStatus(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("plan, status, next_payment_date, canceled_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return {
+    plan: data?.plan ?? "unknown",
+    status: data?.status ?? "none",
+    active: isProActive(data?.status),
+    nextPaymentDate: data?.next_payment_date ?? null,
+    canceledAt: data?.canceled_at ?? null,
+    checkoutUrls: CAKTO_CHECKOUT_URLS,
+  };
+}
+
 export async function GET(request: Request) {
   const supabase = await createClient();
   const {
@@ -15,13 +32,14 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return unauthorized();
 
-  const [profileRes, rankingRes, attemptsRes, errorsRes, topicsRes, loginDaysRes] = await Promise.all([
+  const [profileRes, rankingRes, attemptsRes, errorsRes, topicsRes, loginDaysRes, pro] = await Promise.all([
     supabase.from("profiles").select("name, email, xp").eq("id", user.id).single(),
     supabase.rpc("ranking"),
     supabase.from("quiz_attempts").select("id, topic, total, correct, topic_results, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
     supabase.from("error_notebook").select("id, question_id, topic, question, selected_answer, correct_answer, explanation, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
     supabase.from("topic_activity").select("topic, questions, correct, consultations, reviews, last_activity").eq("user_id", user.id),
     supabase.from("login_days").select("activity_date").eq("user_id", user.id).order("activity_date", { ascending: true }),
+    getProStatus(supabase, user.id),
   ]);
 
   const profile = profileRes.data;
@@ -66,6 +84,7 @@ export async function GET(request: Request) {
       averageScore: questionsTotal > 0 ? Math.round((correctTotal / questionsTotal) * 100) : null,
     },
     loginDays: (loginDaysRes.data || []).map((row) => row.activity_date),
+    pro,
   });
 }
 
@@ -156,6 +175,17 @@ export async function POST(request: Request) {
   }
 
   if (body.action === "patient_result") {
+    // Recurso Pro: protegido no servidor, não só na interface. Um usuário
+    // sem assinatura ativa não consegue gravar atendimentos mesmo
+    // manipulando a chamada diretamente.
+    const pro = await getProStatus(supabase, user.id);
+    if (!pro.active) {
+      return Response.json(
+        { message: "Este recurso é exclusivo do plano Pro.", requiresPro: true, checkoutUrls: pro.checkoutUrls },
+        { status: 403 },
+      );
+    }
+
     const score = Number(body.score) || 0;
     const { error: insertError } = await supabase.from("patient_attempts").insert({
       user_id: user.id,

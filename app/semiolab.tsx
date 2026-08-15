@@ -40,11 +40,20 @@ type MasteryRecord = {
   sources: string[];
   lastActivity: number | null;
 };
+type ProStatus = {
+  plan: "monthly" | "annual" | "unknown";
+  status: string;
+  active: boolean;
+  nextPaymentDate: string | null;
+  canceledAt: string | null;
+  checkoutUrls: { monthly: string; annual: string };
+};
 type LearningSummary = {
   profile?: { xp?: number };
   mastery?: MasteryRecord[];
   stats?: { attempts?: number; questions?: number; correct?: number; consultations?: number; averageScore?: number };
   loginDays?: string[];
+  pro?: ProStatus;
 };
 function useLearningSummary() {
   const [summary, setSummary] = useState<LearningSummary | null>(null);
@@ -332,6 +341,9 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
   const today = useTodayLabel();
   const localWeek = useLocalWeek();
   const { summary: learning } = useLearningSummary();
+  const [proBlocked, setProBlocked] = useState(false);
+  const isPro = !!learning?.pro?.active;
+  const checkoutUrls = learning?.pro?.checkoutUrls;
 
   return (
     <div className="page home-page" ref={pageRef}>
@@ -344,11 +356,21 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
             <small>ACESSO RÁPIDO</small>
             <h3>O que vamos treinar?</h3>
           </header>
-          <button className="next-patient" onClick={() => go("patient")}>
-            <i><Stethoscope /></i>
-            <span><b>Próximo paciente</b><small>Consulta sem pistas · 8–12 min</small></span>
+          <button className="next-patient" onClick={() => (isPro ? go("patient") : setProBlocked(true))}>
+            <i>{isPro ? <Stethoscope /> : <LockKeyhole />}</i>
+            <span><b>Próximo paciente</b><small>{isPro ? "Consulta sem pistas · 8–12 min" : "Recurso Pro · assine para desbloquear"}</small></span>
             <ChevronRight />
           </button>
+          {proBlocked && !isPro && (
+            <div className="pro-inline-lock" role="alert">
+              <p><LockKeyhole /> Atendimento com paciente virtual é um recurso <b>Pro</b>.</p>
+              <div className="pro-inline-actions">
+                {checkoutUrls && <a href={checkoutUrls.monthly} target="_blank" rel="noopener noreferrer">Assinar mensal</a>}
+                {checkoutUrls && <a href={checkoutUrls.annual} target="_blank" rel="noopener noreferrer">Assinar anual</a>}
+                <button type="button" onClick={() => setProBlocked(false)}>Fechar</button>
+              </div>
+            </div>
+          )}
           <div>
             <button onClick={() => go("quiz")}>
               <ClipboardCheck /><span><b>Quiz rápido</b><small>5 questões</small></span>
@@ -828,20 +850,46 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
           <button onClick={() => go("progress")}><b>{profileMastery === null ? "—" : `${profileMastery}%`}</b><small>Domínio real</small></button>
         </div>
       </section>
-      <section className="profile-pro-card">
-        <div className="profile-pro-icon"><Sparkles /></div>
-        <span>
-          <small>SEMIO<span>LAB</span> PRO</small>
-          <h2>Evolua sem limites.</h2>
-          <p>Pacientes virtuais, atlas clínico e simulados ilimitados.</p>
-        </span>
-        <button onClick={() => setPremium(true)}>Conhecer Pro <ChevronRight /></button>
-      </section>
+      {learning?.pro?.active ? (
+        <section className="profile-pro-card profile-pro-card-active">
+          <div className="profile-pro-icon"><BadgeCheck /></div>
+          <span>
+            <small>SEMIO<span>LAB</span> PRO</small>
+            <h2>Assinatura {learning.pro.plan === "annual" ? "anual" : learning.pro.plan === "monthly" ? "mensal" : ""} ativa</h2>
+            <p>{learning.pro.nextPaymentDate ? `Válida até ${new Date(learning.pro.nextPaymentDate).toLocaleDateString("pt-BR")}` : "Acesso completo liberado."}</p>
+          </span>
+        </section>
+      ) : (
+        <section className="profile-pro-card">
+          <div className="profile-pro-icon"><Sparkles /></div>
+          <span>
+            <small>SEMIO<span>LAB</span> PRO</small>
+            <h2>Evolua sem limites.</h2>
+            <p>Pacientes virtuais, atlas clínico e simulados ilimitados.</p>
+          </span>
+          <button onClick={() => setPremium(true)}>Conhecer Pro <ChevronRight /></button>
+        </section>
+      )}
       <section className="profile-settings-block">
         <h3>Conta</h3>
         <div className="profile-settings-list">
           <button onClick={() => openPanel("account")}><Settings /><span><b>Dados da conta</b><small>Nome e formação</small></span><ChevronRight /></button>
-          <button onClick={() => setPremium(true)}><CreditCard /><span><b>Plano e assinatura</b><small>Plano gratuito</small></span><ChevronRight /></button>
+          <button onClick={() => setPremium(true)}>
+            <CreditCard />
+            <span>
+              <b>Plano e assinatura</b>
+              <small>
+                {learning?.pro?.active
+                  ? `Pro ${learning.pro.plan === "annual" ? "anual" : "mensal"} · ativo${learning.pro.nextPaymentDate ? ` até ${new Date(learning.pro.nextPaymentDate).toLocaleDateString("pt-BR")}` : ""}`
+                  : learning?.pro?.status === "canceled"
+                    ? "Assinatura cancelada"
+                    : learning?.pro?.status === "past_due"
+                      ? "Pagamento pendente"
+                      : "Plano gratuito"}
+              </small>
+            </span>
+            <ChevronRight />
+          </button>
           <button onClick={() => go("achievements")}><Award /><span><b>Conquistas</b><small>3 de 18 desbloqueadas</small></span><ChevronRight /></button>
           <div className="profile-setting-row"><Palette /><span><b>Tema</b><small>Aparência do SemioLab</small></span><div className="theme-choice"><button className={theme === "light" ? "active" : ""} onClick={() => setTheme("light")}>Claro</button><button className={theme === "dark" ? "active" : ""} onClick={() => setTheme("dark")}>Escuro</button></div></div>
         </div>
