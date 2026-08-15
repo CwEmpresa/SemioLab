@@ -9,25 +9,50 @@ import {
   Stethoscope,
   UserRound,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+
+type Mode = "signin" | "signup" | "forgot";
 
 type SignIn1Props = {
   onSignIn?: () => void;
 };
 
 const SignIn1 = ({ onSignIn }: SignIn1Props) => {
-  const [mode, setMode] = React.useState<"signin" | "signup">("signin");
+  const [mode, setMode] = React.useState<Mode>("signin");
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [error, setError] = React.useState("");
+  const [notice, setNotice] = React.useState("");
   const [busy, setBusy] = React.useState(false);
 
-  const validateEmail = (value: string) =>
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-  const handleSignIn = (event?: React.FormEvent) => {
+  async function handleSignIn(event?: React.FormEvent) {
     event?.preventDefault();
+    setError("");
+    setNotice("");
+
+    if (mode === "forgot") {
+      if (!email || !validateEmail(email)) {
+        setError("Informe um endereço de e-mail válido.");
+        return;
+      }
+      setBusy(true);
+      const supabase = createClient();
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/confirm`,
+      });
+      setBusy(false);
+      if (resetError) {
+        setError("Não foi possível enviar o e-mail de recuperação. Tente novamente.");
+        return;
+      }
+      setNotice("Enviamos um link de redefinição de senha para o seu e-mail.");
+      return;
+    }
+
     if (!email || !password || (mode === "signup" && (!name || !confirmPassword))) {
       setError("Informe seu e-mail e sua senha.");
       return;
@@ -36,7 +61,6 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
       setError("Informe um endereço de e-mail válido.");
       return;
     }
-
     if (mode === "signup" && password.length < 6) {
       setError("Crie uma senha com pelo menos 6 caracteres.");
       return;
@@ -46,19 +70,52 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
       return;
     }
 
-    setError("");
     setBusy(true);
-    window.setTimeout(() => {
-      if (mode === "signup") {
-        window.localStorage.setItem("semiolab-local-account", JSON.stringify({ name, email }));
+    const supabase = createClient();
+
+    if (mode === "signup") {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name: name.trim() },
+          emailRedirectTo: `${window.location.origin}/auth/confirm`,
+        },
+      });
+      setBusy(false);
+      if (signUpError) {
+        setError(
+          /already registered|already exists/i.test(signUpError.message)
+            ? "Este e-mail já possui uma conta."
+            : "Não foi possível criar sua conta. Tente novamente.",
+        );
+        return;
+      }
+      if (!data.session) {
+        setNotice("Enviamos um e-mail de confirmação. Verifique sua caixa de entrada para ativar sua conta.");
+        return;
       }
       onSignIn?.();
-    }, 450);
-  };
+      return;
+    }
 
-  const switchMode = () => {
-    setMode((current) => current === "signin" ? "signup" : "signin");
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (signInError) {
+      setError(
+        /email not confirmed/i.test(signInError.message)
+          ? "Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada."
+          : "E-mail ou senha incorretos.",
+      );
+      return;
+    }
+    onSignIn?.();
+  }
+
+  const switchMode = (next: Mode) => {
+    setMode(next);
     setError("");
+    setNotice("");
   };
 
   return (
@@ -84,13 +141,17 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
               />
             </div>
             <span className="mb-2 text-[10px] font-extrabold tracking-[0.22em] text-[#65e5d0]">
-              {mode === "signin" ? "BEM-VINDO" : "COMECE AGORA"}
+              {mode === "signin" ? "BEM-VINDO" : mode === "signup" ? "COMECE AGORA" : "RECUPERAR ACESSO"}
             </span>
             <h1 className="text-balance text-[1.75rem] font-semibold leading-none tracking-[-0.045em] text-white sm:text-4xl">
-              {mode === "signin" ? "Entre no SemioLab" : "Crie sua conta grátis"}
+              {mode === "signin" ? "Entre no SemioLab" : mode === "signup" ? "Crie sua conta grátis" : "Esqueci minha senha"}
             </h1>
             <p className="mt-3 max-w-xs text-sm leading-6 text-[#a9bec2]">
-              {mode === "signin" ? "Transforme estudo diário em raciocínio clínico de verdade." : "Tenha seu espaço de estudo, evolução e práticas clínicas em um só lugar."}
+              {mode === "signin"
+                ? "Transforme estudo diário em raciocínio clínico de verdade."
+                : mode === "signup"
+                ? "Tenha seu espaço de estudo, evolução e práticas clínicas em um só lugar."
+                : "Informe seu e-mail para receber um link de redefinição de senha."}
             </p>
           </div>
 
@@ -122,18 +183,20 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
               className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.075] px-5 text-sm text-white outline-none transition placeholder:text-[#82969b] focus:border-[#65e5d0]/50 focus:ring-4 focus:ring-[#35c9b1]/10"
               onChange={(event) => setEmail(event.target.value)}
             />
-            <label className="sr-only" htmlFor="semiolab-password">
-              Senha
-            </label>
-            <input
-              id="semiolab-password"
-              placeholder="Senha"
-              type="password"
-              value={password}
-              autoComplete="current-password"
-              className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.075] px-5 text-sm text-white outline-none transition placeholder:text-[#82969b] focus:border-[#65e5d0]/50 focus:ring-4 focus:ring-[#35c9b1]/10"
-              onChange={(event) => setPassword(event.target.value)}
-            />
+            {mode !== "forgot" && <>
+              <label className="sr-only" htmlFor="semiolab-password">
+                Senha
+              </label>
+              <input
+                id="semiolab-password"
+                placeholder="Senha"
+                type="password"
+                value={password}
+                autoComplete="current-password"
+                className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.075] px-5 text-sm text-white outline-none transition placeholder:text-[#82969b] focus:border-[#65e5d0]/50 focus:ring-4 focus:ring-[#35c9b1]/10"
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </>}
             {mode === "signup" && <>
               <label className="sr-only" htmlFor="semiolab-confirm-password">Confirmar senha</label>
               <input
@@ -147,9 +210,24 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
               />
             </>}
 
+            {mode === "signin" && (
+              <button
+                type="button"
+                onClick={() => switchMode("forgot")}
+                className="-mt-1.5 self-end text-xs font-semibold text-[#8da1a6] underline decoration-white/20 underline-offset-4 hover:text-white"
+              >
+                Esqueci minha senha
+              </button>
+            )}
+
             {error && (
               <div role="alert" className="text-left text-xs text-[#ff9a9a]">
                 {error}
+              </div>
+            )}
+            {notice && (
+              <div className="text-left text-xs text-[#7fe8c9]">
+                {notice}
               </div>
             )}
 
@@ -160,30 +238,35 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
               disabled={busy}
               className="group flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#46d6c1] to-[#22aa98] px-5 text-sm font-extrabold text-[#03110f] shadow-[0_14px_35px_rgba(32,174,154,0.22)] transition hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
             >
-              {busy ? "Preparando seu acesso..." : mode === "signin" ? "Entrar" : "Criar minha conta grátis"}
-              {!busy && (
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setError("O acesso pelo Google será conectado em breve.")}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.055] px-5 text-sm font-semibold text-white shadow-lg transition hover:bg-white/[0.1]"
-            >
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" aria-hidden="true" className="h-5 w-5" />
-              Continuar com Google
+              {busy
+                ? "Processando..."
+                : mode === "signin"
+                ? "Entrar"
+                : mode === "signup"
+                ? "Criar minha conta grátis"
+                : "Enviar link de recuperação"}
+              {!busy && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
             </button>
 
             <div className="mt-1 text-center text-xs text-[#8da1a6]">
-              {mode === "signin" ? "Ainda não tem uma conta?" : "Já possui uma conta?"}{" "}
-              <button
-                type="button"
-                onClick={switchMode}
-                className="font-semibold text-white/90 underline decoration-white/30 underline-offset-4 hover:text-white"
-              >
-                {mode === "signin" ? "Criar conta grátis" : "Entrar"}
-              </button>
+              {mode === "signin" && <>
+                Ainda não tem uma conta?{" "}
+                <button type="button" onClick={() => switchMode("signup")} className="font-semibold text-white/90 underline decoration-white/30 underline-offset-4 hover:text-white">
+                  Criar conta grátis
+                </button>
+              </>}
+              {mode === "signup" && <>
+                Já possui uma conta?{" "}
+                <button type="button" onClick={() => switchMode("signin")} className="font-semibold text-white/90 underline decoration-white/30 underline-offset-4 hover:text-white">
+                  Entrar
+                </button>
+              </>}
+              {mode === "forgot" && <>
+                Lembrou sua senha?{" "}
+                <button type="button" onClick={() => switchMode("signin")} className="font-semibold text-white/90 underline decoration-white/30 underline-offset-4 hover:text-white">
+                  Voltar ao login
+                </button>
+              </>}
             </div>
 
             <div className="mt-1 flex items-center justify-center gap-1.5 border-t border-white/10 pt-4 text-[10px] text-[#73898e]">

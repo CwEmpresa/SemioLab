@@ -11,8 +11,9 @@ import {
 import PatientExperience from "./patient-experience";
 import QuizExperience from "./quiz-experience";
 import RankingExperience, { HomeRankCard } from "./ranking-experience";
-import { SignIn1 } from "@/components/ui/modern-stunning-sign-in";
 import { HeartDashboardHero } from "@/components/ui/heart-dashboard-hero";
+import { useUser } from "./user-context";
+import { createClient } from "@/lib/supabase/client";
 import {
   useScreenTransition, useStaggerReveal, useCountUp, useMasteryBars,
   useStreakPop, useModalEntrance, usePulseGlow, useSidebarReveal, useChartBars,
@@ -68,15 +69,6 @@ const questions = [
   { text:"Qual sinal sugere comprometimento do trato corticoespinhal?", options:["Romberg","Babinski","Lasègue","Murphy"], correct:1, why:"O sinal de Babinski indica disfunção do neurônio motor superior e do trato corticoespinhal." },
   { text:"Macicez à percussão e redução do murmúrio vesicular sugerem:", options:["Pneumotórax","Asma","Derrame pleural","Bronquite"], correct:2, why:"O líquido pleural produz macicez e reduz a transmissão do murmúrio vesicular." },
 ];
-const ranks = [
-  { p:1, n:"Ana Rodrigues", xp:4820, i:"AR" },
-  { p:2, n:"Carlos Mendes", xp:4310, i:"CM" },
-  { p:3, n:"Beatriz Lima",  xp:3950, i:"BL" },
-  { p:4, n:"Diego Costa",   xp:3680, i:"DC" },
-  { p:5, n:"Mariana Alves", xp:3210, i:"MA" },
-  { p:6, n:"Você",          xp:2840, i:"CW", me:true },
-];
-
 /* ─── Logo ──────────────────────────────────────────────────────── */
 function Logo({ small = false }: { small?: boolean }) {
   return (
@@ -87,10 +79,6 @@ function Logo({ small = false }: { small?: boolean }) {
       }
     </div>
   );
-}
-
-function Login({ enter }: { enter: () => void }) {
-  return <SignIn1 onSignIn={enter} />;
 }
 
 const nav = [
@@ -302,17 +290,26 @@ function activityCalendar(days: string[], weekCount = 18) {
   return { active, cells, months, currentStreak, longestStreak };
 }
 
-function Top({ title = "Bom dia, Carlos", go }: { title?: string; go:(s:Screen)=>void }) {
+function greetingFor(name: string) {
+  const hour = new Date().getHours();
+  const period = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+  return `${period}, ${name.split(" ")[0]}`;
+}
+function initialsFor(name: string) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "U";
+}
+function Top({ title, go }: { title?: string; go:(s:Screen)=>void }) {
   const today = useTodayLabel();
+  const user = useUser();
   return (
     <header className="top">
       <div>
         <small>{today}</small>
-        <h2>{title}</h2>
+        <h2>{title || greetingFor(user.name)}</h2>
       </div>
       <div>
         <button><Bell /><i /></button>
-        <button className="avatar" onClick={() => go("profile")}>CW</button>
+        <button className="avatar" onClick={() => go("profile")}>{initialsFor(user.name)}</button>
       </div>
     </header>
   );
@@ -661,41 +658,6 @@ function Progress({ go }: { go:(s:Screen)=>void }) {
   );
 }
 
-/* ─── Ranking ───────────────────────────────────────────────────── */
-export function RankingLegacy({ go }: { go:(s:Screen)=>void }) {
-  const pageRef = useScreenTransition("ranking");
-  const listRef = useStaggerReveal(".rank-list span, .podium span", ["ranking"]);
-  return (
-    <div className="page" ref={pageRef}>
-      <Top title="Ranking semanal" go={go} />
-      <div className="ranking" ref={listRef}>
-        <header>
-          <small>ENCERRA EM 2D 14H</small>
-          <h1>A constância coloca você no pódio.</h1>
-          <p>Somente XP válido conquistado nesta semana.</p>
-        </header>
-        <div className="podium">
-          {[ranks[1],ranks[0],ranks[2]].map((r) => (
-            <span key={r.p} className={`p${r.p}`}>
-              <i>{r.i}</i><b>{r.n.split(" ")[0]}</b>
-              <small>{r.xp.toLocaleString()} XP</small><em>{r.p}</em>
-            </span>
-          ))}
-        </div>
-        <div className="rank-list">
-          {ranks.slice(3).map((r) => (
-            <span key={r.p} className={r.me?"me":""}>
-              <b>{r.p}</b><i>{r.i}</i>
-              <em>{r.n}<small>Nível {r.me?7:9}</small></em>
-              <strong>{r.xp.toLocaleString()} XP</strong>
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ─── Achievements ──────────────────────────────────────────────── */
 function Achievements({ go }: { go:(s:Screen)=>void }) {
   const pageRef = useScreenTransition("achievements");
@@ -737,7 +699,7 @@ function Achievements({ go }: { go:(s:Screen)=>void }) {
 type ProfilePanel = "account"|"preferences"|"support"|null;
 type AppTheme = "light"|"dark";
 
-const defaultProfile = { name:"Carlos Wendel", role:"Estudante de Medicina · Ciclo clínico", email:"aluno@medicina.com" };
+const defaultRole = "Estudante de Medicina · Ciclo clínico";
 const defaultPreferences = { dailyGoal:"20", reminders:true, reminderTime:"19:00", sound:true };
 
 async function prepareProfileImage(file: File) {
@@ -763,6 +725,8 @@ async function prepareProfileImage(file: File) {
 }
 
 function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:()=>void; theme:AppTheme; setTheme:(theme:AppTheme)=>void }) {
+  const user = useUser();
+  const defaultProfile = { name:user.name, role:defaultRole, email:user.email };
   const [premium, setPremium] = useState(false);
   const [proPlan, setProPlan] = useState<"monthly"|"annual">("annual");
   const [panel, setPanel] = useState<ProfilePanel>(null);
@@ -789,11 +753,11 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
 
   useEffect(() => {
     try {
-      const savedProfile = localStorage.getItem("semiolab.profile");
+      const savedRole = localStorage.getItem("semiolab.role");
       const savedPreferences = localStorage.getItem("semiolab.preferences");
       const savedAvatar = localStorage.getItem("semiolab.avatar");
       const savedCover = localStorage.getItem("semiolab.cover");
-      if (savedProfile) { const value = JSON.parse(savedProfile); setProfile(value); setDraft(value); }
+      if (savedRole) { setProfile((p) => ({ ...p, role: savedRole })); setDraft((p) => ({ ...p, role: savedRole })); }
       if (savedPreferences) { const value = JSON.parse(savedPreferences); setPreferences(value); setPreferenceDraft(value); }
       if (savedAvatar) setAvatar(savedAvatar);
       if (savedCover) setCover(savedCover);
@@ -817,8 +781,12 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
     if (!draft.name.trim()) {
       inform("Preencha o nome para continuar."); return;
     }
-    const value = { name:draft.name.trim(), role:draft.role.trim() || defaultProfile.role, email:profile.email };
-    setProfile(value); localStorage.setItem("semiolab.profile", JSON.stringify(value)); setPanel(null); inform("Dados salvos com sucesso.");
+    const value = { name:draft.name.trim(), role:draft.role.trim() || defaultRole, email:profile.email };
+    setProfile(value);
+    localStorage.setItem("semiolab.role", value.role);
+    setPanel(null);
+    createClient().from("profiles").update({ name: value.name }).eq("id", user.id)
+      .then(({ error }) => inform(error ? "Nome salvo localmente, mas houve um erro ao sincronizar." : "Dados salvos com sucesso."));
   };
   const savePreferences = () => {
     setPreferences(preferenceDraft);
@@ -1237,10 +1205,9 @@ export function QuizLegacy({ go }: { go:(s:Screen)=>void }) {
 
 /* ─── Root ──────────────────────────────────────────────────────── */
 export default function SemioLab() {
-  const [logged, setLogged]   = useState(false);
   const [screen, setScreen]   = useState<Screen>("home");
   const [navOpen, setNavOpen] = useState(true);
-  const [checkin, setCheckin] = useState(false);
+  const [checkin, setCheckin] = useState(true);
   const [theme, setThemeState] = useState<AppTheme>("light");
 
   useEffect(() => {
@@ -1252,7 +1219,6 @@ export default function SemioLab() {
     localStorage.setItem("semiolab.theme", theme);
   }, [theme]);
   useEffect(() => {
-    if (!logged) return;
     fetch("/api/learning", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -1265,9 +1231,13 @@ export default function SemioLab() {
       warmEmbedded("auscultation");
     }, 900);
     return () => window.clearTimeout(timer);
-  }, [logged]);
+  }, []);
 
-  if (!logged) return <Login enter={() => { setLogged(true); setCheckin(true); }} />;
+  async function logout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.assign("/");
+  }
 
   const go = (s: Screen) => setScreen(s);
   const view =
@@ -1279,7 +1249,7 @@ export default function SemioLab() {
     screen==="progress"     ? <Progress go={go} /> :
     screen==="ranking"      ? <RankingExperience go={go} /> :
     screen==="achievements" ? <Achievements go={go} /> :
-                              <Profile go={go} logout={() => setLogged(false)} theme={theme} setTheme={setThemeState} />;
+                              <Profile go={go} logout={logout} theme={theme} setTheme={setThemeState} />;
 
   return (
     <main className={`app screen-${screen}`}>
