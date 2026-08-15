@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { CAKTO_CHECKOUT_URLS, isProActive } from "@/lib/pro";
+import { resolveUserAccess } from "@/lib/user-access";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +11,10 @@ function unauthorized() {
 }
 
 async function getProStatus(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const { data } = await supabase
-    .from("subscriptions")
-    .select("plan, status, next_payment_date, canceled_at")
-    .eq("user_id", userId)
-    .maybeSingle();
+  const [{ data }, access] = await Promise.all([
+    supabase.from("subscriptions").select("plan, status, next_payment_date, canceled_at").eq("user_id", userId).maybeSingle(),
+    resolveUserAccess(supabase, userId),
+  ]);
   return {
     plan: data?.plan ?? "unknown",
     status: data?.status ?? "none",
@@ -22,6 +22,9 @@ async function getProStatus(supabase: Awaited<ReturnType<typeof createClient>>, 
     nextPaymentDate: data?.next_payment_date ?? null,
     canceledAt: data?.canceled_at ?? null,
     checkoutUrls: CAKTO_CHECKOUT_URLS,
+    tier: access.tier,
+    trialDaysLeft: access.trialDaysLeft,
+    limits: access.limits,
   };
 }
 

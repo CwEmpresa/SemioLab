@@ -47,6 +47,8 @@ type ProStatus = {
   nextPaymentDate: string | null;
   canceledAt: string | null;
   checkoutUrls: { monthly: string; annual: string };
+  tier: "trial" | "free" | "pro";
+  trialDaysLeft: number;
 };
 type LearningSummary = {
   profile?: { xp?: number };
@@ -341,9 +343,12 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
   const today = useTodayLabel();
   const localWeek = useLocalWeek();
   const { summary: learning } = useLearningSummary();
-  const [proBlocked, setProBlocked] = useState(false);
-  const isPro = !!learning?.pro?.active;
-  const checkoutUrls = learning?.pro?.checkoutUrls;
+  const tier = learning?.pro?.tier;
+  const patientSubtitle =
+    tier === "pro" ? "Consulta sem pistas · 8–12 min" :
+    tier === "trial" ? `Teste grátis · ${learning?.pro?.trialDaysLeft ?? 0}d restantes` :
+    tier === "free" ? "Plano básico · 1 consulta/dia" :
+    "Consulta sem pistas · 8–12 min";
 
   return (
     <div className="page home-page" ref={pageRef}>
@@ -356,21 +361,11 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
             <small>ACESSO RÁPIDO</small>
             <h3>O que vamos treinar?</h3>
           </header>
-          <button className="next-patient" onClick={() => (isPro ? go("patient") : setProBlocked(true))}>
-            <i>{isPro ? <Stethoscope /> : <LockKeyhole />}</i>
-            <span><b>Próximo paciente</b><small>{isPro ? "Consulta sem pistas · 8–12 min" : "Recurso Pro · assine para desbloquear"}</small></span>
+          <button className="next-patient" onClick={() => go("patient")}>
+            <i><Stethoscope /></i>
+            <span><b>Próximo paciente</b><small>{patientSubtitle}</small></span>
             <ChevronRight />
           </button>
-          {proBlocked && !isPro && (
-            <div className="pro-inline-lock" role="alert">
-              <p><LockKeyhole /> Atendimento com paciente virtual é um recurso <b>Pro</b>.</p>
-              <div className="pro-inline-actions">
-                {checkoutUrls && <a href={checkoutUrls.monthly} target="_blank" rel="noopener noreferrer">Assinar mensal</a>}
-                {checkoutUrls && <a href={checkoutUrls.annual} target="_blank" rel="noopener noreferrer">Assinar anual</a>}
-                <button type="button" onClick={() => setProBlocked(false)}>Fechar</button>
-              </div>
-            </div>
-          )}
           <div>
             <button onClick={() => go("quiz")}>
               <ClipboardCheck /><span><b>Quiz rápido</b><small>5 questões</small></span>
@@ -588,6 +583,27 @@ function Study({ go: _go, theme }: { go:(s:Screen)=>void; theme:AppTheme }) {
 /* ─── Auscultation laboratory ─────────────────────────────────── */
 function AuscultationLab({ theme }: { theme:AppTheme }) {
   const pageRef = useScreenTransition("auscultation");
+  const { summary: learning } = useLearningSummary();
+  const tier = learning?.pro?.tier;
+  const allowed = tier === undefined || tier === "trial" || tier === "pro" || learning?.pro?.active;
+  if (learning && !allowed) {
+    return (
+      <div className="page auscultation-lab-page patient-wait" ref={pageRef}>
+        <div className="patient-wait-shade" />
+        <main className="patient-wait-content">
+          <section className="patient-wait-intro">
+            <small><i /> RECURSO PRO</small>
+            <h1>Ausculta clínica é um recurso Pro.</h1>
+            <p>Seu período de teste acabou. Assine para continuar praticando ausculta cardíaca e pulmonar sem limites.</p>
+          </section>
+          <section className="patient-call-panel">
+            {learning?.pro?.checkoutUrls && <a className="primary" href={learning.pro.checkoutUrls.monthly} target="_blank" rel="noopener noreferrer"><span>Assinar mensal</span></a>}
+            {learning?.pro?.checkoutUrls && <a className="primary" href={learning.pro.checkoutUrls.annual} target="_blank" rel="noopener noreferrer"><span>Assinar anual</span></a>}
+          </section>
+        </main>
+      </div>
+    );
+  }
   return (
     <div className="page auscultation-lab-page" ref={pageRef}>
       <EmbeddedFrame

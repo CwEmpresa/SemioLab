@@ -110,7 +110,7 @@ export default function PatientExperience({
     [conduct, setConduct] = useState(""),
     [sessionId, setSessionId] = useState<string | null>(null),
     [caseInfo, setCaseInfo] = useState<{ title: string; specialty: string } | null>(null),
-    [blocked, setBlocked] = useState<{ checkoutUrls: { monthly: string; annual: string } } | null>(null),
+    [blocked, setBlocked] = useState<{ checkoutUrls: { monthly: string; annual: string }; message: string } | null>(null),
     [loadError, setLoadError] = useState(""),
     [finishing, setFinishing] = useState(false),
     [serverEvaluation, setServerEvaluation] = useState<{
@@ -260,8 +260,8 @@ export default function PatientExperience({
     try {
       const response = await fetch("/api/patient/session", { method: "POST" });
       const data = await response.json().catch(() => ({}));
-      if (response.status === 403 && data.requiresPro) {
-        setBlocked({ checkoutUrls: data.checkoutUrls });
+      if (response.status === 403 && data.limitReached) {
+        setBlocked({ checkoutUrls: data.checkoutUrls, message: data.error });
         return;
       }
       if (!response.ok) {
@@ -405,9 +405,9 @@ export default function PatientExperience({
         </header>
         <main className="patient-wait-content">
           <section className="patient-wait-intro">
-            <small><i /> RECURSO PRO</small>
-            <h1>A simulação com paciente-IA é exclusiva do plano Pro.</h1>
-            <p>Assine para conversar com pacientes virtuais gerados por IA, com casos clínicos reais e avaliação de raciocínio, comunicação, diagnóstico e conduta.</p>
+            <small><i /> LIMITE DIÁRIO</small>
+            <h1>{blocked.message}</h1>
+            <p>Assine o Pro para atendimentos e exames sem limite, a qualquer hora.</p>
           </section>
           <section className="patient-call-panel">
             <a className="primary" href={blocked.checkoutUrls.monthly} target="_blank" rel="noopener noreferrer">

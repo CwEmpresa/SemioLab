@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { isProActive, CAKTO_CHECKOUT_URLS } from "@/lib/pro";
+import { CAKTO_CHECKOUT_URLS } from "@/lib/pro";
+import { resolveUserAccess } from "@/lib/user-access";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +12,28 @@ export async function POST() {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
-  const { data: sub } = await supabase.from("subscriptions").select("status").eq("user_id", user.id).maybeSingle();
-  if (!isProActive(sub?.status)) {
+  const access = await resolveUserAccess(supabase, user.id);
+
+  const startOfDay = new Date();
+  startOfDay.setUTCHours(0, 0, 0, 0);
+  const { count: todayCount } = await supabase
+    .from("patient_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("started_at", startOfDay.toISOString());
+
+  if ((todayCount ?? 0) >= access.limits.consultationsPerDay) {
     return Response.json(
-      { error: "Este recurso é exclusivo do plano Pro.", requiresPro: true, checkoutUrls: CAKTO_CHECKOUT_URLS },
+      {
+        error:
+          access.tier === "free"
+            ? "Você atingiu o limite diário de 1 atendimento do plano básico. Volte amanhã ou assine o Pro para atendimentos ilimitados."
+            : "Você atingiu o limite diário de atendimentos do período de teste.",
+        limitReached: true,
+        tier: access.tier,
+        trialDaysLeft: access.trialDaysLeft,
+        checkoutUrls: CAKTO_CHECKOUT_URLS,
+      },
       { status: 403 },
     );
   }
@@ -50,5 +69,9 @@ export async function POST() {
     specialty: chosen.specialty,
     difficulty: chosen.difficulty,
     openingLine: chosen.opening_line,
+    tier: access.tier,
+    trialDaysLeft: access.trialDaysLeft,
+    examsAllowed: access.limits.examsPerConsultation,
   });
 }
+

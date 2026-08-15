@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { isProActive } from "@/lib/pro";
 import { getGeminiClient, GEMINI_MODEL } from "@/lib/gemini";
 import type { HiddenCase } from "@/lib/patient-case-schema";
 
@@ -31,11 +30,6 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
-
-  const { data: sub } = await supabase.from("subscriptions").select("status").eq("user_id", user.id).maybeSingle();
-  if (!isProActive(sub?.status)) {
-    return Response.json({ error: "Este recurso é exclusivo do plano Pro.", requiresPro: true }, { status: 403 });
-  }
 
   const body = (await request.json().catch(() => ({}))) as {
     sessionId?: string;

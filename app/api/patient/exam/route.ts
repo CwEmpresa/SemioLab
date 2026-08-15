@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { isProActive } from "@/lib/pro";
+import { resolveUserAccess } from "@/lib/user-access";
 import type { HiddenCase } from "@/lib/patient-case-schema";
 import { matchExamFindings } from "@/lib/patient-ai-rules";
 
@@ -12,11 +12,6 @@ export async function POST(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
-
-  const { data: sub } = await supabase.from("subscriptions").select("status").eq("user_id", user.id).maybeSingle();
-  if (!isProActive(sub?.status)) {
-    return Response.json({ error: "Este recurso é exclusivo do plano Pro.", requiresPro: true }, { status: 403 });
-  }
 
   const body = (await request.json().catch(() => ({}))) as { sessionId?: string; order?: string; physical?: boolean };
   const sessionId = body.sessionId;
@@ -31,6 +26,31 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (!session || session.status !== "active") {
     return Response.json({ error: "Sessão inválida ou já encerrada." }, { status: 404 });
+  }
+
+  // Exame físico não conta no limite de exames laboratoriais/imagem — é uma
+  // etapa central da anamnese, não um "exame solicitado".
+  if (!wantsPhysical) {
+    const access = await resolveUserAccess(supabase, user.id);
+    const { count: examsUsed } = await supabase
+      .from("patient_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("session_id", sessionId)
+      .eq("role", "exam")
+      .neq("content", "Exame físico realizado");
+    if ((examsUsed ?? 0) >= access.limits.examsPerConsultation) {
+      return Response.json(
+        {
+          error:
+            access.tier === "free"
+              ? "Você atingiu o limite de 1 exame por atendimento do plano básico. Assine o Pro para exames ilimitados."
+              : "Você atingiu o limite de exames deste atendimento no período de teste.",
+          limitReached: true,
+          tier: access.tier,
+        },
+        { status: 403 },
+      );
+    }
   }
 
   const service = createServiceClient();
