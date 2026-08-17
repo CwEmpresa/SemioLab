@@ -89,7 +89,6 @@ export default function PatientExperience({
   const [phase, setPhase] = useState<Phase>("wait"),
     [messages, setMessages] = useState<Message[]>([]),
     [input, setInput] = useState(""),
-    [asked, setAsked] = useState<Record<string, number>>({}),
     [physical, setPhysical] = useState(false),
     [physicalOpen, setPhysicalOpen] = useState(false),
     [physicalFindings, setPhysicalFindings] = useState<Record<string, string>>({}),
@@ -97,7 +96,6 @@ export default function PatientExperience({
     [examText, setExamText] = useState(""),
     [examOrder, setExamOrder] = useState(""),
     [typing, setTyping] = useState(false),
-    [pendingReply, setPendingReply] = useState(""),
     [notes, setNotes] = useState(""),
     [notesOpen, setNotesOpen] = useState(false),
     [history, setHistory] = useState<ConsultHistory[]>([]),
@@ -124,24 +122,34 @@ export default function PatientExperience({
       const saved = window.localStorage.getItem(PATIENT_SESSION_KEY);
       if (saved) {
         const session = JSON.parse(saved);
-        if (session.phase && session.phase !== "result") setPhase(session.phase);
-        if (Array.isArray(session.messages)) {
+        const hasValidSession = typeof session.sessionId === "string" && session.sessionId.length > 0;
+        // Estado antigo (de antes da simulação por IA) ou corrompido: sem
+        // sessionId não há como continuar a conversa — descarta e volta
+        // para a tela de espera, em vez de travar o envio de mensagens.
+        if (session.phase && session.phase !== "result" && (session.phase === "wait" || hasValidSession)) {
+          setPhase(session.phase);
+        }
+        if (hasValidSession) {
+          setSessionId(session.sessionId);
+          if (session.caseInfo) setCaseInfo(session.caseInfo);
+        }
+        if (Array.isArray(session.messages) && (session.phase === "wait" || hasValidSession)) {
           const base = Date.now() - session.messages.length * 60_000;
           setMessages(session.messages.map((message: Message, index: number) => ({
             ...message,
             createdAt: message.createdAt || base + index * 60_000,
           })));
         }
-        if (session.asked) setAsked(session.asked);
-        if (typeof session.input === "string") setInput(session.input);
         if (typeof session.physical === "boolean") setPhysical(session.physical);
         if (typeof session.examText === "string") setExamText(session.examText);
         if (typeof session.examOrder === "string") setExamOrder(session.examOrder);
-        if (typeof session.pendingReply === "string") setPendingReply(session.pendingReply);
         if (typeof session.notes === "string") setNotes(session.notes);
         if (typeof session.hypothesis === "string") setHypothesis(session.hypothesis);
         if (typeof session.differentials === "string") setDifferentials(session.differentials);
         if (typeof session.conduct === "string") setConduct(session.conduct);
+        if (!hasValidSession && session.phase && session.phase !== "wait") {
+          window.localStorage.removeItem(PATIENT_SESSION_KEY);
+        }
       }
       const savedHistory = window.localStorage.getItem(PATIENT_HISTORY_KEY);
       if (savedHistory) {
@@ -162,17 +170,17 @@ export default function PatientExperience({
       return;
     }
     if (phase === "wait" && messages.length === 0) return;
+    if (phase !== "wait" && !sessionId) return;
     window.localStorage.setItem(
       PATIENT_SESSION_KEY,
       JSON.stringify({
         phase,
         messages,
-        asked,
-        input,
+        sessionId,
+        caseInfo,
         physical,
         examText,
         examOrder,
-        pendingReply,
         notes,
         hypothesis,
         differentials,
@@ -183,12 +191,11 @@ export default function PatientExperience({
     restored,
     phase,
     messages,
-    asked,
-    input,
+    sessionId,
+    caseInfo,
     physical,
     examText,
     examOrder,
-    pendingReply,
     notes,
     hypothesis,
     differentials,
@@ -214,16 +221,6 @@ export default function PatientExperience({
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, typing]);
-  useEffect(() => {
-    if (!restored || !pendingReply) return;
-    setTyping(true);
-    const timer = window.setTimeout(() => {
-      setMessages((m) => [...m, { who: "patient", text: pendingReply, createdAt: Date.now() }]);
-      setPendingReply("");
-      setTyping(false);
-    }, 650);
-    return () => window.clearTimeout(timer);
-  }, [restored, pendingReply]);
   const score = serverEvaluation?.score ?? 0,
     level =
       score >= 85
@@ -242,12 +239,10 @@ export default function PatientExperience({
             ? "Alguns dados importantes ficaram de fora."
             : "A consulta terminou antes de reunir dados essenciais.";
   async function start() {
-    setAsked({});
     setTyping(false);
     setPhysical(false);
     setExamOrder("");
     setExamText("");
-    setPendingReply("");
     setHypothesis("");
     setDifferentials("");
     setConduct("");
