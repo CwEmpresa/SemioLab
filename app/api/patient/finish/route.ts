@@ -18,9 +18,38 @@ const EvaluationSchema = z.object({
   examLearning: z.array(z.string()).default([]),
   feedback: z.string().default(""),
 });
+type Evaluation = z.infer<typeof EvaluationSchema>;
+
 function clamp(value: unknown, max: number): number {
   const n = typeof value === "number" && Number.isFinite(value) ? value : 0;
   return Math.max(0, Math.min(max, Math.round(n)));
+}
+
+/** Remove cercas de código markdown (```json ... ``` ou ``` ... ```) que
+ * o modelo às vezes inclui mesmo com responseMimeType "application/json". */
+function stripCodeFences(text: string): string {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return fenced ? fenced[1].trim() : trimmed;
+}
+
+function normalizeEvaluation(raw: unknown): Evaluation {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return EvaluationSchema.parse({
+    score: clamp(r.score, 100),
+    historyScore: clamp(r.historyScore, 30),
+    physicalScore: clamp(r.physicalScore, 15),
+    examsScore: clamp(r.examsScore, 15),
+    reasoningScore: clamp(r.reasoningScore, 40),
+    strengths: Array.isArray(r.strengths) ? r.strengths.slice(0, 8) : [],
+    gaps: Array.isArray(r.gaps) ? r.gaps.slice(0, 8) : [],
+    examLearning: Array.isArray(r.examLearning) ? r.examLearning.slice(0, 8) : [],
+    feedback: typeof r.feedback === "string" ? r.feedback.slice(0, 1200) : "",
+  });
+}
+
+async function revertToActive(service: ReturnType<typeof createServiceClient>, sessionId: string) {
+  await service.from("patient_sessions").update({ status: "active" }).eq("id", sessionId);
 }
 
 export async function POST(request: Request) {
@@ -28,7 +57,7 @@ export async function POST(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
+  if (!user) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
 
   const body = (await request.json().catch(() => ({}))) as {
     sessionId?: string;
@@ -41,7 +70,7 @@ export async function POST(request: Request) {
   const differentials = (body.differentials || "").trim().slice(0, 800);
   const conduct = (body.conduct || "").trim().slice(0, 800);
   if (!sessionId || !hypothesis || !conduct) {
-    return Response.json({ error: "Preencha hipótese e conduta para finalizar." }, { status: 400 });
+    return Response.json({ error: "Preencha hipótese e conduta para finalizar.", code: "MISSING_FIELDS" }, { status: 400 });
   }
 
   const { data: session } = await supabase
@@ -49,22 +78,18 @@ export async function POST(request: Request) {
     .select("id, case_id, status")
     .eq("id", sessionId)
     .maybeSingle();
-  if (!session) {
-    return Response.json({ error: "Sessão inválida." }, { status: 404 });
-  }
+  if (!session) return Response.json({ error: "Sessão inválida.", code: "SESSION_NOT_FOUND" }, { status: 404 });
   if (session.status === "finished") {
-    return Response.json({ error: "Este atendimento já foi finalizado." }, { status: 409 });
+    return Response.json({ error: "Este atendimento já foi finalizado.", code: "ALREADY_FINISHED" }, { status: 409 });
   }
   if (session.status !== "active") {
-    return Response.json({ error: "Sessão inválida ou já encerrada." }, { status: 404 });
+    return Response.json({ error: "Sessão inválida ou já encerrada.", code: "SESSION_NOT_ACTIVE" }, { status: 404 });
   }
 
   const service = createServiceClient();
 
   // Trava atômica contra clique duplo / requisições concorrentes: só quem
-  // conseguir mudar active -> evaluating segue em frente. Se outra
-  // requisição já reivindicou a sessão, aborta sem chamar o Gemini nem
-  // conceder XP de novo.
+  // conseguir mudar active -> evaluating segue em frente.
   const { data: claimed } = await service
     .from("patient_sessions")
     .update({ status: "evaluating" })
@@ -73,7 +98,7 @@ export async function POST(request: Request) {
     .select("id")
     .maybeSingle();
   if (!claimed) {
-    return Response.json({ error: "Este atendimento já está sendo avaliado." }, { status: 409 });
+    return Response.json({ error: "Este atendimento já está sendo avaliado.", code: "ALREADY_EVALUATING" }, { status: 409 });
   }
 
   const [{ data: caseRow }, { data: caseDetails }, { data: historyRows }] = await Promise.all([
@@ -82,9 +107,9 @@ export async function POST(request: Request) {
     service.from("patient_messages").select("role, content").eq("session_id", sessionId).order("created_at", { ascending: true }),
   ]);
   if (!caseDetails || !caseRow) {
-    // reverte a trava para permitir nova tentativa
-    await service.from("patient_sessions").update({ status: "active" }).eq("id", sessionId);
-    return Response.json({ error: "Caso clínico indisponível." }, { status: 500 });
+    await revertToActive(service, sessionId);
+    console.error("[patient/finish] etapa=carregar_caso status=error", { sessionId, code: "CASE_NOT_FOUND" });
+    return Response.json({ error: "Caso clínico indisponível.", code: "CASE_NOT_FOUND" }, { status: 500 });
   }
   const hidden = caseDetails.hidden_case as HiddenCase;
 
@@ -111,12 +136,13 @@ export async function POST(request: Request) {
     "Conduta proposta pelo estudante:",
     conduct,
     "",
-    "Avalie e responda APENAS com um JSON no formato:",
+    "Responda APENAS com um objeto JSON válido, sem markdown, sem cercas de código, no formato exato:",
     '{"score":0-100,"historyScore":0-30,"physicalScore":0-15,"examsScore":0-15,"reasoningScore":0-40,"strengths":["..."],"gaps":["..."],"examLearning":["..."],"feedback":"texto curto em português"}',
     "score deve ser a soma dos quatro sub-escores. Seja justo e educativo, em português do Brasil.",
   ].join("\n");
 
-  let evaluation: z.infer<typeof EvaluationSchema>;
+  // ── Etapa 1: chamada ao Gemini ────────────────────────────────
+  let rawText: string;
   try {
     const ai = getGeminiClient();
     const result = await ai.models.generateContent({
@@ -124,42 +150,61 @@ export async function POST(request: Request) {
       contents: [{ role: "user", parts: [{ text: evalPrompt }] }],
       config: { responseMimeType: "application/json", temperature: 0.3, maxOutputTokens: 900 },
     });
-    const raw = JSON.parse(result.text ?? "{}");
-    evaluation = EvaluationSchema.parse({
-      score: clamp(raw.score, 100),
-      historyScore: clamp(raw.historyScore, 30),
-      physicalScore: clamp(raw.physicalScore, 15),
-      examsScore: clamp(raw.examsScore, 15),
-      reasoningScore: clamp(raw.reasoningScore, 40),
-      strengths: Array.isArray(raw.strengths) ? raw.strengths.slice(0, 8) : [],
-      gaps: Array.isArray(raw.gaps) ? raw.gaps.slice(0, 8) : [],
-      examLearning: Array.isArray(raw.examLearning) ? raw.examLearning.slice(0, 8) : [],
-      feedback: typeof raw.feedback === "string" ? raw.feedback.slice(0, 1200) : "",
-    });
+    rawText = result.text ?? "";
+    if (!rawText.trim()) {
+      throw Object.assign(new Error("Resposta vazia do Gemini"), {
+        finishReason: result.candidates?.[0]?.finishReason ?? null,
+      });
+    }
   } catch (err) {
-    console.error("[patient/finish] erro na avaliação Gemini", err instanceof Error ? err.message : err);
-    // reverte a trava: sem isso, a sessão ficaria presa em "evaluating" e o
-    // estudante nunca conseguiria tentar de novo.
-    await service.from("patient_sessions").update({ status: "active" }).eq("id", sessionId);
-    return Response.json({ error: "Não foi possível avaliar o atendimento agora. Tente novamente." }, { status: 502 });
+    const errObj = err as { message?: string; status?: number; code?: string | number; finishReason?: string } | undefined;
+    console.error("[patient/finish] etapa=chamada_gemini status=error", {
+      sessionId,
+      status: errObj?.status ?? null,
+      code: errObj?.code ?? null,
+      finishReason: errObj?.finishReason ?? null,
+      message: errObj?.message ?? String(err),
+      model: GEMINI_MODEL,
+      geminiApiKeyPresent: Boolean(process.env.GEMINI_API_KEY),
+    });
+    await revertToActive(service, sessionId);
+    return Response.json({ error: "Não foi possível avaliar o atendimento agora. Tente novamente.", code: "GEMINI_ERROR" }, { status: 502 });
   }
 
-  // XP concedido com segurança no servidor: insere em patient_attempts, cuja
-  // trigger apply_patient_xp (já existente no banco) soma XP ao perfil.
-  const { error: insertError } = await service.from("patient_attempts").insert({
-    user_id: user.id,
-    topic: caseRow.specialty,
-    score: evaluation.score,
-    history_score: evaluation.historyScore,
-    physical_score: evaluation.physicalScore,
-    exams_score: evaluation.examsScore,
-    reasoning_score: evaluation.reasoningScore,
-  });
-  if (insertError) {
-    console.error("[patient/finish] erro ao gravar patient_attempts", insertError.message);
+  // ── Etapa 2 e 3: parsing do JSON + validação Zod (com 1 tentativa de reparo) ──
+  let evaluation: Evaluation;
+  try {
+    const cleaned = stripCodeFences(rawText);
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(cleaned);
+    } catch {
+      // 1 tentativa de reparo: pede ao próprio Gemini para corrigir o JSON,
+      // sem alterar os valores.
+      console.error("[patient/finish] etapa=parse_json status=malformed_retry_repair", { sessionId, length: cleaned.length });
+      const ai = getGeminiClient();
+      const repair = await ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: [{ role: "user", parts: [{ text: `Corrija o texto abaixo para ser um JSON válido, mantendo exatamente os mesmos valores e chaves, sem markdown:\n\n${cleaned}` }] }],
+        config: { responseMimeType: "application/json", temperature: 0, maxOutputTokens: 900 },
+      });
+      parsedJson = JSON.parse(stripCodeFences(repair.text ?? "{}"));
+    }
+    evaluation = normalizeEvaluation(parsedJson);
+  } catch (err) {
+    console.error("[patient/finish] etapa=parse_ou_validacao status=error", {
+      sessionId,
+      message: err instanceof Error ? err.message : String(err),
+      rawLength: rawText.length,
+    });
+    await revertToActive(service, sessionId);
+    return Response.json({ error: "A avaliação retornou em formato inválido. Tente novamente.", code: "INVALID_AI_RESPONSE" }, { status: 502 });
   }
 
-  await service
+  // ── Etapa 4: marca a sessão como concluída (feita ANTES do XP: garante
+  // que uma falha na gravação do attempt não deixe a sessão "solta" nem
+  // permita reenvio que duplicaria o XP já concedido) ──────────────
+  const { error: sessionUpdateError } = await service
     .from("patient_sessions")
     .update({
       status: "finished",
@@ -168,7 +213,33 @@ export async function POST(request: Request) {
       xp_awarded: evaluation.score,
       feedback: evaluation,
     })
-    .eq("id", sessionId);
+    .eq("id", sessionId)
+    .eq("status", "evaluating");
+  if (sessionUpdateError) {
+    console.error("[patient/finish] etapa=atualizar_sessao status=error", { sessionId, message: sessionUpdateError.message });
+    await revertToActive(service, sessionId);
+    return Response.json({ error: "Não foi possível salvar o resultado do atendimento.", code: "SESSION_UPDATE_ERROR" }, { status: 500 });
+  }
+
+  // ── Etapa 5: concede XP (só depois que a sessão já está marcada como
+  // concluída — se isto falhar, a sessão permanece "finished" e não pode
+  // ser reenviada, evitando XP duplicado; fica registrado para conciliação) ──
+  const { error: attemptError } = await service.from("patient_attempts").insert({
+    user_id: user.id,
+    topic: caseRow.specialty,
+    score: evaluation.score,
+    history_score: evaluation.historyScore,
+    physical_score: evaluation.physicalScore,
+    exams_score: evaluation.examsScore,
+    reasoning_score: evaluation.reasoningScore,
+  });
+  if (attemptError) {
+    console.error("[patient/finish] etapa=conceder_xp status=error", { sessionId, message: attemptError.message });
+    return Response.json(
+      { error: "Avaliação salva, mas houve um problema ao conceder o XP.", code: "ATTEMPT_INSERT_ERROR" },
+      { status: 500 },
+    );
+  }
 
   return Response.json({ ...evaluation, correctDiagnosis: hidden.diagnosis });
 }
