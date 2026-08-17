@@ -104,13 +104,19 @@ export async function POST(request: Request) {
       contents,
       config: {
         systemInstruction: buildPatientSystemInstruction(hidden, caseRow?.opening_line),
-        maxOutputTokens: 400,
+        maxOutputTokens: 700,
         temperature: 0.8,
+        // Desabilita o orçamento de "pensamento" interno do modelo: numa
+        // resposta curta de paciente simulado ele não ajuda e, pior, pode
+        // consumir parte do maxOutputTokens sem gerar texto visível —
+        // causando respostas cortadas mesmo com um limite generoso.
+        thinkingConfig: { thinkingBudget: 0 },
       },
     });
 
     const encoder = new TextEncoder();
     let fullText = "";
+    let lastFinishReason: string | undefined;
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
@@ -120,16 +126,19 @@ export async function POST(request: Request) {
               fullText += text;
               controller.enqueue(encoder.encode(text));
             }
+            const reason = chunk.candidates?.[0]?.finishReason;
+            if (reason) lastFinishReason = reason;
+          }
+          if (lastFinishReason === "MAX_TOKENS") {
+            // Registrado apenas para diagnóstico — nunca a ficha do caso.
+            console.error("[patient/chat] resposta_truncada", { sessionId, finishReason: lastFinishReason, maxOutputTokens: 700 });
           }
         } catch (err) {
           console.error("[patient/chat] erro no streaming", err instanceof Error ? err.message : err);
         } finally {
-          // Grava a resposta ANTES de fechar o stream: o cliente só considera
-          // o turno concluído (liberando o próximo envio) quando o reader
-          // recebe done=true, que só acontece após controller.close(). Se a
-          // gravação ocorresse depois do close(), a próxima pergunta poderia
-          // ser processada antes desta resposta existir no banco — causando
-          // respostas "atrasadas" (respondendo à pergunta anterior).
+          // Só salva no banco o texto COMPLETO acumulado (fullText), nunca
+          // fragmentos parciais — a gravação só acontece aqui, depois que
+          // todo o streaming terminou.
           await service.from("patient_messages").insert({
             session_id: sessionId,
             role: "patient",

@@ -28,7 +28,12 @@
         "medicacoes": "Toma losartana e furosemida, mas esqueceu a furosemida por 4 dias",
         "comorbidades": "Hipertensão há 15 anos, já teve um problema no coração há 2 anos",
         "dor_toracica": "Não sente dor no peito",
-        "tabagismo": "Nunca fumou"
+        "tabagismo": "Nunca fumou",
+        "alergias": "Não tem alergia a nenhum remédio que ela saiba.",
+        "internacoes_cirurgias": "Já foi internada uma vez há 2 anos por causa do coração.",
+        "historia_familiar": "A mãe também tinha pressão alta; não sabe de outros problemas de coração na família.",
+        "tabagismo_alcool": "Nunca fumou e bebe socialmente, bem raramente.",
+        "medicamentos_em_uso": "Toma losartana e furosemida, mas esqueceu a furosemida por 4 dias"
       },
       "physicalExam": {
         "geral": "Levemente taquipneica, ortopneica",
@@ -129,7 +134,12 @@
         "sintomas_associados": "Suor frio, náusea, falta de ar leve",
         "fatores": "Nada piora nem melhora a dor",
         "antecedentes": "Fumante há 30 anos, diabético, pai teve infarto aos 55",
-        "uso_medicacao": "Não tomou nada"
+        "uso_medicacao": "Não tomou nada",
+        "alergias": "Não tem alergia a remédio nenhum.",
+        "medicamentos_em_uso": "Toma metformina para o diabetes, mas não tomou nada hoje por causa da dor.",
+        "internacoes_cirurgias": "Nunca foi internado nem operado antes.",
+        "historia_familiar": "O pai teve infarto aos 55 anos; não sabe de mais ninguém na família com problema assim.",
+        "tabagismo_alcool": "Fuma cerca de um maço de cigarros por dia há 30 anos e bebe cerveja nos fins de semana."
       },
       "physicalExam": {
         "geral": "Pálido, sudoreico, ansioso",
@@ -205,7 +215,12 @@
         "caracteristica": "Sente o coração batendo irregular e rápido",
         "sintomas_associados": "Tontura leve, cansaço, sem dor no peito",
         "antecedentes": "Hipertensa, já teve um episódio parecido há 1 ano",
-        "habitos": "Bebeu mais café que o normal ontem"
+        "habitos": "Bebeu mais café que o normal ontem",
+        "alergias": "Não tem alergia a nada.",
+        "medicamentos_em_uso": "Toma losartana para a pressão todos os dias.",
+        "internacoes_cirurgias": "Nunca foi internada nem operada.",
+        "historia_familiar": "Não sabe de ninguém na família com problema de coração.",
+        "tabagismo_alcool": "Nunca fumou e não bebe."
       },
       "physicalExam": {
         "geral": "Levemente pálida, orientada",
@@ -283,7 +298,12 @@
         "tosse": "Tosse produtiva, catarro amarelo-esverdeado",
         "dor_toracica": "Dor em pontada no lado direito do peito, piora ao respirar fundo",
         "falta_de_ar": "Um pouco de falta de ar ao caminhar",
-        "antecedentes": "Fumante, sem outras doenças conhecidas"
+        "antecedentes": "Fumante, sem outras doenças conhecidas",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Fuma cerca de um maço por dia há muitos anos, bebe cerveja nos fins de semana."
       },
       "physicalExam": {
         "geral": "Febril, taquipneico leve",
@@ -361,7 +381,12 @@
         "sintomas": "Chiado, aperto no peito, tosse seca",
         "antecedentes": "Asmática desde criança, usa bombinha de resgate às vezes",
         "medicacao": "Usou a bombinha de salbutamol 2 vezes sem melhora completa",
-        "internacoes_previas": "Já foi internada uma vez por crise grave"
+        "internacoes_previas": "Já foi internada uma vez por crise grave",
+        "alergias": "Tem alergia a poeira e a pelo de gato, que pioram muito a asma.",
+        "medicamentos_em_uso": "Usa a bombinha de salbutamol quando sente falta de ar.",
+        "internacoes_cirurgias": "Já foi internada uma vez por uma crise grave de asma.",
+        "historia_familiar": "A mãe também tem asma.",
+        "tabagismo_alcool": "Nunca fumou e não bebe."
       },
       "physicalExam": {
         "geral": "Uso de musculatura acessória, fala frases curtas",
@@ -428,7 +453,12 @@
         "cirurgia_recente": "Fez cirurgia no joelho há 10 dias, ficou muito tempo na cama",
         "dor": "Dor no lado direito do peito, piora ao respirar fundo",
         "perna": "Perna esquerda um pouco inchada e dolorida",
-        "outros_sintomas": "Sensação de coração acelerado"
+        "outros_sintomas": "Sensação de coração acelerado",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Toma sinvastatina para o colesterol.",
+        "internacoes_cirurgias": "Fez cirurgia no joelho há 10 dias; foi a única vez que já foi operado.",
+        "historia_familiar": "Não sabe de ninguém na família com problema de trombose ou coágulo.",
+        "tabagismo_alcool": "Nunca fumou; bebe raramente."
       },
       "physicalExam": {
         "geral": "Ansioso, taquipneico",
@@ -514,7 +544,12 @@
         "sintomas": "Fraqueza no braço e perna direitos, dificuldade para falar",
         "dor_de_cabeca": "Não sente dor de cabeça",
         "antecedentes": "Hipertenso, fibrilação atrial, não toma anticoagulante direito",
-        "outros": "Esposa notou que a boca ficou torta"
+        "outros": "Esposa notou que a boca ficou torta",
+        "alergias": "Não tem alergia a remédio que ele saiba.",
+        "medicamentos_em_uso": "Toma remédio para pressão, mas às vezes esquece do remédio pra afinar o sangue.",
+        "internacoes_cirurgias": "Já foi internado uma vez por causa do coração, não lembra bem quando.",
+        "historia_familiar": "O irmão dele também já teve um derrame.",
+        "tabagismo_alcool": "Fumou muitos anos, parou há 10 anos; bebe uma cerveja de vez em quando."
       },
       "physicalExam": {
         "geral": "Alerta, disartria leve",
@@ -592,7 +627,12 @@
         "fotofobia": "Luz incomoda muito os olhos",
         "rigidez": "Sente o pescoço duro e dolorido ao dobrar",
         "nausea": "Vomitou duas vezes",
-        "confusao": "Está um pouco mais sonolenta que o normal"
+        "confusao": "Está um pouco mais sonolenta que o normal",
+        "alergias": "Não tem alergia a nada.",
+        "medicamentos_em_uso": "Não toma nenhum remédio.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de ninguém na família com doença parecida.",
+        "tabagismo_alcool": "Não fuma; bebe socialmente em festas."
       },
       "physicalExam": {
         "geral": "Sonolenta mas orientada, toxemiada",
@@ -671,7 +711,12 @@
         "perda_urina": "Perdeu urina durante o episódio",
         "antecedentes": "Nunca teve isso antes, sem uso de drogas",
         "privação_sono": "Dormiu pouco essa semana por causa de trabalho",
-        "alcool": "Bebeu bastante no fim de semana"
+        "alcool": "Bebeu bastante no fim de semana",
+        "alergias": "Não tem alergia a nada.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado nem operado.",
+        "historia_familiar": "Não sabe de ninguém na família com epilepsia ou convulsão.",
+        "tabagismo_alcool": "Fuma socialmente e bebe bastante nos fins de semana; bebeu bastante nesse último fim de semana."
       },
       "physicalExam": {
         "geral": "Sonolento, confuso, orientando-se aos poucos",
@@ -758,7 +803,12 @@
         "apetite": "Perdeu o apetite",
         "nausea": "Enjoo e um episódio de vômito",
         "febre": "Febre baixa, 37.8°C",
-        "habito_intestinal": "Não evacua há 1 dia, sem diarreia"
+        "habito_intestinal": "Não evacua há 1 dia, sem diarreia",
+        "alergias": "Não tem alergia a nada.",
+        "medicamentos_em_uso": "Não toma nenhum remédio.",
+        "internacoes_cirurgias": "Nunca foi operado nem internado.",
+        "historia_familiar": "Não sabe de ninguém na família com problema parecido.",
+        "tabagismo_alcool": "Não fuma; bebe socialmente com os amigos."
       },
       "physicalExam": {
         "geral": "Prefere ficar parado, evita movimentos bruscos",
@@ -836,7 +886,12 @@
         "posicao_antalgica": "Melhora um pouco quando se inclina para frente",
         "nausea": "Vômitos repetidos",
         "habitos": "Bebe álcool com frequência, bebeu muito ontem numa festa",
-        "antecedentes": "Nunca teve isso antes"
+        "antecedentes": "Nunca teve isso antes",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado antes.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Fuma às vezes e bebe bastante, principalmente em festas; bebeu bastante ontem."
       },
       "physicalExam": {
         "geral": "Desconfortável, taquicárdico pela dor",
@@ -914,7 +969,12 @@
         "irradiacao": "Vai para a escápula direita",
         "febre": "Febre baixa, 37.9°C",
         "nausea": "Náusea e um vômito",
-        "episodios_previos": "Já teve dores parecidas antes, mais leves, que passavam sozinhas"
+        "episodios_previos": "Já teve dores parecidas antes, mais leves, que passavam sozinhas",
+        "alergias": "Não tem alergia a remédio que ela saiba.",
+        "medicamentos_em_uso": "Toma losartana para a pressão.",
+        "internacoes_cirurgias": "Nunca foi operada.",
+        "historia_familiar": "A mãe também tinha pedra na vesícula.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
       },
       "physicalExam": {
         "geral": "Desconfortável, respiração superficial pela dor",
@@ -991,7 +1051,12 @@
         "dor_lombar": "Dor forte na região lombar direita",
         "febre": "Febre com calafrios, 39°C",
         "nausea": "Um pouco de náusea",
-        "antecedentes": "Já teve infecção urinária outras vezes"
+        "antecedentes": "Já teve infecção urinária outras vezes",
+        "alergias": "Tem alergia a penicilina, dá coceira no corpo todo.",
+        "medicamentos_em_uso": "Não toma remédio contínuo, só quando tem infecção urinária.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
       },
       "physicalExam": {
         "geral": "Febril, com calafrios",
@@ -1076,7 +1141,12 @@
         "hematuria": "Notou sangue na urina",
         "nausea": "Náusea e um vômito por causa da dor",
         "febre": "Sem febre",
-        "antecedentes": "Já teve pedra nos rins uma vez"
+        "antecedentes": "Já teve pedra nos rins uma vez",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado nem operado.",
+        "historia_familiar": "O pai também já teve pedra nos rins.",
+        "tabagismo_alcool": "Fuma às vezes socialmente; bebe cerveja nos fins de semana."
       },
       "physicalExam": {
         "geral": "Muito agitado, não encontra posição confortável",
@@ -1153,7 +1223,12 @@
         "diabetes": "É diabética tipo 1, mas ficou sem aplicar insulina por 3 dias por falta de dinheiro",
         "sintomas": "Sede intensa, fome, emagrecimento recente, hoje com dor abdominal e vômitos",
         "respiracao": "Sente que está respirando muito fundo e rápido",
-        "hálito": "Familiares notaram um hálito diferente, adocicado"
+        "hálito": "Familiares notaram um hálito diferente, adocicado",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Usa insulina, mas ficou sem aplicar nos últimos 3 dias.",
+        "internacoes_cirurgias": "Já foi internada uma vez quando descobriu o diabetes.",
+        "historia_familiar": "O avô também tem diabetes.",
+        "tabagismo_alcool": "Não fuma e não bebe."
       },
       "physicalExam": {
         "geral": "Desidratada, respiração profunda e rápida (Kussmaul)",
@@ -1239,7 +1314,12 @@
         "sintomas": "Cansaço constante, ganho de peso, intolerância ao frio, prisão de ventre",
         "pele_cabelo": "Pele seca, queda de cabelo",
         "menstruacao": "Ciclos menstruais mais irregulares e intensos",
-        "antecedentes": "Mãe tem problema de tireoide"
+        "antecedentes": "Mãe tem problema de tireoide",
+        "alergias": "Não tem alergia a nada.",
+        "medicamentos_em_uso": "Não toma nenhum remédio no momento.",
+        "internacoes_cirurgias": "Nunca foi internada nem operada.",
+        "historia_familiar": "A mãe também tem problema de tireoide.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
       },
       "physicalExam": {
         "geral": "Fala e movimentos um pouco lentificados",
@@ -1325,7 +1405,12 @@
         "pele": "Manchas vermelhas pelo corpo há 1 dia",
         "sangramento": "Notou uma gengiva sangrando um pouco ao escovar os dentes",
         "regiao": "Mora em área com muitos casos de dengue na vizinhança",
-        "hidratacao": "Está bebendo pouca água por causa do mal-estar"
+        "hidratacao": "Está bebendo pouca água por causa do mal-estar",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma; bebe socialmente com os amigos."
       },
       "physicalExam": {
         "geral": "Prova do laço não realizada ainda, exantema presente",
@@ -1401,7 +1486,12 @@
         "porta_entrada": "Teve uma unha encravada infeccionada nesse pé há alguns dias",
         "dor": "Dor e calor local intensos",
         "antecedentes": "Diabético, com histórico de inchaço crônico nas pernas",
-        "progressao": "A vermelhidão está se espalhando"
+        "progressao": "A vermelhidão está se espalhando",
+        "alergias": "Não tem alergia a remédio que ele saiba.",
+        "medicamentos_em_uso": "Toma metformina para o diabetes.",
+        "internacoes_cirurgias": "Nunca foi operado.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Fumou muitos anos, parou faz tempo; bebe raramente."
       },
       "physicalExam": {
         "geral": "Febril, desconfortável ao andar",
@@ -1486,7 +1576,12 @@
         "rigidez_matinal": "Rigidez pela manhã que dura mais de uma hora",
         "simetria": "Os sintomas são simétricos, dos dois lados do corpo",
         "sintomas_gerais": "Cansaço geral, febre baixa ocasional",
-        "antecedentes": "Sem outras doenças conhecidas, tia tem doença autoimune"
+        "antecedentes": "Sem outras doenças conhecidas, tia tem doença autoimune",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Toma só um anti-inflamatório de vez em quando para a dor.",
+        "internacoes_cirurgias": "Nunca foi internada nem operada.",
+        "historia_familiar": "A tia também tem uma doença autoimune.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
       },
       "physicalExam": {
         "geral": "Movimentos cautelosos das mãos, sem sinais de toxemia",
@@ -1573,7 +1668,12 @@
         "menstruacao": "Menstruação muito intensa e prolongada há alguns meses",
         "dieta": "Come pouca carne vermelha",
         "outros": "Vontade estranha de comer gelo às vezes",
-        "sangramento_digestivo": "Nega sangue nas fezes ou fezes escurecidas"
+        "sangramento_digestivo": "Nega sangue nas fezes ou fezes escurecidas",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma e não bebe."
       },
       "physicalExam": {
         "geral": "Palidez cutâneo-mucosa importante",
@@ -1649,7 +1749,12 @@
         "relacao_posicional": "Piora deitado e à noite, melhora sentado",
         "relacao_alimentar": "Piora após refeições gordurosas e café",
         "sintomas_alarme": "Nega dificuldade para engolir, perda de peso ou sangramento",
-        "habitos": "Fumante leve, bebe café em excesso"
+        "habitos": "Fumante leve, bebe café em excesso",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado nem operado.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Fuma um pouco, uns 5 cigarros por dia, e bebe socialmente."
       },
       "physicalExam": {
         "geral": "Bom estado geral",
@@ -1715,7 +1820,12 @@
         "catarro": "Aumento da quantidade de catarro, agora amarelo-esverdeado",
         "falta_de_ar": "Piora importante da falta de ar, mesmo em repouso agora",
         "tabagismo": "Fumou 40 anos, parou há 2 anos",
-        "febre": "Sem febre alta, só um mal-estar geral"
+        "febre": "Sem febre alta, só um mal-estar geral",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Usa a bombinha todos os dias por causa da DPOC.",
+        "internacoes_cirurgias": "Já foi internado duas vezes por piora da DPOC.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Fumou 40 anos, parou há 2; bebe uma cerveja de vez em quando."
       },
       "physicalExam": {
         "geral": "Uso de musculatura acessória, fala frases curtas",

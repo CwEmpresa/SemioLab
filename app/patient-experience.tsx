@@ -322,6 +322,16 @@ export default function PatientExperience({
           return next;
         });
       }
+      // Descarrega quaisquer bytes UTF-8 pendentes no buffer do decoder (ex.:
+      // um caractere acentuado partido entre dois chunks no fim do stream) —
+      // sem isso, o último caractere/palavra podia ficar cortado.
+      full += decoder.decode();
+      setMessages((m) => {
+        const next = [...m];
+        const last = next[next.length - 1];
+        if (last && last.who === "patient" && last.createdAt === createdAt) next[next.length - 1] = { ...last, text: full };
+        return next;
+      });
     } catch {
       setMessages((m) => [...m, { who: "patient", text: "Desculpa, tive um problema para responder.", createdAt: Date.now() }]);
     } finally {
