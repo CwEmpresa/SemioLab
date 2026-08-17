@@ -57,12 +57,15 @@ type ConsultHistory = {
   score: number;
   level: string;
   title: string;
+  patientName: string;
+  patientAge: number;
   hypothesis: string;
   strengths: string[];
   gaps: string[];
   examLearning: string[];
 };
-const PATIENT_SESSION_KEY = "semiolab:patient-session:v2";
+const PATIENT_SESSION_KEY = "semiolab:patient-session:v3";
+const PATIENT_SESSION_VERSION = 3;
 const PATIENT_HISTORY_KEY = "semiolab:consult-history:v1";
 
 function messageTime(timestamp: number) {
@@ -107,7 +110,7 @@ export default function PatientExperience({
     [differentials, setDifferentials] = useState(""),
     [conduct, setConduct] = useState(""),
     [sessionId, setSessionId] = useState<string | null>(null),
-    [caseInfo, setCaseInfo] = useState<{ title: string; specialty: string } | null>(null),
+    [caseInfo, setCaseInfo] = useState<{ title: string; specialty: string; receptionReason: string; patientName: string; patientAge: number } | null>(null),
     [blocked, setBlocked] = useState<{ checkoutUrls: { monthly: string; annual: string }; message: string } | null>(null),
     [loadError, setLoadError] = useState(""),
     [finishing, setFinishing] = useState(false),
@@ -119,19 +122,27 @@ export default function PatientExperience({
 
   useEffect(() => {
     try {
+      // versões antigas (ex.: antes da simulação por IA) usavam outra chave;
+      // remove qualquer resquício para não deixar lixo no navegador.
+      window.localStorage.removeItem("semiolab:patient-session:v2");
       const saved = window.localStorage.getItem(PATIENT_SESSION_KEY);
       if (saved) {
         const session = JSON.parse(saved);
-        const hasValidSession = typeof session.sessionId === "string" && session.sessionId.length > 0;
-        // Estado antigo (de antes da simulação por IA) ou corrompido: sem
-        // sessionId não há como continuar a conversa — descarta e volta
-        // para a tela de espera, em vez de travar o envio de mensagens.
+        const hasValidSession =
+          session.version === PATIENT_SESSION_VERSION &&
+          typeof session.sessionId === "string" &&
+          session.sessionId.length > 0 &&
+          session.caseInfo &&
+          typeof session.caseInfo.receptionReason === "string";
+        // Estado antigo/incompatível ou corrompido: sem sessionId válido não
+        // há como continuar a conversa — descarta e volta para a tela de
+        // espera, em vez de travar o envio de mensagens.
         if (session.phase && session.phase !== "result" && (session.phase === "wait" || hasValidSession)) {
           setPhase(session.phase);
         }
         if (hasValidSession) {
           setSessionId(session.sessionId);
-          if (session.caseInfo) setCaseInfo(session.caseInfo);
+          setCaseInfo(session.caseInfo);
         }
         if (Array.isArray(session.messages) && (session.phase === "wait" || hasValidSession)) {
           const base = Date.now() - session.messages.length * 60_000;
@@ -174,6 +185,7 @@ export default function PatientExperience({
     window.localStorage.setItem(
       PATIENT_SESSION_KEY,
       JSON.stringify({
+        version: PATIENT_SESSION_VERSION,
         phase,
         messages,
         sessionId,
@@ -264,7 +276,13 @@ export default function PatientExperience({
         return;
       }
       setSessionId(data.sessionId);
-      setCaseInfo({ title: data.caseTitle, specialty: data.specialty });
+      setCaseInfo({
+        title: data.caseTitle,
+        specialty: data.specialty,
+        receptionReason: data.receptionReason,
+        patientName: data.patientName,
+        patientAge: data.patientAge,
+      });
       setMessages([{ who: "patient", text: data.openingLine, createdAt: Date.now() }]);
     } catch {
       setLoadError("Não foi possível conectar ao servidor. Tente novamente.");
@@ -370,6 +388,8 @@ export default function PatientExperience({
           score: data.score,
           level: data.score >= 85 ? "Excelente condução" : data.score >= 70 ? "Boa condução" : data.score >= 50 ? "Condução parcial" : "Precisa aprofundar",
           title: caseInfo?.title || "Atendimento",
+          patientName: caseInfo?.patientName || "Paciente",
+          patientAge: caseInfo?.patientAge || 0,
           hypothesis: hypothesis.trim(),
           strengths: data.strengths,
           gaps: data.gaps,
@@ -472,7 +492,7 @@ export default function PatientExperience({
                   <button key={item.id} onClick={() => setSelectedHistory(item)}>
                     <i>{item.score}</i>
                     <span>
-                      <b>Marina Rocha · 54 anos</b>
+                      <b>{item.patientName ? `${item.patientName} · ${item.patientAge} anos` : item.title}</b>
                       <small>{new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(item.finishedAt))}</small>
                     </span>
                     <ChevronRight />
@@ -576,6 +596,8 @@ export default function PatientExperience({
         </main>
       </div>
     );
+  const patientName = caseInfo?.patientName || "Paciente";
+  const patientInitials = patientName.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "P";
   return (
     <div className="consult">
       <header>
@@ -583,10 +605,10 @@ export default function PatientExperience({
           <ArrowLeft />
         </button>
         <div className="patient-chat-identity">
-          <i className="patient-avatar">MR<small /></i>
+          <i className="patient-avatar">{patientInitials}<small /></i>
           <span>
-            <b>Marina Rocha</b>
-            <small>54 anos · online agora</small>
+            <b>{patientName}</b>
+            <small>{caseInfo?.patientAge ? `${caseInfo.patientAge} anos · online agora` : "online agora"}</small>
           </span>
         </div>
         <div className="header-clinical-actions">
@@ -601,8 +623,8 @@ export default function PatientExperience({
       </header>
       <main ref={chatRef}>
         <section className="patient-chat-profile">
-          <i className="patient-profile-avatar">MR<span /></i>
-          <b>Marina Rocha</b>
+          <i className="patient-profile-avatar">{patientInitials}<span /></i>
+          <b>{patientName}</b>
           <small>Consulta simulada · Atendimento em andamento</small>
         </section>
         <div className="chat-day">
@@ -612,7 +634,7 @@ export default function PatientExperience({
           <FileHeart />
           <span>
             <small>MOTIVO INFORMADO NA RECEPÇÃO</small>
-            <p>“Cansaço e falta de ar desde ontem.”</p>
+            <p>“{caseInfo?.receptionReason || "Não informado"}.”</p>
           </span>
         </div>
         {messages.map((m, i) => (
@@ -713,7 +735,7 @@ export default function PatientExperience({
         ))}
         {typing && (
           <div className="msg patient typing-message" aria-label="Paciente digitando">
-            <i>MR</i>
+            <i>{patientInitials}</i>
             <div className="typing-bubble"><span /><span /><span /></div>
           </div>
         )}

@@ -40,7 +40,7 @@ export async function POST() {
 
   const { data: cases, error: casesError } = await supabase
     .from("patient_cases")
-    .select("id, title, specialty, difficulty, opening_line")
+    .select("id, title, specialty, difficulty, opening_line, reception_reason, patient_name, patient_age")
     .eq("is_active", true);
   if (casesError || !cases || cases.length === 0) {
     return Response.json({ error: "Nenhum caso clínico disponível no momento." }, { status: 503 });
@@ -69,6 +69,9 @@ export async function POST() {
     specialty: chosen.specialty,
     difficulty: chosen.difficulty,
     openingLine: chosen.opening_line,
+    receptionReason: chosen.reception_reason,
+    patientName: chosen.patient_name,
+    patientAge: chosen.patient_age,
     tier: access.tier,
     trialDaysLeft: access.trialDaysLeft,
     examsAllowed: access.limits.examsPerConsultation,

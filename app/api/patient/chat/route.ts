@@ -43,11 +43,10 @@ export async function POST(request: Request) {
   }
 
   const service = createServiceClient();
-  const { data: caseDetails } = await service
-    .from("patient_case_details")
-    .select("hidden_case")
-    .eq("case_id", session.case_id)
-    .single();
+  const [{ data: caseDetails }, { data: caseRow }] = await Promise.all([
+    service.from("patient_case_details").select("hidden_case").eq("case_id", session.case_id).single(),
+    service.from("patient_cases").select("opening_line").eq("id", session.case_id).single(),
+  ]);
   if (!caseDetails) return Response.json({ error: "Caso clínico indisponível." }, { status: 500 });
   const hidden = caseDetails.hidden_case as HiddenCase;
 
@@ -70,9 +69,16 @@ export async function POST(request: Request) {
     .eq("session_id", sessionId)
     .order("created_at", { ascending: true });
 
+  // A API do Gemini exige que `contents` comece com o papel "user". A fala
+  // inicial do paciente (role "patient" → "model") já foi mostrada ao
+  // estudante e é dada como contexto pelo systemInstruction, então o
+  // histórico enviado ao modelo começa a partir da 1ª mensagem do estudante.
+  const firstStudentIndex = (historyRows ?? []).findIndex((row) => row.role === "student");
+  const relevantHistory = firstStudentIndex === -1 ? [] : (historyRows ?? []).slice(firstStudentIndex);
+
   let usedChars = 0;
   const contents: { role: "user" | "model"; parts: { text: string }[] }[] = [];
-  for (const row of historyRows ?? []) {
+  for (const row of relevantHistory) {
     if (row.role === "exam") continue; // resultados de exame não entram no diálogo do modelo
     const role = row.role === "student" ? "user" : "model";
     usedChars += row.content.length;
@@ -87,6 +93,7 @@ export async function POST(request: Request) {
   try {
     ai = getGeminiClient();
   } catch {
+    console.error("[patient/chat] gemini_key_check", { geminiApiKeyPresent: Boolean(process.env.GEMINI_API_KEY) });
     return Response.json({ error: "Simulação por IA indisponível no momento." }, { status: 500 });
   }
 
@@ -95,7 +102,7 @@ export async function POST(request: Request) {
       model: GEMINI_MODEL,
       contents,
       config: {
-        systemInstruction: buildPatientSystemInstruction(hidden),
+        systemInstruction: buildPatientSystemInstruction(hidden, caseRow?.opening_line),
         maxOutputTokens: 400,
         temperature: 0.8,
       },
@@ -132,7 +139,17 @@ export async function POST(request: Request) {
 
     return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
   } catch (err) {
-    console.error("[patient/chat] erro ao chamar Gemini", err instanceof Error ? err.message : err);
+    const errObj = err as { message?: string; status?: number; code?: string | number; name?: string } | undefined;
+    console.error("[patient/chat] erro ao chamar Gemini", {
+      name: errObj?.name,
+      status: errObj?.status,
+      code: errObj?.code,
+      message: errObj?.message ?? String(err),
+      model: GEMINI_MODEL,
+      geminiApiKeyPresent: Boolean(process.env.GEMINI_API_KEY),
+      contentsLength: contents.length,
+      firstRole: contents[0]?.role,
+    });
     return Response.json({ error: "Não foi possível obter resposta do paciente agora." }, { status: 502 });
   }
 }

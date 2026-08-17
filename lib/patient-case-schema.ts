@@ -29,6 +29,7 @@ export const PatientCaseSchema = z.object({
   specialty: z.string().min(1),
   difficulty: z.enum(["facil", "moderado", "dificil"]),
   openingLine: z.string().min(1),
+  receptionReason: z.string().min(1),
   isActive: z.boolean().optional().default(true),
   hiddenCase: HiddenCaseSchema,
 });
