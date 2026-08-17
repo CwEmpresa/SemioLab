@@ -116,7 +116,7 @@ export default function PatientExperience({
     [finishing, setFinishing] = useState(false),
     [serverEvaluation, setServerEvaluation] = useState<{
       score: number; historyScore: number; physicalScore: number; examsScore: number; reasoningScore: number;
-      strengths: string[]; gaps: string[]; examLearning: string[]; feedback: string;
+      strengths: string[]; gaps: string[]; examLearning: string[]; feedback: string; correctDiagnosis: string;
     } | null>(null);
   const chatRef = useRef<HTMLElement>(null);
 
@@ -367,7 +367,16 @@ export default function PatientExperience({
     }
   }
   function finishConsult() {
-    if (!hypothesis.trim() || !conduct.trim() || !sessionId || finishing) return;
+    if (finishing) return; // já em andamento — evita disparo duplo, sem precisar de feedback extra
+    if (!hypothesis.trim() || !conduct.trim()) {
+      setLoadError("Preencha a hipótese principal e a conduta inicial para concluir.");
+      return;
+    }
+    if (!sessionId) {
+      setLoadError("Sessão não encontrada. Volte e chame o paciente novamente.");
+      return;
+    }
+    setLoadError("");
     setFinishing(true);
     fetch("/api/patient/finish", {
       method: "POST",
@@ -542,7 +551,7 @@ export default function PatientExperience({
             <span>
               <small>AVALIAÇÃO BASEADA NAS AÇÕES REGISTRADAS</small>
               <h1>{title}</h1>
-              <p><b>{level}</b> · Caso esperado: insuficiência cardíaca descompensada.</p>
+              <p><b>{level}</b> · Caso esperado: {serverEvaluation?.correctDiagnosis || caseInfo?.title || "—"}.</p>
             </span>
           </section>
           <div className="score-breakdown">
@@ -579,7 +588,7 @@ export default function PatientExperience({
           </div>
           <section className="clinical-learning">
             <header><Lightbulb /><span><small>APRENDIZADO DO CASO</small><h2>Como conectar os achados</h2></span></header>
-            <p>Dispneia aos esforços, ortopneia, dispneia paroxística noturna, edema e ganho de peso formam um padrão de congestão. No exame, B3, turgência jugular, crepitações e edema reforçam insuficiência cardíaca descompensada.</p>
+            <p>{serverEvaluation?.feedback || "Reveja os achados que você coletou nesta consulta e compare com o raciocínio clínico esperado para o caso."}</p>
             <div>
               {(serverEvaluation?.examLearning ?? []).map((item) => <p key={item}><Check />{item}</p>)}
             </div>
@@ -898,10 +907,16 @@ export default function PatientExperience({
                 </small>
               </span>
             </div>
-            <button className="primary" disabled={!hypothesis.trim() || !conduct.trim()} onClick={finishConsult}>
-              Finalizar e receber avaliação <ChevronRight />
+            {loadError && (
+              <div role="alert" className="patient-load-error">
+                {loadError}
+                <button type="button" onClick={() => { setLoadError(""); finishConsult(); }}>Tentar novamente</button>
+              </div>
+            )}
+            <button className="primary" disabled={!hypothesis.trim() || !conduct.trim() || finishing} onClick={finishConsult}>
+              {finishing ? "Avaliando consulta..." : <>Finalizar e receber avaliação <ChevronRight /></>}
             </button>
-            {(!hypothesis.trim() || !conduct.trim()) && <p className="finish-required">Preencha a hipótese principal e a conduta inicial para concluir.</p>}
+            {!finishing && (!hypothesis.trim() || !conduct.trim()) && <p className="finish-required">Preencha a hipótese principal e a conduta inicial para concluir.</p>}
           </section>
         </div>
       )}

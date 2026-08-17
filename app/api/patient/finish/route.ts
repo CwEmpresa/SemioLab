@@ -18,7 +18,6 @@ const EvaluationSchema = z.object({
   examLearning: z.array(z.string()).default([]),
   feedback: z.string().default(""),
 });
-
 function clamp(value: unknown, max: number): number {
   const n = typeof value === "number" && Number.isFinite(value) ? value : 0;
   return Math.max(0, Math.min(max, Math.round(n)));
@@ -50,17 +49,43 @@ export async function POST(request: Request) {
     .select("id, case_id, status")
     .eq("id", sessionId)
     .maybeSingle();
-  if (!session || session.status !== "active") {
+  if (!session) {
+    return Response.json({ error: "Sessão inválida." }, { status: 404 });
+  }
+  if (session.status === "finished") {
+    return Response.json({ error: "Este atendimento já foi finalizado." }, { status: 409 });
+  }
+  if (session.status !== "active") {
     return Response.json({ error: "Sessão inválida ou já encerrada." }, { status: 404 });
   }
 
   const service = createServiceClient();
+
+  // Trava atômica contra clique duplo / requisições concorrentes: só quem
+  // conseguir mudar active -> evaluating segue em frente. Se outra
+  // requisição já reivindicou a sessão, aborta sem chamar o Gemini nem
+  // conceder XP de novo.
+  const { data: claimed } = await service
+    .from("patient_sessions")
+    .update({ status: "evaluating" })
+    .eq("id", sessionId)
+    .eq("status", "active")
+    .select("id")
+    .maybeSingle();
+  if (!claimed) {
+    return Response.json({ error: "Este atendimento já está sendo avaliado." }, { status: 409 });
+  }
+
   const [{ data: caseRow }, { data: caseDetails }, { data: historyRows }] = await Promise.all([
     service.from("patient_cases").select("specialty, title").eq("id", session.case_id).single(),
     service.from("patient_case_details").select("hidden_case").eq("case_id", session.case_id).single(),
     service.from("patient_messages").select("role, content").eq("session_id", sessionId).order("created_at", { ascending: true }),
   ]);
-  if (!caseDetails || !caseRow) return Response.json({ error: "Caso clínico indisponível." }, { status: 500 });
+  if (!caseDetails || !caseRow) {
+    // reverte a trava para permitir nova tentativa
+    await service.from("patient_sessions").update({ status: "active" }).eq("id", sessionId);
+    return Response.json({ error: "Caso clínico indisponível." }, { status: 500 });
+  }
   const hidden = caseDetails.hidden_case as HiddenCase;
 
   const transcript = (historyRows ?? [])
@@ -113,6 +138,9 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     console.error("[patient/finish] erro na avaliação Gemini", err instanceof Error ? err.message : err);
+    // reverte a trava: sem isso, a sessão ficaria presa em "evaluating" e o
+    // estudante nunca conseguiria tentar de novo.
+    await service.from("patient_sessions").update({ status: "active" }).eq("id", sessionId);
     return Response.json({ error: "Não foi possível avaliar o atendimento agora. Tente novamente." }, { status: 502 });
   }
 
@@ -142,5 +170,5 @@ export async function POST(request: Request) {
     })
     .eq("id", sessionId);
 
-  return Response.json(evaluation);
+  return Response.json({ ...evaluation, correctDiagnosis: hidden.diagnosis });
 }
