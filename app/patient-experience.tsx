@@ -302,8 +302,7 @@ export default function PatientExperience({
       });
       if (!response.ok || !response.body) {
         const data = await response.json().catch(() => ({}));
-        const debugSuffix = data.debug ? ` [diag: ${JSON.stringify(data.debug)}]` : "";
-        setMessages((m) => [...m, { who: "patient", text: (data.error || "Não consegui responder agora.") + debugSuffix, createdAt: Date.now() }]);
+        setMessages((m) => [...m, { who: "patient", text: data.error || "Não consegui responder agora.", createdAt: Date.now() }]);
         setTyping(false);
         return;
       }

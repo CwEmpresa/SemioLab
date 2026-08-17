@@ -140,25 +140,16 @@ export async function POST(request: Request) {
     return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
   } catch (err) {
     const errObj = err as { message?: string; status?: number; code?: string | number; name?: string } | undefined;
-    const safeDetail = {
-      name: errObj?.name ?? null,
-      status: errObj?.status ?? null,
-      code: errObj?.code ?? null,
-      message: errObj?.message ?? String(err),
-    };
     console.error("[patient/chat] erro ao chamar Gemini", {
-      ...safeDetail,
+      name: errObj?.name,
+      status: errObj?.status,
+      code: errObj?.code,
+      message: errObj?.message ?? String(err),
       model: GEMINI_MODEL,
       geminiApiKeyPresent: Boolean(process.env.GEMINI_API_KEY),
       contentsLength: contents.length,
       firstRole: contents[0]?.role,
     });
-    // Diagnóstico temporário: expõe o erro real (sem a chave) na resposta,
-    // já que não há acesso aos logs do servidor neste momento. Remover após
-    // identificar a causa definitiva.
-    return Response.json(
-      { error: "Não foi possível obter resposta do paciente agora.", debug: safeDetail },
-      { status: 502 },
-    );
+    return Response.json({ error: "Não foi possível obter resposta do paciente agora." }, { status: 502 });
   }
 }
