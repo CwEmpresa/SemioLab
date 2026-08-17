@@ -766,10 +766,11 @@ export default function PatientExperience({
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Faça uma pergunta ao paciente..."
+            onKeyDown={(e) => e.key === "Enter" && !typing && send()}
+            placeholder={typing ? "Aguardando resposta do paciente..." : "Faça uma pergunta ao paciente..."}
+            disabled={typing}
           />
-          <button aria-label="Enviar pergunta" disabled={!input.trim()} onClick={send}>
+          <button aria-label="Enviar pergunta" disabled={!input.trim() || typing} onClick={send}>
             <Send />
           </button>
         </label>

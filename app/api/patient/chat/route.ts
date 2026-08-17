@@ -65,9 +65,10 @@ export async function POST(request: Request) {
 
   const { data: historyRows } = await service
     .from("patient_messages")
-    .select("role, content")
+    .select("id, role, content")
     .eq("session_id", sessionId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
 
   // A API do Gemini exige que `contents` comece com o papel "user". A fala
   // inicial do paciente (role "patient" → "model") já foi mostrada ao
@@ -123,7 +124,12 @@ export async function POST(request: Request) {
         } catch (err) {
           console.error("[patient/chat] erro no streaming", err instanceof Error ? err.message : err);
         } finally {
-          controller.close();
+          // Grava a resposta ANTES de fechar o stream: o cliente só considera
+          // o turno concluído (liberando o próximo envio) quando o reader
+          // recebe done=true, que só acontece após controller.close(). Se a
+          // gravação ocorresse depois do close(), a próxima pergunta poderia
+          // ser processada antes desta resposta existir no banco — causando
+          // respostas "atrasadas" (respondendo à pergunta anterior).
           await service.from("patient_messages").insert({
             session_id: sessionId,
             role: "patient",
@@ -133,6 +139,7 @@ export async function POST(request: Request) {
             .from("patient_sessions")
             .update({ message_count: session.message_count + 1 })
             .eq("id", sessionId);
+          controller.close();
         }
       },
     });
