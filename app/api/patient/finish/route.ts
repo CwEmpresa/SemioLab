@@ -17,8 +17,10 @@ const EvaluationSchema = z.object({
   gaps: z.array(z.string()).default([]),
   examLearning: z.array(z.string()).default([]),
   feedback: z.string().default(""),
+  basic: z.boolean().default(false),
 });
 type Evaluation = z.infer<typeof EvaluationSchema>;
+type HistoryRow = { role: string; content: string };
 
 function clamp(value: unknown, max: number): number {
   const n = typeof value === "number" && Number.isFinite(value) ? value : 0;
@@ -45,11 +47,113 @@ function normalizeEvaluation(raw: unknown): Evaluation {
     gaps: Array.isArray(r.gaps) ? r.gaps.slice(0, 8) : [],
     examLearning: Array.isArray(r.examLearning) ? r.examLearning.slice(0, 8) : [],
     feedback: typeof r.feedback === "string" ? r.feedback.slice(0, 1200) : "",
+    basic: false,
   });
 }
 
 async function revertToActive(service: ReturnType<typeof createServiceClient>, sessionId: string) {
   await service.from("patient_sessions").update({ status: "active" }).eq("id", sessionId);
+}
+
+// ── Avaliação determinística (fallback quando o Gemini está indisponível) ──
+function normalizeText(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function significantWords(s: string): string[] {
+  return normalizeText(s).split(" ").filter((w) => w.length >= 4);
+}
+function anyWordMatches(haystack: string, needle: string): boolean {
+  const hWords = new Set(significantWords(haystack));
+  return significantWords(needle).some((w) => hWords.has(w));
+}
+function overlapRatio(haystack: string, needle: string): number {
+  const hWords = new Set(significantWords(haystack));
+  const nWords = significantWords(needle);
+  if (nWords.length === 0) return 0;
+  return nWords.filter((w) => hWords.has(w)).length / nWords.length;
+}
+
+/** Gera uma avaliação sem IA, baseada na rubrica do caso: quantos
+ * pontos-chave da anamnese foram tocados, se o exame físico foi feito,
+ * quantos exames reais foram solicitados, e o quanto a hipótese/diferenciais
+ * /conduta do estudante têm aderência ao gabarito do caso. Determinística,
+ * reprodutível e sem depender de nenhum serviço externo. */
+function buildDeterministicEvaluation(
+  hidden: HiddenCase,
+  historyRows: HistoryRow[],
+  hypothesis: string,
+  differentials: string,
+  conduct: string,
+): Evaluation {
+  const studentText = historyRows.filter((r) => r.role === "student").map((r) => r.content).join(" \n ");
+
+  const matchedQuestions = hidden.keyQuestions.filter((q) => anyWordMatches(studentText, q)).length;
+  const historyScore = hidden.keyQuestions.length
+    ? Math.round(30 * (matchedQuestions / hidden.keyQuestions.length))
+    : 15;
+
+  const didPhysical = historyRows.some((r) => r.role === "exam" && r.content === "Exame físico realizado");
+  const physicalScore = didPhysical ? 15 : 0;
+
+  const examRequests = historyRows.filter((r) => r.role === "exam" && r.content !== "Exame físico realizado").length;
+  const examsDenominator = Math.max(1, Math.min(hidden.exams.length, 3));
+  const examsScore = Math.round(15 * Math.min(1, examRequests / examsDenominator));
+
+  const studentReasoning = `${hypothesis} ${differentials} ${conduct}`;
+  const idealReasoning = `${hidden.diagnosis} ${hidden.differentials.join(" ")} ${hidden.idealConduct.join(" ")}`;
+  const reasoningRatio = overlapRatio(studentReasoning, idealReasoning);
+  const reasoningScore = Math.round(40 * Math.min(1, reasoningRatio * 1.5));
+
+  const score = clamp(historyScore + physicalScore + examsScore + reasoningScore, 100);
+
+  const strengths: string[] = [];
+  const gaps: string[] = [];
+  if (matchedQuestions > 0) strengths.push(`Você investigou ${matchedQuestions} de ${hidden.keyQuestions.length} pontos-chave esperados na anamnese.`);
+  else gaps.push("Poucos pontos-chave da anamnese foram investigados nesta consulta.");
+  if (didPhysical) strengths.push("Você realizou o exame físico do paciente.");
+  else gaps.push("O exame físico não foi realizado.");
+  if (examRequests > 0) strengths.push("Você solicitou exames complementares durante o atendimento.");
+  else gaps.push("Nenhum exame complementar foi solicitado.");
+  if (reasoningRatio > 0.3) strengths.push("Sua hipótese, diferenciais e conduta têm boa aderência ao caso.");
+  else gaps.push("Hipótese, diferenciais ou conduta pouco alinhados ao esperado para este caso — revise o raciocínio clínico.");
+
+  return {
+    score,
+    historyScore,
+    physicalScore,
+    examsScore,
+    reasoningScore,
+    strengths,
+    gaps,
+    examLearning: [],
+    feedback:
+      "Avaliação básica gerada automaticamente: o serviço de IA está temporariamente indisponível (cota excedida), " +
+      "então esta nota foi calculada a partir dos pontos investigados na consulta, do exame físico, dos exames " +
+      "solicitados e da aderência da sua hipótese e conduta ao caso — sem análise textual do Gemini.",
+    basic: true,
+  };
+}
+
+function isAuthOrKeyError(errObj: { status?: number } | undefined): boolean {
+  return errObj?.status === 401 || errObj?.status === 403;
+}
+/** 429 (cota/rate-limit), 5xx (erro do servidor do Gemini) ou timeout/erro de
+ * rede sem status — todos justificam cair para a avaliação determinística.
+ * Erro de autenticação/chave NUNCA usa fallback (é um problema de
+ * configuração que precisa ser corrigido, não contornado). */
+function isRetryableGeminiError(errObj: { status?: number; name?: string; message?: string } | undefined): boolean {
+  if (isAuthOrKeyError(errObj)) return false;
+  const status = errObj?.status;
+  if (status === 429) return true;
+  if (typeof status === "number" && status >= 500 && status < 600) return true;
+  if (!status && (errObj?.name === "AbortError" || /timeout|network|fetch failed/i.test(errObj?.message || ""))) return true;
+  return false;
 }
 
 export async function POST(request: Request) {
@@ -102,10 +206,9 @@ export async function POST(request: Request) {
 
   if (!claimed) {
     // A trava pode ficar presa em "evaluating" se a função serverless for
-    // encerrada por timeout antes de reverter (ex.: Gemini demorando demais).
-    // Nesse caso, e só nesse caso, uma trava "evaluating" há mais de 2
-    // minutos é considerada órfã e pode ser reivindicada de novo — sem isso
-    // o estudante ficaria permanentemente impedido de finalizar.
+    // encerrada por timeout antes de reverter. Nesse caso, e só nesse caso,
+    // uma trava "evaluating" há mais de 2 minutos é considerada órfã e pode
+    // ser reivindicada de novo.
     const { data: current } = await service
       .from("patient_sessions")
       .select("status, updated_at")
@@ -128,7 +231,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Este atendimento já está sendo avaliado.", code: "ALREADY_EVALUATING" }, { status: 409 });
   }
 
-  const [{ data: caseRow }, { data: caseDetails }, { data: historyRows }] = await Promise.all([
+  const [{ data: caseRow }, { data: caseDetails }, { data: historyRowsRes }] = await Promise.all([
     service.from("patient_cases").select("specialty, title").eq("id", session.case_id).single(),
     service.from("patient_case_details").select("hidden_case").eq("case_id", session.case_id).single(),
     service.from("patient_messages").select("role, content").eq("session_id", sessionId).order("created_at", { ascending: true }),
@@ -139,8 +242,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "Caso clínico indisponível.", code: "CASE_NOT_FOUND" }, { status: 500 });
   }
   const hidden = caseDetails.hidden_case as HiddenCase;
+  const historyRows: HistoryRow[] = historyRowsRes ?? [];
 
-  const transcript = (historyRows ?? [])
+  const transcript = historyRows
     .map((row) => `${row.role === "student" ? "Estudante" : row.role === "patient" ? "Paciente" : "Exame"}: ${row.content}`)
     .join("\n")
     .slice(0, 14000);
@@ -168,8 +272,10 @@ export async function POST(request: Request) {
     "score deve ser a soma dos quatro sub-escores. Seja justo e educativo, em português do Brasil.",
   ].join("\n");
 
-  // ── Etapa 1: chamada ao Gemini ────────────────────────────────
-  let rawText: string;
+  // ── Etapa 1: chamada ao Gemini (com fallback determinístico obrigatório
+  // para 429/5xx/timeout — nunca para erro de autenticação/chave) ────────
+  let evaluation: Evaluation | null = null;
+  let rawText = "";
   try {
     const ai = getGeminiClient();
     const result = await ai.models.generateContent({
@@ -184,7 +290,7 @@ export async function POST(request: Request) {
       });
     }
   } catch (err) {
-    const errObj = err as { message?: string; status?: number; code?: string | number; finishReason?: string } | undefined;
+    const errObj = err as { message?: string; status?: number; code?: string | number; name?: string; finishReason?: string } | undefined;
     console.error("[patient/finish] etapa=chamada_gemini status=error", {
       sessionId,
       status: errObj?.status ?? null,
@@ -194,38 +300,45 @@ export async function POST(request: Request) {
       model: GEMINI_MODEL,
       geminiApiKeyPresent: Boolean(process.env.GEMINI_API_KEY),
     });
-    await revertToActive(service, sessionId);
-    return Response.json({ error: "Não foi possível avaliar o atendimento agora. Tente novamente.", code: "GEMINI_ERROR" }, { status: 502 });
+    if (isRetryableGeminiError(errObj)) {
+      console.error("[patient/finish] etapa=fallback_deterministico status=aplicado", { sessionId, motivo: errObj?.status ?? "timeout" });
+      evaluation = buildDeterministicEvaluation(hidden, historyRows, hypothesis, differentials, conduct);
+    } else {
+      await revertToActive(service, sessionId);
+      return Response.json({ error: "Não foi possível avaliar o atendimento agora. Tente novamente.", code: "GEMINI_ERROR" }, { status: 502 });
+    }
   }
 
-  // ── Etapa 2 e 3: parsing do JSON + validação Zod (com 1 tentativa de reparo) ──
-  let evaluation: Evaluation;
-  try {
-    const cleaned = stripCodeFences(rawText);
-    let parsedJson: unknown;
+  // ── Etapa 2 e 3: parsing do JSON + validação Zod (com 1 tentativa de
+  // reparo) — só roda se a Etapa 1 não já caiu no fallback determinístico ──
+  if (!evaluation) {
     try {
-      parsedJson = JSON.parse(cleaned);
-    } catch {
-      // 1 tentativa de reparo: pede ao próprio Gemini para corrigir o JSON,
-      // sem alterar os valores.
-      console.error("[patient/finish] etapa=parse_json status=malformed_retry_repair", { sessionId, length: cleaned.length });
-      const ai = getGeminiClient();
-      const repair = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: [{ role: "user", parts: [{ text: `Corrija o texto abaixo para ser um JSON válido, mantendo exatamente os mesmos valores e chaves, sem markdown:\n\n${cleaned}` }] }],
-        config: { responseMimeType: "application/json", temperature: 0, maxOutputTokens: 900 },
+      const cleaned = stripCodeFences(rawText);
+      let parsedJson: unknown;
+      try {
+        parsedJson = JSON.parse(cleaned);
+      } catch {
+        // 1 tentativa de reparo: pede ao próprio Gemini para corrigir o JSON,
+        // sem alterar os valores.
+        console.error("[patient/finish] etapa=parse_json status=malformed_retry_repair", { sessionId, length: cleaned.length });
+        const ai = getGeminiClient();
+        const repair = await ai.models.generateContent({
+          model: GEMINI_MODEL,
+          contents: [{ role: "user", parts: [{ text: `Corrija o texto abaixo para ser um JSON válido, mantendo exatamente os mesmos valores e chaves, sem markdown:\n\n${cleaned}` }] }],
+          config: { responseMimeType: "application/json", temperature: 0, maxOutputTokens: 900 },
+        });
+        parsedJson = JSON.parse(stripCodeFences(repair.text ?? "{}"));
+      }
+      evaluation = normalizeEvaluation(parsedJson);
+    } catch (err) {
+      console.error("[patient/finish] etapa=parse_ou_validacao status=error", {
+        sessionId,
+        message: err instanceof Error ? err.message : String(err),
+        rawLength: rawText.length,
       });
-      parsedJson = JSON.parse(stripCodeFences(repair.text ?? "{}"));
+      await revertToActive(service, sessionId);
+      return Response.json({ error: "A avaliação retornou em formato inválido. Tente novamente.", code: "INVALID_AI_RESPONSE" }, { status: 502 });
     }
-    evaluation = normalizeEvaluation(parsedJson);
-  } catch (err) {
-    console.error("[patient/finish] etapa=parse_ou_validacao status=error", {
-      sessionId,
-      message: err instanceof Error ? err.message : String(err),
-      rawLength: rawText.length,
-    });
-    await revertToActive(service, sessionId);
-    return Response.json({ error: "A avaliação retornou em formato inválido. Tente novamente.", code: "INVALID_AI_RESPONSE" }, { status: 502 });
   }
 
   // ── Etapa 4: marca a sessão como concluída (feita ANTES do XP: garante
