@@ -2,9 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { resolveUserAccess } from "@/lib/user-access";
 import type { HiddenCase } from "@/lib/patient-case-schema";
-import { matchExamFindings } from "@/lib/patient-ai-rules";
+import { matchExamFindings, matchCanonicalExamIds } from "@/lib/patient-ai-rules";
 
 export const dynamic = "force-dynamic";
+
+const NOT_AVAILABLE_MESSAGE = "Nenhum exame compatível com esse pedido foi encontrado. Revise o nome do exame solicitado.";
+const ALREADY_REQUESTED_MESSAGE = "Este exame já foi solicitado.";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -27,6 +30,8 @@ export async function POST(request: Request) {
   if (!session || session.status !== "active") {
     return Response.json({ error: "Sessão inválida ou já encerrada." }, { status: 404 });
   }
+
+  const service = createServiceClient();
 
   // Exame físico não conta no limite de exames laboratoriais/imagem — é uma
   // etapa central da anamnese, não um "exame solicitado".
@@ -53,7 +58,6 @@ export async function POST(request: Request) {
     }
   }
 
-  const service = createServiceClient();
   const { data: caseDetails } = await service
     .from("patient_case_details")
     .select("hidden_case")
@@ -73,25 +77,62 @@ export async function POST(request: Request) {
     return Response.json({ physicalExam: hidden.physicalExam });
   }
 
-  const found = matchExamFindings(hidden, order);
+  // IDs canônicos citados no pedido (correspondência exata antes de
+  // qualquer busca aproximada — ver lib/exam-catalog.ts).
+  const requestedIds = matchCanonicalExamIds(order);
+
+  // Impede solicitação duplicada pelo MESMO id canônico: busca todos os
+  // exames já liberados nesta sessão e verifica sobreposição.
+  const { data: pastExamMessages } = await service
+    .from("patient_messages")
+    .select("exam_report")
+    .eq("session_id", sessionId)
+    .eq("role", "exam")
+    .neq("content", "Exame físico realizado");
+  const alreadyRequestedIds = new Set<string>();
+  for (const row of pastExamMessages ?? []) {
+    const ids = (row.exam_report as { examIds?: string[] } | null)?.examIds;
+    ids?.forEach((id) => alreadyRequestedIds.add(id));
+  }
+  const duplicateIds = requestedIds.filter((id) => alreadyRequestedIds.has(id));
+  const newIds = requestedIds.filter((id) => !alreadyRequestedIds.has(id));
+
+  if (requestedIds.length > 0 && newIds.length === 0) {
+    // Todos os exames pedidos já tinham sido solicitados: nenhuma evidência
+    // ou pontuação nova é concedida, e nada é gravado de novo.
+    return Response.json({
+      order,
+      report: { summary: ALREADY_REQUESTED_MESSAGE, labs: [], imaging: [] },
+      duplicate: true,
+    });
+  }
+
+  // Busca no CASO REAL (nunca inventa) só os exames com id novo.
+  const found = matchExamFindings(hidden, order).filter((exam) => exam.examIds.some((id) => newIds.includes(id)));
+
   const report = {
-    summary: found.length
-      ? "Resultados liberados com base no pedido registrado."
-      : "Nenhum exame compatível com esse pedido foi encontrado. Revise o nome do exame solicitado.",
+    summary:
+      found.length > 0
+        ? duplicateIds.length > 0
+          ? "Resultados liberados com base no pedido registrado (um dos exames já havia sido solicitado antes)."
+          : "Resultados liberados com base no pedido registrado."
+        : NOT_AVAILABLE_MESSAGE,
     labs: found
       .filter((e) => e.type === "lab")
       .map((e) => ({ name: e.name, value: e.result, unit: "", reference: "" })),
     imaging: found
       .filter((e) => e.type === "imaging")
-      .map((e) => ({ title: e.name, findings: e.result, comparison: "" })),
+      .map((e) => ({ title: e.name, findings: e.result, comparison: "Sem exame anterior para comparação." })),
   };
 
-  await service.from("patient_messages").insert({
-    session_id: sessionId,
-    role: "exam",
-    content: order,
-    exam_report: report,
-  });
+  if (found.length > 0) {
+    await service.from("patient_messages").insert({
+      session_id: sessionId,
+      role: "exam",
+      content: order,
+      exam_report: { ...report, examIds: found.flatMap((e) => e.examIds) },
+    });
+  }
 
   return Response.json({ order, report });
 }

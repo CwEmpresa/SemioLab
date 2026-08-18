@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const ExamFindingSchema = z.object({
-  keywords: z.array(z.string()).min(1),
+  examIds: z.array(z.string()).min(1),
   name: z.string(),
   result: z.string(),
   type: z.enum(["lab", "imaging"]),

@@ -1,4 +1,5 @@
 import type { HiddenCase } from "./patient-case-schema";
+import { EXAM_CATALOG } from "./exam-catalog";
 
 export const MAX_STUDENT_MESSAGES_PER_SESSION = 20;
 export const MAX_MESSAGE_LENGTH = 500;
@@ -74,24 +75,52 @@ export const INJECTION_DEFLECTION =
   "Desculpa, doutor(a), não entendi bem a pergunta. Pode reformular de um jeito mais direto?";
 
 /** Busca exames do caso cujas palavras-chave batem com o pedido do estudante. */
-export function matchExamFindings(hidden: HiddenCase, orderText: string) {
-  const normalized = orderText
+function normalizeExamText(s: string): string {
+  return s
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return hidden.exams.filter((exam) =>
-    exam.keywords.some((keyword) => {
-      const normalizedKeyword = keyword
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9\s]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-      return normalized.includes(normalizedKeyword);
-    }),
-  );
+}
+
+/** Identifica os IDs canônicos de exame citados no pedido do estudante,
+ * usando SEMPRE correspondência exata (frase inteira normalizada) antes de
+ * qualquer busca aproximada — nunca por uma palavra solta como "tomografia"
+ * ou "crânio". A busca aproximada respeita `excludeIfContains`, para que um
+ * exame "simples" nunca capture por engano um pedido de um exame diferente
+ * (ex.: TC sem contraste nunca responde a um pedido de Angio-TC). */
+export function matchCanonicalExamIds(orderText: string): string[] {
+  const normalized = normalizeExamText(orderText);
+  const matched = new Set<string>();
+
+  // Passo 1: correspondência EXATA (a frase inteira do pedido bate com um
+  // alias inteiro do catálogo).
+  for (const entry of EXAM_CATALOG) {
+    if (entry.aliases.some((alias) => normalizeExamText(alias) === normalized)) {
+      matched.add(entry.id);
+    }
+  }
+  if (matched.size > 0) return Array.from(matched);
+
+  // Passo 2 (só roda se nada bateu exatamente): busca aproximada por trecho
+  // com limite de palavra, pulando exames cujas palavras de exclusão
+  // apareçam no pedido (ex.: "angio" nunca casa com TC simples).
+  for (const entry of EXAM_CATALOG) {
+    if (entry.excludeIfContains?.some((word) => normalized.includes(normalizeExamText(word)))) continue;
+    const hit = entry.aliases.some((alias) => (` ${normalized} `).includes(` ${normalizeExamText(alias)} `));
+    if (hit) matched.add(entry.id);
+  }
+  return Array.from(matched);
+}
+
+/** Busca no CASO REAL (nunca inventa) os exames cujos examIds foram citados
+ * no pedido do estudante. Cada resultado retornado vem do exame cadastrado
+ * neste caso clínico — se o exame não estiver disponível neste caso,
+ * simplesmente não aparece (nada é inventado). */
+export function matchExamFindings(hidden: HiddenCase, orderText: string) {
+  const requestedIds = new Set(matchCanonicalExamIds(orderText));
+  if (requestedIds.size === 0) return [];
+  return hidden.exams.filter((exam) => exam.examIds.some((id) => requestedIds.has(id)));
 }

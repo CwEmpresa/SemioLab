@@ -44,52 +44,44 @@
       },
       "exams": [
         {
-          "keywords": [
-            "raio x",
-            "radiografia",
-            "rx torax"
-          ],
           "name": "Radiografia de tórax",
           "result": "Cardiomegalia, redistribuição vascular para ápices, pequeno derrame pleural bilateral",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ]
         },
         {
-          "keywords": [
-            "ecg",
-            "eletrocardiograma"
-          ],
           "name": "ECG",
           "result": "Ritmo sinusal, sobrecarga ventricular esquerda, sem sinais de isquemia aguda",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "ecg"
+          ]
         },
         {
-          "keywords": [
-            "bnp",
-            "peptideo natriuretico"
-          ],
           "name": "BNP",
           "result": "980 pg/mL (elevado)",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "bnp"
+          ]
         },
         {
-          "keywords": [
-            "ecocardiograma",
-            "eco"
-          ],
           "name": "Ecocardiograma",
           "result": "FEVE 32%, hipocinesia global, disfunção sistólica moderada a grave",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "ecocardiograma"
+          ]
         },
         {
-          "keywords": [
-            "creatinina",
-            "funcao renal",
-            "ureia",
-            "eletrolitos"
-          ],
           "name": "Função renal e eletrólitos",
           "result": "Creatinina 1.3, sódio 137, potássio 4.2",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "funcao_renal_eletrolitos"
+          ]
         }
       ],
       "idealConduct": [
@@ -149,30 +141,28 @@
       },
       "exams": [
         {
-          "keywords": [
-            "ecg",
-            "eletrocardiograma"
-          ],
           "name": "ECG",
           "result": "Supradesnivelamento de ST de 3mm em parede anterior (V1-V4)",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "ecg"
+          ]
         },
         {
-          "keywords": [
-            "troponina"
-          ],
           "name": "Troponina",
           "result": "Elevada, 3x o limite superior",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "troponina"
+          ]
         },
         {
-          "keywords": [
-            "raio x",
-            "radiografia"
-          ],
           "name": "Radiografia de tórax",
           "result": "Sem alterações agudas, área cardíaca normal",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ]
         }
       ],
       "idealConduct": [
@@ -230,31 +220,28 @@
       },
       "exams": [
         {
-          "keywords": [
-            "ecg",
-            "eletrocardiograma"
-          ],
           "name": "ECG",
           "result": "Fibrilação atrial com resposta ventricular em torno de 140bpm, ausência de onda P",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "ecg"
+          ]
         },
         {
-          "keywords": [
-            "tsh",
-            "hormonio tireoidiano",
-            "tireoide"
-          ],
           "name": "TSH",
           "result": "Normal",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "tsh"
+          ]
         },
         {
-          "keywords": [
-            "hemograma"
-          ],
           "name": "Hemograma",
           "result": "Sem anemia, sem leucocitose",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
         }
       ],
       "idealConduct": [
@@ -313,31 +300,28 @@
       },
       "exams": [
         {
-          "keywords": [
-            "raio x",
-            "radiografia",
-            "rx torax"
-          ],
           "name": "Radiografia de tórax",
           "result": "Consolidação em lobo inferior direito",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ]
         },
         {
-          "keywords": [
-            "hemograma"
-          ],
           "name": "Hemograma",
           "result": "Leucocitose com desvio à esquerda (18.000, 85% neutrófilos)",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
         },
         {
-          "keywords": [
-            "pcr",
-            "proteina c reativa"
-          ],
           "name": "PCR",
           "result": "Elevada, 120 mg/L",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "pcr"
+          ]
         }
       ],
       "idealConduct": [
@@ -396,21 +380,20 @@
       },
       "exams": [
         {
-          "keywords": [
-            "raio x",
-            "radiografia"
-          ],
           "name": "Radiografia de tórax",
           "result": "Hiperinsuflação leve, sem consolidações",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ]
         },
         {
-          "keywords": [
-            "gasometria"
-          ],
           "name": "Gasometria arterial",
           "result": "pH 7.42, pCO2 38, leve hipoxemia",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "gasometria_arterial"
+          ]
         }
       ],
       "idealConduct": [
@@ -468,40 +451,36 @@
       },
       "exams": [
         {
-          "keywords": [
-            "d-dimero",
-            "dimero"
-          ],
           "name": "D-dímero",
           "result": "Muito elevado",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "d_dimero"
+          ]
         },
         {
-          "keywords": [
-            "angiotomografia",
-            "tomografia de torax",
-            "tc torax"
-          ],
           "name": "AngioTC de tórax",
           "result": "Falha de enchimento em artéria pulmonar direita, compatível com TEP",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "cta_chest"
+          ]
         },
         {
-          "keywords": [
-            "ecg",
-            "eletrocardiograma"
-          ],
           "name": "ECG",
           "result": "Taquicardia sinusal, padrão S1Q3T3",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "ecg"
+          ]
         },
         {
-          "keywords": [
-            "gasometria"
-          ],
           "name": "Gasometria arterial",
           "result": "Hipoxemia com alcalose respiratória",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "gasometria_arterial"
+          ]
         }
       ],
       "idealConduct": [
@@ -558,31 +537,28 @@
       },
       "exams": [
         {
-          "keywords": [
-            "tomografia",
-            "tc cranio",
-            "tc de cranio"
-          ],
           "name": "TC de crânio sem contraste",
           "result": "Sem sinais de sangramento agudo, sem sinais precoces extensos de isquemia",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "ct_head_noncontrast"
+          ]
         },
         {
-          "keywords": [
-            "glicemia"
-          ],
           "name": "Glicemia capilar",
           "result": "110 mg/dL, normal",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "glicemia_capilar"
+          ]
         },
         {
-          "keywords": [
-            "ecg",
-            "eletrocardiograma"
-          ],
           "name": "ECG",
           "result": "Fibrilação atrial",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "ecg"
+          ]
         }
       ],
       "idealConduct": [
@@ -642,31 +618,28 @@
       },
       "exams": [
         {
-          "keywords": [
-            "punção lombar",
-            "liquor",
-            "lcr"
-          ],
           "name": "Líquor (punção lombar)",
           "result": "Turvo, pressão elevada, muitos leucócitos (predomínio neutrofílico), glicose baixa, proteína alta",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "liquor_puncao_lombar"
+          ]
         },
         {
-          "keywords": [
-            "hemograma"
-          ],
           "name": "Hemograma",
           "result": "Leucocitose importante com desvio à esquerda",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
         },
         {
-          "keywords": [
-            "tomografia",
-            "tc cranio"
-          ],
           "name": "TC de crânio",
           "result": "Sem lesões expansivas, sem contraindicação para punção lombar",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "ct_head_noncontrast"
+          ]
         }
       ],
       "idealConduct": [
@@ -726,40 +699,36 @@
       },
       "exams": [
         {
-          "keywords": [
-            "glicemia"
-          ],
           "name": "Glicemia capilar",
           "result": "92 mg/dL, normal",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "glicemia_capilar"
+          ]
         },
         {
-          "keywords": [
-            "eletroliltos",
-            "sodio",
-            "potassio"
-          ],
           "name": "Eletrólitos",
           "result": "Normais",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "eletrolitos"
+          ]
         },
         {
-          "keywords": [
-            "tomografia",
-            "tc cranio"
-          ],
           "name": "TC de crânio",
           "result": "Sem lesões estruturais agudas",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "ct_head_noncontrast"
+          ]
         },
         {
-          "keywords": [
-            "eletroencefalograma",
-            "eeg"
-          ],
           "name": "Eletroencefalograma",
           "result": "Descargas epileptiformes intermitentes, sem status",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "eletroencefalograma"
+          ]
         }
       ],
       "idealConduct": [
@@ -817,32 +786,29 @@
       },
       "exams": [
         {
-          "keywords": [
-            "hemograma"
-          ],
           "name": "Hemograma",
           "result": "Leucocitose leve a moderada com desvio à esquerda",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
         },
         {
-          "keywords": [
-            "ultrassom",
-            "usg abdome",
-            "tomografia abdome"
-          ],
           "name": "Ultrassonografia/TC de abdome",
           "result": "Apêndice espessado, com líquido periapendicular, compatível com apendicite aguda",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "us_tc_abdome_apendicite",
+            "ct_abdome_noncontrast"
+          ]
         },
         {
-          "keywords": [
-            "urina",
-            "eas",
-            "sumario de urina"
-          ],
           "name": "Exame de urina",
           "result": "Sem alterações significativas",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "urina_eas"
+          ]
         }
       ],
       "idealConduct": [
@@ -900,32 +866,28 @@
       },
       "exams": [
         {
-          "keywords": [
-            "amilase",
-            "lipase"
-          ],
           "name": "Amilase e lipase",
           "result": "Lipase 5x acima do limite superior",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "amilase_lipase"
+          ]
         },
         {
-          "keywords": [
-            "tomografia",
-            "tc abdome"
-          ],
           "name": "TC de abdome",
           "result": "Pâncreas edemaciado com borramento da gordura peripancreática, sem necrose evidente",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "ct_abdome_noncontrast"
+          ]
         },
         {
-          "keywords": [
-            "hepatico",
-            "transaminases",
-            "bilirrubina"
-          ],
           "name": "Função hepática",
           "result": "Leve elevação de transaminases, bilirrubinas normais",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "funcao_hepatica"
+          ]
         }
       ],
       "idealConduct": [
@@ -983,31 +945,28 @@
       },
       "exams": [
         {
-          "keywords": [
-            "ultrassom",
-            "usg abdome"
-          ],
           "name": "Ultrassonografia de abdome",
           "result": "Vesícula biliar com paredes espessadas, cálculos no seu interior, líquido perivesicular",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "us_abdome"
+          ]
         },
         {
-          "keywords": [
-            "hemograma"
-          ],
           "name": "Hemograma",
           "result": "Leucocitose leve",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
         },
         {
-          "keywords": [
-            "hepatico",
-            "bilirrubina",
-            "transaminases"
-          ],
           "name": "Função hepática",
           "result": "Discretamente alterada, sem sinais de obstrução biliar franca",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "funcao_hepatica"
+          ]
         }
       ],
       "idealConduct": [
@@ -1065,39 +1024,36 @@
       },
       "exams": [
         {
-          "keywords": [
-            "urina",
-            "eas",
-            "sumario de urina"
-          ],
           "name": "Exame de urina (EAS)",
           "result": "Piúria intensa, bacteriúria, nitrito positivo",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "urina_eas"
+          ]
         },
         {
-          "keywords": [
-            "urocultura"
-          ],
           "name": "Urocultura",
           "result": "Em andamento, colhida antes do antibiótico",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "urocultura"
+          ]
         },
         {
-          "keywords": [
-            "hemograma"
-          ],
           "name": "Hemograma",
           "result": "Leucocitose com desvio à esquerda",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
         },
         {
-          "keywords": [
-            "ultrassom",
-            "usg rins"
-          ],
           "name": "Ultrassonografia de rins e vias urinárias",
           "result": "Rim direito discretamente aumentado, sem sinais de obstrução",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "us_rins_vias_urinarias"
+          ]
         }
       ],
       "idealConduct": [
@@ -1155,32 +1111,28 @@
       },
       "exams": [
         {
-          "keywords": [
-            "urina",
-            "eas"
-          ],
           "name": "Exame de urina",
           "result": "Hematúria presente, sem sinais claros de infecção",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "urina_eas"
+          ]
         },
         {
-          "keywords": [
-            "tomografia",
-            "tc abdome",
-            "urotomografia"
-          ],
           "name": "TC de abdome sem contraste (urotomografia)",
           "result": "Cálculo de 6mm em ureter esquerdo com discreta dilatação pielocalicial",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "ct_abdome_urotomografia"
+          ]
         },
         {
-          "keywords": [
-            "creatinina",
-            "funcao renal"
-          ],
           "name": "Função renal",
           "result": "Normal",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "funcao_renal"
+          ]
         }
       ],
       "idealConduct": [
@@ -1238,40 +1190,36 @@
       },
       "exams": [
         {
-          "keywords": [
-            "glicemia"
-          ],
           "name": "Glicemia",
           "result": "480 mg/dL",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "glicemia_capilar"
+          ]
         },
         {
-          "keywords": [
-            "gasometria"
-          ],
           "name": "Gasometria arterial",
           "result": "Acidose metabólica com pH 7.18, bicarbonato baixo",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "gasometria_arterial"
+          ]
         },
         {
-          "keywords": [
-            "cetonas",
-            "cetonuria",
-            "cetonemia"
-          ],
           "name": "Cetonas (sangue/urina)",
           "result": "Cetonúria e cetonemia fortemente positivas",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "cetonas"
+          ]
         },
         {
-          "keywords": [
-            "eletrolitos",
-            "potassio",
-            "sodio"
-          ],
           "name": "Eletrólitos",
           "result": "Potássio inicialmente normal-alto, sódio corrigido baixo",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "eletrolitos"
+          ]
         }
       ],
       "idealConduct": [
@@ -1330,38 +1278,36 @@
       },
       "exams": [
         {
-          "keywords": [
-            "tsh"
-          ],
           "name": "TSH",
           "result": "Muito elevado",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "tsh"
+          ]
         },
         {
-          "keywords": [
-            "t4",
-            "tiroxina"
-          ],
           "name": "T4 livre",
           "result": "Baixo",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "t4_livre"
+          ]
         },
         {
-          "keywords": [
-            "hemograma"
-          ],
           "name": "Hemograma",
           "result": "Discreta anemia normocítica",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
         },
         {
-          "keywords": [
-            "colesterol",
-            "lipidograma"
-          ],
           "name": "Perfil lipídico",
           "result": "Colesterol total elevado",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "perfil_lipidico"
+          ]
         }
       ],
       "idealConduct": [
@@ -1420,30 +1366,28 @@
       },
       "exams": [
         {
-          "keywords": [
-            "hemograma"
-          ],
           "name": "Hemograma",
           "result": "Plaquetas 95.000 (baixas), leucopenia leve",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
         },
         {
-          "keywords": [
-            "dengue",
-            "sorologia",
-            "antigeno ns1"
-          ],
           "name": "Antígeno NS1/sorologia para dengue",
           "result": "NS1 positivo",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "sorologia_dengue"
+          ]
         },
         {
-          "keywords": [
-            "hematocrito"
-          ],
           "name": "Hematócrito",
           "result": "Discretamente elevado em relação ao basal",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "hematocrito"
+          ]
         }
       ],
       "idealConduct": [
@@ -1501,38 +1445,36 @@
       },
       "exams": [
         {
-          "keywords": [
-            "hemograma"
-          ],
           "name": "Hemograma",
           "result": "Leucocitose com desvio à esquerda",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
         },
         {
-          "keywords": [
-            "pcr",
-            "proteina c reativa"
-          ],
           "name": "PCR",
           "result": "Elevada",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "pcr"
+          ]
         },
         {
-          "keywords": [
-            "glicemia"
-          ],
           "name": "Glicemia",
           "result": "220 mg/dL, descompensada",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "glicemia_capilar"
+          ]
         },
         {
-          "keywords": [
-            "doppler",
-            "ultrassom venoso"
-          ],
           "name": "Doppler venoso de membro inferior",
           "result": "Sem sinais de trombose venosa profunda",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "doppler_venoso_mmii"
+          ]
         }
       ],
       "idealConduct": [
@@ -1591,40 +1533,36 @@
       },
       "exams": [
         {
-          "keywords": [
-            "fator reumatoide"
-          ],
           "name": "Fator reumatoide",
           "result": "Positivo em título alto",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "fator_reumatoide"
+          ]
         },
         {
-          "keywords": [
-            "anti-ccp",
-            "anti ccp",
-            "peptideo citrulinado"
-          ],
           "name": "Anti-CCP",
           "result": "Positivo",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "anti_ccp"
+          ]
         },
         {
-          "keywords": [
-            "pcr",
-            "vhs"
-          ],
           "name": "PCR e VHS",
           "result": "Ambos elevados, indicando atividade inflamatória",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "pcr_vhs"
+          ]
         },
         {
-          "keywords": [
-            "raio x maos",
-            "radiografia de maos"
-          ],
           "name": "Radiografia de mãos",
           "result": "Discretas erosões periarticulares iniciais",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "rx_maos"
+          ]
         }
       ],
       "idealConduct": [
@@ -1683,29 +1621,28 @@
       },
       "exams": [
         {
-          "keywords": [
-            "hemograma"
-          ],
           "name": "Hemograma",
           "result": "Hemoglobina 8.2, VCM baixo (microcítica), HCM baixo (hipocrômica)",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
         },
         {
-          "keywords": [
-            "ferritina"
-          ],
           "name": "Ferritina",
           "result": "Muito baixa",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "ferritina"
+          ]
         },
         {
-          "keywords": [
-            "ferro serico",
-            "saturacao de transferrina"
-          ],
           "name": "Ferro sérico e saturação de transferrina",
           "result": "Ambos baixos",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "ferro_serico_transferrina"
+          ]
         }
       ],
       "idealConduct": [
@@ -1763,20 +1700,20 @@
       },
       "exams": [
         {
-          "keywords": [
-            "endoscopia"
-          ],
           "name": "Endoscopia digestiva alta",
           "result": "Esofagite leve (grau A de Los Angeles), sem sinais de Barrett",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "endoscopia_digestiva_alta"
+          ]
         },
         {
-          "keywords": [
-            "hemograma"
-          ],
           "name": "Hemograma",
           "result": "Normal, sem anemia",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
         }
       ],
       "idealConduct": [
@@ -1835,29 +1772,28 @@
       },
       "exams": [
         {
-          "keywords": [
-            "raio x",
-            "radiografia"
-          ],
           "name": "Radiografia de tórax",
           "result": "Hiperinsuflação pulmonar crônica, sem consolidação ou derrame",
-          "type": "imaging"
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ]
         },
         {
-          "keywords": [
-            "gasometria"
-          ],
           "name": "Gasometria arterial",
           "result": "Hipoxemia com retenção leve de CO2, compensada",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "gasometria_arterial"
+          ]
         },
         {
-          "keywords": [
-            "hemograma"
-          ],
           "name": "Hemograma",
           "result": "Sem leucocitose significativa",
-          "type": "lab"
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
         }
       ],
       "idealConduct": [
