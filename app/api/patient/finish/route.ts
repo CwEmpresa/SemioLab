@@ -90,13 +90,40 @@ export async function POST(request: Request) {
 
   // Trava atômica contra clique duplo / requisições concorrentes: só quem
   // conseguir mudar active -> evaluating segue em frente.
-  const { data: claimed } = await service
-    .from("patient_sessions")
-    .update({ status: "evaluating" })
-    .eq("id", sessionId)
-    .eq("status", "active")
-    .select("id")
-    .maybeSingle();
+  let claimed = (
+    await service
+      .from("patient_sessions")
+      .update({ status: "evaluating" })
+      .eq("id", sessionId)
+      .eq("status", "active")
+      .select("id")
+      .maybeSingle()
+  ).data;
+
+  if (!claimed) {
+    // A trava pode ficar presa em "evaluating" se a função serverless for
+    // encerrada por timeout antes de reverter (ex.: Gemini demorando demais).
+    // Nesse caso, e só nesse caso, uma trava "evaluating" há mais de 2
+    // minutos é considerada órfã e pode ser reivindicada de novo — sem isso
+    // o estudante ficaria permanentemente impedido de finalizar.
+    const { data: current } = await service
+      .from("patient_sessions")
+      .select("status, updated_at")
+      .eq("id", sessionId)
+      .single();
+    const staleMs = current?.updated_at ? Date.now() - new Date(current.updated_at).getTime() : 0;
+    if (current?.status === "evaluating" && staleMs > 2 * 60 * 1000) {
+      claimed = (
+        await service
+          .from("patient_sessions")
+          .update({ status: "evaluating" })
+          .eq("id", sessionId)
+          .eq("status", "evaluating")
+          .select("id")
+          .maybeSingle()
+      ).data;
+    }
+  }
   if (!claimed) {
     return Response.json({ error: "Este atendimento já está sendo avaliado.", code: "ALREADY_EVALUATING" }, { status: 409 });
   }
@@ -211,7 +238,7 @@ export async function POST(request: Request) {
       finished_at: new Date().toISOString(),
       score: evaluation.score,
       xp_awarded: evaluation.score,
-      feedback: { ...evaluation, hypothesis, differentials, conduct },
+      feedback: { evaluation, submission: { hypothesis, differentials, conduct } },
     })
     .eq("id", sessionId)
     .eq("status", "evaluating");

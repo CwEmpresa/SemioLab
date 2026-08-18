@@ -111,7 +111,13 @@ export async function GET(request: Request) {
 
   const recentConsultations = (consultSessionsRes.data || []).map((row) => {
     const caseInfo = Array.isArray(row.patient_cases) ? row.patient_cases[0] : row.patient_cases;
-    const fb = (row.feedback ?? {}) as { strengths?: string[]; gaps?: string[]; examLearning?: string[]; feedback?: string; hypothesis?: string };
+    const fb = (row.feedback ?? {}) as {
+      evaluation?: { strengths?: string[]; gaps?: string[]; examLearning?: string[]; feedback?: string };
+      submission?: { hypothesis?: string };
+      // formato antigo (antes desta migração de schema) — mantido só para
+      // leitura, sem apagar os dados já gravados nesse formato.
+      strengths?: string[]; gaps?: string[]; examLearning?: string[]; hypothesis?: string;
+    };
     const score = row.score ?? 0;
     return {
       id: row.id,
@@ -121,10 +127,10 @@ export async function GET(request: Request) {
       title: caseInfo?.title || "Atendimento",
       patientName: caseInfo?.patient_name || "Paciente",
       patientAge: caseInfo?.patient_age || 0,
-      hypothesis: fb.hypothesis || "",
-      strengths: fb.strengths || [],
-      gaps: fb.gaps || [],
-      examLearning: fb.examLearning || [],
+      hypothesis: fb.submission?.hypothesis || fb.hypothesis || "",
+      strengths: fb.evaluation?.strengths || fb.strengths || [],
+      gaps: fb.evaluation?.gaps || fb.gaps || [],
+      examLearning: fb.evaluation?.examLearning || fb.examLearning || [],
     };
   });
 

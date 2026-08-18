@@ -468,7 +468,9 @@ export default function PatientExperience({
           return;
         }
         if (!response.ok) {
-          setLoadError(data.error || "Não foi possível avaliar o atendimento.");
+          const safeCode = typeof data.code === "string" ? data.code : null;
+          const message = data.error || "Não foi possível avaliar o atendimento.";
+          setLoadError(safeCode ? `${message} [${safeCode}]` : message);
           setFinishing(false);
           return;
         }
