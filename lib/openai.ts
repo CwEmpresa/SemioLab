@@ -33,6 +33,7 @@ export type UsageTokens = {
   inputTokens: number;
   cachedInputTokens: number;
   outputTokens: number;
+  reasoningTokens: number;
 };
 
 /** Custo estimado em USD. Tokens de input em cache são cobrados à parte,
@@ -47,17 +48,22 @@ export function estimateCostUsd({ inputTokens, cachedInputTokens, outputTokens }
 }
 
 /** Extrai tokens do objeto usage da Responses API, tolerando ausência de
- * campos opcionais (ex.: quando não há cache hit). */
+ * campos opcionais (ex.: quando não há cache hit, ou o modelo não usou
+ * "reasoning"). reasoning_tokens vem de output_tokens_details e é
+ * registrado à parte para diagnosticar quanto do orçamento de saída está
+ * sendo consumido internamente (não aparece no texto visível). */
 export function extractUsage(usage: unknown): UsageTokens {
   const u = (usage ?? {}) as {
     input_tokens?: number;
     output_tokens?: number;
     input_tokens_details?: { cached_tokens?: number };
+    output_tokens_details?: { reasoning_tokens?: number };
   };
   return {
     inputTokens: u.input_tokens ?? 0,
     cachedInputTokens: u.input_tokens_details?.cached_tokens ?? 0,
     outputTokens: u.output_tokens ?? 0,
+    reasoningTokens: u.output_tokens_details?.reasoning_tokens ?? 0,
   };
 }
 

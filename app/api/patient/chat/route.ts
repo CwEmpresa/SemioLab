@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { getOpenAIClient, OPENAI_MODEL, extractUsage, safeErrorMeta } from "@/lib/openai";
+import { getOpenAIClient, OPENAI_MODEL, safeErrorMeta, type UsageTokens } from "@/lib/openai";
+import { consumeResponseStream, shouldRetry, ZERO_USAGE } from "@/lib/response-stream";
 import { logAiUsage } from "@/lib/ai-usage";
 import type { HiddenCase } from "@/lib/patient-case-schema";
 import {
@@ -14,6 +15,38 @@ import {
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
+
+const FALLBACK_REPLY = "Desculpa, pode repetir a pergunta?";
+
+type Turn = { role: "user" | "assistant"; content: string };
+
+/** Chama a Responses API em streaming e consome os eventos com
+ * lib/response-stream.ts (delta, done, completed, incomplete, failed,
+ * error, refusal). Loga o motivo do término para diagnóstico, sem expor
+ * conteúdo clínico. */
+async function runResponseStream(
+  client: ReturnType<typeof getOpenAIClient>,
+  params: { instructions: string; input: Turn[]; maxOutputTokens: number; reasoningEffort: "minimal" | "low" },
+  onDelta: (text: string) => void,
+) {
+  const stream = await client.responses.create({
+    model: OPENAI_MODEL,
+    instructions: params.instructions,
+    input: params.input,
+    max_output_tokens: params.maxOutputTokens,
+    reasoning: { effort: params.reasoningEffort },
+    stream: true,
+  });
+  const result = await consumeResponseStream(stream, onDelta);
+  console.error("[patient/chat] etapa=stream_finalizado", {
+    finishReason: result.finishReason,
+    incompleteReason: result.incompleteReason,
+    textLength: result.text.trim().length,
+    reasoningTokens: result.usage.reasoningTokens,
+    outputTokens: result.usage.outputTokens,
+  });
+  return result;
+}
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -92,13 +125,16 @@ export async function POST(request: Request) {
 
   // Contexto otimizado: prompt fixo primeiro (favorece cache de prefixo) e
   // apenas o histórico necessário, começando na 1ª fala do estudante.
+  // Mensagens antigas vazias/só espaço (não devem existir mais, mas por
+  // segurança) são filtradas — nunca entram no contexto do modelo.
   const firstStudentIndex = (historyRows ?? []).findIndex((row) => row.role === "student");
   const relevantHistory = firstStudentIndex === -1 ? [] : (historyRows ?? []).slice(firstStudentIndex);
 
   let usedChars = 0;
-  const turns: { role: "user" | "assistant"; content: string }[] = [];
+  const turns: Turn[] = [];
   for (const row of relevantHistory) {
     if (row.role === "exam") continue;
+    if (!row.content || row.content.trim().length === 0) continue;
     usedChars += row.content.length;
     if (usedChars > MAX_HISTORY_CHARS_SENT_TO_MODEL) break;
     turns.push({ role: row.role === "student" ? "user" : "assistant", content: row.content });
@@ -107,51 +143,59 @@ export async function POST(request: Request) {
 
   await service.from("patient_messages").insert({ session_id: sessionId, role: "student", content: message });
 
+  const instructions = buildPatientSystemInstruction(hidden, caseRow?.opening_line);
+  const encoder = new TextEncoder();
+
   try {
     const client = getOpenAIClient();
-    const stream = await client.responses.create({
-      model: OPENAI_MODEL,
-      instructions: buildPatientSystemInstruction(hidden, caseRow?.opening_line),
-      input: turns,
-      max_output_tokens: 400,
-      stream: true,
-    });
 
-    const encoder = new TextEncoder();
-    let fullText = "";
     const readable = new ReadableStream<Uint8Array>({
       async start(controller) {
-        let usage = { inputTokens: 0, cachedInputTokens: 0, outputTokens: 0 };
+        const usageLog: UsageTokens[] = [];
+        let fullText = "";
         try {
-          for await (const event of stream) {
-            if (event.type === "response.output_text.delta") {
-              const delta = event.delta ?? "";
-              if (delta) {
-                fullText += delta;
-                controller.enqueue(encoder.encode(delta));
-              }
-            } else if (event.type === "response.completed") {
-              usage = extractUsage(event.response?.usage);
-            }
+          // Tentativa 1: reasoning mínimo, orçamento suficiente para
+          // reasoning + texto visível (o limite de 1-3 frases é imposto
+          // pelo prompt, não por um orçamento perigosamente baixo).
+          const first = await runResponseStream(
+            client,
+            { instructions, input: turns, maxOutputTokens: 500, reasoningEffort: "minimal" },
+            (delta) => controller.enqueue(encoder.encode(delta)),
+          );
+          usageLog.push(first.usage);
+          fullText = first.text;
+
+          const cutShort = shouldRetry(first);
+          if (cutShort) {
+            // No máximo 1 nova tentativa, com orçamento maior. NÃO consome
+            // outra pergunta do aluno (message_count já fixado abaixo), mas
+            // AMBAS as chamadas aparecem no log de custo.
+            console.error("[patient/chat] etapa=retry status=aplicado", { motivo: first.finishReason });
+            const retry = await runResponseStream(
+              client,
+              { instructions, input: turns, maxOutputTokens: 700, reasoningEffort: "minimal" },
+              (delta) => controller.enqueue(encoder.encode(delta)),
+            );
+            usageLog.push(retry.usage);
+            if (retry.text.trim().length > 0) fullText = retry.text;
           }
         } catch (err) {
           console.error("[patient/chat] erro no streaming", safeErrorMeta(err));
         } finally {
-          // Grava a resposta COMPLETA antes de fechar o stream, para o cliente
-          // só liberar a próxima pergunta quando tudo já estiver persistido.
+          const trimmed = fullText.trim();
+          // Nunca grava nem envia bolha vazia/só espaço.
+          const contentToSave = trimmed.length > 0 ? fullText : FALLBACK_REPLY;
+          if (trimmed.length === 0) controller.enqueue(encoder.encode(FALLBACK_REPLY));
+
           await service.from("patient_messages").insert({
             session_id: sessionId,
             role: "patient",
-            content: fullText || "Desculpa, pode repetir a pergunta?",
+            content: contentToSave,
           });
           await service.from("patient_sessions").update({ message_count: questionsUsed }).eq("id", sessionId);
-          await logAiUsage(service, {
-            userId: user.id,
-            sessionId,
-            operation: "chat",
-            model: OPENAI_MODEL,
-            usage,
-          });
+          for (const usage of usageLog.length ? usageLog : [ZERO_USAGE]) {
+            await logAiUsage(service, { userId: user.id, sessionId, operation: "chat", model: OPENAI_MODEL, usage });
+          }
           controller.close();
         }
       },

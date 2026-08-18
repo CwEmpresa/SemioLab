@@ -25,6 +25,7 @@ export async function logAiUsage(
       input_tokens: params.usage.inputTokens,
       cached_input_tokens: params.usage.cachedInputTokens,
       output_tokens: params.usage.outputTokens,
+      reasoning_tokens: params.usage.reasoningTokens,
       estimated_cost_usd: estimateCostUsd(params.usage),
     });
   } catch {
