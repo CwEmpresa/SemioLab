@@ -6,7 +6,8 @@ import { matchExamFindings, matchCanonicalExamIds } from "@/lib/patient-ai-rules
 
 export const dynamic = "force-dynamic";
 
-const NOT_AVAILABLE_MESSAGE = "Nenhum exame compatível com esse pedido foi encontrado. Revise o nome do exame solicitado.";
+const NOT_AVAILABLE_MESSAGE = "Este exame não está disponível neste caso simulado.";
+const UNRECOGNIZED_MESSAGE = "Nenhum exame compatível com esse pedido foi encontrado. Revise o nome do exame solicitado.";
 const ALREADY_REQUESTED_MESSAGE = "Este exame já foi solicitado.";
 
 export async function POST(request: Request) {
@@ -110,13 +111,20 @@ export async function POST(request: Request) {
   // Busca no CASO REAL (nunca inventa) só os exames com id novo.
   const found = matchExamFindings(hidden, order).filter((exam) => exam.examIds.some((id) => newIds.includes(id)));
 
+  // A API NUNCA retorna corpo vazio: se o exame pedido foi reconhecido mas
+  // não está cadastrado NESTE caso, a mensagem é explícita e diferente de
+  // "pedido não reconhecido" (texto livre sem exame correspondente).
+  const summary =
+    found.length > 0
+      ? duplicateIds.length > 0
+        ? "Resultados liberados com base no pedido registrado (um dos exames já havia sido solicitado antes)."
+        : "Resultados liberados com base no pedido registrado."
+      : newIds.length > 0
+        ? NOT_AVAILABLE_MESSAGE
+        : UNRECOGNIZED_MESSAGE;
+
   const report = {
-    summary:
-      found.length > 0
-        ? duplicateIds.length > 0
-          ? "Resultados liberados com base no pedido registrado (um dos exames já havia sido solicitado antes)."
-          : "Resultados liberados com base no pedido registrado."
-        : NOT_AVAILABLE_MESSAGE,
+    summary,
     labs: found
       .filter((e) => e.type === "lab")
       .map((e) => ({ name: e.name, value: e.result, unit: "", reference: "" })),

@@ -559,6 +559,14 @@
           "examIds": [
             "ecg"
           ]
+        },
+        {
+          "name": "Angio-TC de crânio e pescoço",
+          "type": "imaging",
+          "examIds": [
+            "cta_head_neck"
+          ],
+          "result": "Achados: oclusão trombótica do segmento M1 da artéria cerebral média esquerda, sem sinais de dissecção. Artérias carótidas internas, vertebrais e o polígono de Willis pérvios, sem estenose significativa ou placas ateromatosas relevantes. Impressão/conclusão: padrão compatível com oclusão de grande vaso proximal (M1 esquerdo), tecnicamente favorável à trombectomia mecânica, correlacionando-se com o déficit motor à direita e a dificuldade de fala relatados. Comparação: sem exame anterior para comparação."
         }
       ],
       "idealConduct": [
