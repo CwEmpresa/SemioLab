@@ -14,6 +14,7 @@ import RankingExperience, { HomeRankCard } from "./ranking-experience";
 import { HeartDashboardHero } from "@/components/ui/heart-dashboard-hero";
 import { useUser } from "./user-context";
 import { createClient } from "@/lib/supabase/client";
+import { levelFromXp, safeDisplayName } from "@/lib/level";
 import {
   useScreenTransition, useStaggerReveal, useCountUp, useMasteryBars,
   useStreakPop, useModalEntrance, usePulseGlow, useSidebarReveal, useChartBars,
@@ -53,8 +54,10 @@ type ProStatus = {
 type LearningSummary = {
   profile?: { xp?: number };
   mastery?: MasteryRecord[];
-  stats?: { attempts?: number; questions?: number; correct?: number; consultations?: number; averageScore?: number };
+  stats?: { attempts?: number; questions?: number; correct?: number; consultations?: number; activities?: number; averageScore?: number };
   loginDays?: string[];
+  streak?: number;
+  weeklyActivity?: number[];
   pro?: ProStatus;
 };
 function useLearningSummary() {
@@ -128,6 +131,11 @@ function warmEmbedded(screen: Screen) {
 
 /* ─── Navigation ────────────────────────────────────────────────── */
 function Navigation({ screen, go, open, setOpen }: { screen:Screen; go:(s:Screen)=>void; open:boolean; setOpen:(v:boolean)=>void }) {
+  const user = useUser();
+  const { summary: learning } = useLearningSummary();
+  const displayName = safeDisplayName(user.name, user.email);
+  const initials = initialsFor(displayName);
+  const level = levelFromXp(learning?.profile?.xp ?? user.xp ?? 0);
   const sideRef = useSidebarReveal(open);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const navigate = (next: Screen) => {
@@ -160,8 +168,8 @@ function Navigation({ screen, go, open, setOpen }: { screen:Screen; go:(s:Screen
           <button className={screen === "ranking"  ? "active" : ""} onClick={() => go("ranking")}><Trophy /><span>Ranking</span></button>
         </div>
         <button className="side-user" onClick={() => go("profile")}>
-          <i>CW</i>
-          <span><b>Carlos Wendel</b><small>Clínico · Nível 7</small></span>
+          <i>{initials}</i>
+          <span><b>{displayName}</b><small>Estudante · Nível {level}</small></span>
         </button>
         {!open && <button className="reopen" onClick={() => setOpen(true)}><Menu /></button>}
       </aside>
@@ -191,7 +199,7 @@ function Navigation({ screen, go, open, setOpen }: { screen:Screen; go:(s:Screen
             ))}
           </nav>
           <button className="mobile-drawer-account" onClick={() => navigate("profile")}>
-            <i>CW</i><span><b>Carlos Wendel</b><small>Clínico · Nível 7</small></span><ChevronRight />
+            <i>{initials}</i><span><b>{displayName}</b><small>Estudante · Nível {level}</small></span><ChevronRight />
           </button>
         </aside>
       </div>
@@ -233,7 +241,7 @@ function useTodayLabel() {
 }
 
 const weekDays = ["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"];
-function useLocalWeek() {
+function useLocalWeek(loginDays: string[] = []) {
   const [todayIndex, setTodayIndex] = useState(0);
   useEffect(() => {
     const update = () => setTodayIndex((new Date().getDay() + 6) % 7);
@@ -241,10 +249,17 @@ function useLocalWeek() {
     const timer = window.setInterval(update, 60_000);
     return () => window.clearInterval(timer);
   }, []);
-  return weekDays.map((day, index) => ({
-    day,
-    state: index < todayIndex ? "done" : index === todayIndex ? "today" : "future",
-  }));
+  const doneSet = new Set(loginDays);
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(startOfWeek.getDate() - todayIndex);
+  return weekDays.map((day, index) => {
+    const cellDate = new Date(startOfWeek);
+    cellDate.setDate(startOfWeek.getDate() + index);
+    const key = localDateKey(cellDate);
+    const state = index === todayIndex ? "today" : index < todayIndex ? (doneSet.has(key) ? "done" : "future") : "future";
+    return { day, state };
+  });
 }
 
 function localDateKey(date = new Date()) {
@@ -336,13 +351,22 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
   useChartBars(dashRef);
   useMasteryBars(dashRef);
 
-  // Animate XP counters
-  const xpRef  = useCountUp(284, " XP");
-  const minRef = useCountUp(68);
-  const actRef = useCountUp(9);
-  const today = useTodayLabel();
-  const localWeek = useLocalWeek();
   const { summary: learning } = useLearningSummary();
+  // Contadores animados com dados reais — nunca valores de exemplo.
+  const realXp = learning?.profile?.xp ?? 0;
+  const realActivities = learning?.stats?.activities ?? 0;
+  const xpRef  = useCountUp(realXp, " XP");
+  const minRef = useCountUp(0); // minutos de estudo ainda não são rastreados pelo sistema
+  const actRef = useCountUp(realActivities);
+  const today = useTodayLabel();
+  const streak = learning?.streak ?? 0;
+  const localWeek = useLocalWeek(learning?.loginDays);
+  const weeklyActivity = learning?.weeklyActivity ?? [0, 0, 0, 0, 0, 0, 0];
+  const weeklyMax = Math.max(1, ...weeklyActivity);
+  const nextMilestone = streak === 0 ? 3 : [3, 7, 15, 30, 60, 100].find((m) => m > streak) ?? streak + 30;
+  const milestoneProgress = Math.min(100, Math.round((streak / nextMilestone) * 100));
+  const homeAvailableScores = (learning?.mastery || []).flatMap((item) => item.score === null ? [] : [item.score]);
+  const generalMastery = homeAvailableScores.length ? Math.round(homeAvailableScores.reduce((sum, value) => sum + value, 0) / homeAvailableScores.length) : null;
   const tier = learning?.pro?.tier;
   const patientSubtitle =
     tier === "pro" ? "Consulta sem pistas · 8–12 min" :
@@ -354,7 +378,13 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
     <div className="page home-page" ref={pageRef}>
       <Top go={go} />
       <div className="dash" ref={dashRef}>
-        <HeartDashboardHero onContinue={() => go("study")} />
+        <HeartDashboardHero
+          onContinue={() => go("study")}
+          streakDays={streak}
+          progressPercent={generalMastery ?? 0}
+          activitiesToday={weeklyActivity[(new Date().getDay() + 6) % 7] ?? 0}
+          activitiesGoal={5}
+        />
 
         <section className="quick">
           <header>
@@ -383,7 +413,7 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
             </div>
             <span>
               <small>STREAK DE ESTUDOS</small>
-              <b>12 <em>dias em sequência</em></b>
+              <b>{streak} <em>{streak === 1 ? "dia em sequência" : "dias em sequência"}</em></b>
               <p>{today}</p>
             </span>
             <button>Detalhes <ChevronRight /></button>
@@ -397,9 +427,9 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
             ))}
           </div>
           <footer className="dashboard-streak-goal">
-            <span><b>Próximo marco: 15 dias</b><small>Faltam apenas 3 dias</small></span>
-            <div><i style={{ width:"80%" }} /></div>
-            <em>80%</em>
+            <span><b>Próximo marco: {nextMilestone} dias</b><small>{Math.max(0, nextMilestone - streak)===0?"Marco alcançado":`Faltam ${Math.max(0, nextMilestone - streak)} dia${Math.max(0, nextMilestone - streak)===1?"":"s"}`}</small></span>
+            <div><i style={{ width:`${milestoneProgress}%` }} /></div>
+            <em>{milestoneProgress}%</em>
           </footer>
         </section>
 
@@ -407,7 +437,7 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
           <header className="section-title">
             <span>
               <small>EVOLUÇÃO SEMANAL</small>
-              <h3>Você está ganhando ritmo</h3>
+              <h3>{realActivities > 0 ? "Você está ganhando ritmo" : "Comece sua primeira atividade"}</h3>
             </span>
             <button onClick={() => go("progress")}>Detalhes</button>
           </header>
@@ -417,9 +447,9 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
             <span><b ref={actRef as any}>0</b><small>atividades</small></span>
           </div>
           <div className="chart">
-            {[35,52,42,78,68,24,12].map((v, i) => (
+            {weeklyActivity.map((v, i) => (
               <span key={i}>
-                <i style={{ height:`${v}%` }} className={i === 3 ? "best" : ""} />
+                <i style={{ height:`${Math.round((v / weeklyMax) * 100)}%` }} className={v === weeklyMax && v > 0 ? "best" : ""} />
                 <small>{["S","T","Q","Q","S","S","D"][i]}</small>
               </span>
             ))}
@@ -700,14 +730,22 @@ function Progress({ go }: { go:(s:Screen)=>void }) {
 function Achievements({ go }: { go:(s:Screen)=>void }) {
   const pageRef = useScreenTransition("achievements");
   const gridRef = useStaggerReveal("article", ["achievements"]);
+  const { summary } = useLearningSummary();
+  const streak = summary?.streak ?? 0;
+  const questions = summary?.stats?.questions ?? 0;
+  const consultations = summary?.stats?.consultations ?? 0;
+  const averageScore = summary?.stats?.averageScore ?? null;
+  const cardioScore = summary?.mastery?.find((m) => m.topic === "Cardiovascular")?.score ?? null;
+
   const a = [
-    ["Primeira consulta", Stethoscope, true],
-    ["7 dias",            Flame,        true],
-    ["Olhar clínico",     Target,       true],
-    ["100 questões",      ClipboardCheck, false],
-    ["Cardio em foco",    HeartPulse,   false],
-    ["Imparável",         Trophy,       false],
+    { name: "Primeira consulta", icon: Stethoscope, on: consultations >= 1, progress: Math.min(100, consultations * 100) },
+    { name: "7 dias",            icon: Flame,        on: streak >= 7, progress: Math.min(100, Math.round((streak / 7) * 100)) },
+    { name: "Olhar clínico",     icon: Target,       on: (averageScore ?? 0) >= 70 && questions > 0, progress: Math.min(100, Math.round((((averageScore ?? 0)) / 70) * 100)) },
+    { name: "100 questões",      icon: ClipboardCheck, on: questions >= 100, progress: Math.min(100, Math.round((questions / 100) * 100)) },
+    { name: "Cardio em foco",    icon: HeartPulse,   on: (cardioScore ?? 0) >= 80, progress: Math.min(100, Math.round((((cardioScore ?? 0)) / 80) * 100)) },
+    { name: "Imparável",         icon: Trophy,       on: streak >= 30, progress: Math.min(100, Math.round((streak / 30) * 100)) },
   ] as const;
+  const unlockedCount = a.filter((item) => item.on).length;
   return (
     <div className="page" ref={pageRef}>
       <Top title="Conquistas" go={go} />
@@ -715,17 +753,17 @@ function Achievements({ go }: { go:(s:Screen)=>void }) {
         <span>
           <small>MARCOS DA SUA JORNADA</small>
           <h1>Progresso que merece ser lembrado.</h1>
-          <p>Você desbloqueou 3 de 18 conquistas.</p>
+          <p>Você desbloqueou {unlockedCount} de {a.length} conquistas.</p>
         </span>
       </div>
       <div className="achievements" ref={gridRef}>
-        {a.map(([name, Icon, on]) => (
+        {a.map(({ name, icon: Icon, on, progress }) => (
           <article key={name} className={on?"on":"off"}>
             <i><Icon /></i>
             <small>{on?"DESBLOQUEADA":"EM PROGRESSO"}</small>
             <h3>{name}</h3>
             <p>{on?"Uma etapa importante da sua evolução clínica.":"Continue estudando para alcançar este marco."}</p>
-            {!on && <div><i style={{ width:"48%" }} /></div>}
+            {!on && <div><i style={{ width:`${progress}%` }} /></div>}
           </article>
         ))}
       </div>
@@ -791,16 +829,16 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
 
   useEffect(() => {
     try {
-      const savedRole = localStorage.getItem("semiolab.role");
-      const savedPreferences = localStorage.getItem("semiolab.preferences");
-      const savedAvatar = localStorage.getItem("semiolab.avatar");
-      const savedCover = localStorage.getItem("semiolab.cover");
+      const savedRole = localStorage.getItem(`semiolab:${user.id}:role`);
+      const savedPreferences = localStorage.getItem(`semiolab:${user.id}:preferences`);
+      const savedAvatar = localStorage.getItem(`semiolab:${user.id}:avatar`);
+      const savedCover = localStorage.getItem(`semiolab:${user.id}:cover`);
       if (savedRole) { setProfile((p) => ({ ...p, role: savedRole })); setDraft((p) => ({ ...p, role: savedRole })); }
       if (savedPreferences) { const value = JSON.parse(savedPreferences); setPreferences(value); setPreferenceDraft(value); }
       if (savedAvatar) setAvatar(savedAvatar);
       if (savedCover) setCover(savedCover);
     } catch { /* dados locais inválidos voltam aos padrões seguros */ }
-  }, []);
+  }, [user.id]);
 
   const inform = (message: string) => {
     setNotice(message);
@@ -810,8 +848,8 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
     if (!file) return;
     try {
       const image = await prepareProfileImage(file);
-      if (kind === "avatar") { setAvatar(image); localStorage.setItem("semiolab.avatar", image); }
-      else { setCover(image); localStorage.setItem("semiolab.cover", image); }
+      if (kind === "avatar") { setAvatar(image); localStorage.setItem(`semiolab:${user.id}:avatar`, image); }
+      else { setCover(image); localStorage.setItem(`semiolab:${user.id}:cover`, image); }
       inform(kind === "avatar" ? "Foto de perfil atualizada." : "Capa atualizada.");
     } catch (error) { inform(error instanceof Error ? error.message : "Não foi possível usar essa imagem."); }
   };
@@ -821,14 +859,14 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
     }
     const value = { name:draft.name.trim(), role:draft.role.trim() || defaultRole, email:profile.email };
     setProfile(value);
-    localStorage.setItem("semiolab.role", value.role);
+    localStorage.setItem(`semiolab:${user.id}:role`, value.role);
     setPanel(null);
     createClient().from("profiles").update({ name: value.name }).eq("id", user.id)
       .then(({ error }) => inform(error ? "Nome salvo localmente, mas houve um erro ao sincronizar." : "Dados salvos com sucesso."));
   };
   const savePreferences = () => {
     setPreferences(preferenceDraft);
-    localStorage.setItem("semiolab.preferences", JSON.stringify(preferenceDraft));
+    localStorage.setItem(`semiolab:${user.id}:preferences`, JSON.stringify(preferenceDraft));
     setPanel(null); inform("Preferências atualizadas.");
   };
   const openPanel = (next: ProfilePanel) => {
@@ -1269,10 +1307,28 @@ export function QuizLegacy({ go }: { go:(s:Screen)=>void }) {
 
 /* ─── Root ──────────────────────────────────────────────────────── */
 export default function SemioLab() {
+  const user = useUser();
   const [screen, setScreen]   = useState<Screen>("home");
   const [navOpen, setNavOpen] = useState(true);
   const [checkin, setCheckin] = useState(true);
   const [theme, setThemeState] = useState<AppTheme>("light");
+
+  useEffect(() => {
+    // Ao trocar de conta no mesmo navegador, descarta imediatamente
+    // qualquer estado local pertencente a OUTRO usuário (chaves no formato
+    // "semiolab:{uuid}:..."). Isso evita que uma conta nova restaure
+    // consultas, histórico ou preferências de uma conta anterior.
+    try {
+      const toRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        const match = key.match(/^semiolab:([0-9a-f-]{36}):/i);
+        if (match && match[1] !== user.id) toRemove.push(key);
+      }
+      toRemove.forEach((key) => localStorage.removeItem(key));
+    } catch { /* localStorage indisponível (modo privado etc.) — ignora */ }
+  }, [user.id]);
 
   useEffect(() => {
     const saved = localStorage.getItem("semiolab.theme");
@@ -1298,6 +1354,11 @@ export default function SemioLab() {
   }, []);
 
   async function logout() {
+    try {
+      // Limpa a consulta ativa da conta atual antes de sair — evita que uma
+      // sessão de chat "pendurada" apareça se outra conta logar depois.
+      localStorage.removeItem(`semiolab:${user.id}:patient-session:v4`);
+    } catch { /* ignora se localStorage não estiver disponível */ }
     const supabase = createClient();
     await supabase.auth.signOut();
     window.location.assign("/");

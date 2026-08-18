@@ -28,6 +28,44 @@ async function getProStatus(supabase: Awaited<ReturnType<typeof createClient>>, 
   };
 }
 
+function computeCurrentStreak(loginDays: string[]): number {
+  const set = new Set(loginDays);
+  const cursor = new Date();
+  let streak = 0;
+  for (;;) {
+    const y = cursor.getFullYear();
+    const m = String(cursor.getMonth() + 1).padStart(2, "0");
+    const d = String(cursor.getDate()).padStart(2, "0");
+    const key = `${y}-${m}-${d}`;
+    if (!set.has(key)) break;
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+/** Conta atividades (quiz + atendimentos) por dia da semana atual (seg..dom),
+ * a partir de timestamps reais — nunca um gráfico de exemplo fixo. */
+function computeWeeklyActivity(dates: string[]): number[] {
+  const counts = [0, 0, 0, 0, 0, 0, 0];
+  const now = new Date();
+  const todayIndex = (now.getDay() + 6) % 7; // 0 = segunda
+  const startOfWeek = new Date(now);
+  startOfWeek.setHours(0, 0, 0, 0);
+  startOfWeek.setDate(startOfWeek.getDate() - todayIndex);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(endOfWeek.getDate() + 7);
+
+  for (const iso of dates) {
+    const d = new Date(iso);
+    if (d >= startOfWeek && d < endOfWeek) {
+      const index = (d.getDay() + 6) % 7;
+      counts[index] += 1;
+    }
+  }
+  return counts;
+}
+
 export async function GET(request: Request) {
   const supabase = await createClient();
   const {
@@ -35,18 +73,21 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return unauthorized();
 
-  const [profileRes, rankingRes, attemptsRes, errorsRes, topicsRes, loginDaysRes, pro] = await Promise.all([
+  const [profileRes, rankingRes, attemptsRes, errorsRes, topicsRes, loginDaysRes, patientAttemptsRes, pro] = await Promise.all([
     supabase.from("profiles").select("name, email, xp").eq("id", user.id).single(),
     supabase.rpc("ranking"),
     supabase.from("quiz_attempts").select("id, topic, total, correct, topic_results, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
     supabase.from("error_notebook").select("id, question_id, topic, question, selected_answer, correct_answer, explanation, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
     supabase.from("topic_activity").select("topic, questions, correct, consultations, reviews, last_activity").eq("user_id", user.id),
     supabase.from("login_days").select("activity_date").eq("user_id", user.id).order("activity_date", { ascending: true }),
+    supabase.from("patient_attempts").select("id, created_at").eq("user_id", user.id),
     getProStatus(supabase, user.id),
   ]);
 
   const profile = profileRes.data;
   const attempts = attemptsRes.data || [];
+  const patientAttempts = patientAttemptsRes.data || [];
+  const loginDays = (loginDaysRes.data || []).map((row) => row.activity_date);
   const errors = (errorsRes.data || []).map((row) => ({
     id: row.id,
     questionId: row.question_id,
@@ -84,9 +125,15 @@ export async function GET(request: Request) {
       questions: questionsTotal,
       correct: correctTotal,
       consultations: consultationsTotal,
+      activities: attempts.length + patientAttempts.length,
       averageScore: questionsTotal > 0 ? Math.round((correctTotal / questionsTotal) * 100) : null,
     },
-    loginDays: (loginDaysRes.data || []).map((row) => row.activity_date),
+    loginDays,
+    streak: computeCurrentStreak(loginDays),
+    weeklyActivity: computeWeeklyActivity([
+      ...attempts.map((a) => a.created_at),
+      ...patientAttempts.map((a) => a.created_at),
+    ]),
     pro,
   });
 }

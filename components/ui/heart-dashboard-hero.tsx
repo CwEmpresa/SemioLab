@@ -6,12 +6,16 @@ import { useFloatCards, useHeartbeatPulse, useProgressBar } from "@/components/a
 
 type HeartDashboardHeroProps = {
   onContinue: () => void;
+  streakDays: number;
+  progressPercent: number;
+  activitiesToday: number;
+  activitiesGoal: number;
 };
 
-export function HeartDashboardHero({ onContinue }: HeartDashboardHeroProps) {
+export function HeartDashboardHero({ onContinue, streakDays, progressPercent, activitiesToday, activitiesGoal }: HeartDashboardHeroProps) {
   const heroRef = useRef<HTMLElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
-  const barRef = useProgressBar(42);
+  const barRef = useProgressBar(progressPercent);
 
   useFloatCards(heroRef);
   useHeartbeatPulse(imgRef);
@@ -53,7 +57,7 @@ export function HeartDashboardHero({ onContinue }: HeartDashboardHeroProps) {
           <div>
             <i ref={barRef as any} style={{ width: "0%" }} />
           </div>
-          <b>2 de 5 atividades</b>
+          <b>{activitiesToday} de {activitiesGoal} atividades</b>
         </div>
         <button onClick={onContinue} className="hero-cta-btn">
           Continuar missão <ArrowRight />
@@ -69,16 +73,15 @@ export function HeartDashboardHero({ onContinue }: HeartDashboardHeroProps) {
           <i><HeartPulse /></i>
           <span>
             <small>RITMO DE ESTUDO</small>
-            <b>12 dias</b>
+            <b>{streakDays} {streakDays === 1 ? "dia" : "dias"}</b>
           </span>
-          <em>+18%</em>
         </aside>
 
         <aside className="heart-float heart-progress-card">
           <i><Activity /></i>
           <span>
             <small>PROGRESSO GERAL</small>
-            <b>42%</b>
+            <b>{progressPercent}%</b>
           </span>
           <Check />
         </aside>

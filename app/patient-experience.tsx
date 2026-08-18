@@ -22,6 +22,8 @@ import {
   X,
 } from "lucide-react";
 
+import { useUser } from "./user-context";
+
 type Phase = "wait" | "chat" | "finish" | "result";
 type LabRow = {
   name: string;
@@ -64,9 +66,12 @@ type ConsultHistory = {
   gaps: string[];
   examLearning: string[];
 };
-const PATIENT_SESSION_KEY = "semiolab:patient-session:v3";
-const PATIENT_SESSION_VERSION = 3;
-const PATIENT_HISTORY_KEY = "semiolab:consult-history:v1";
+const PATIENT_SESSION_VERSION = 4;
+const patientSessionKey = (userId: string) => `semiolab:${userId}:patient-session:v4`;
+const patientHistoryKey = (userId: string) => `semiolab:${userId}:consult-history:v1`;
+// Chaves de versões anteriores (globais, sem isolamento por usuário) — devem
+// ser removidas incondicionalmente para não vazar dados entre contas.
+const LEGACY_GLOBAL_KEYS = ["semiolab:patient-session:v2", "semiolab:patient-session:v3", "semiolab:consult-history:v1"];
 
 function messageTime(timestamp: number) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -119,24 +124,29 @@ export default function PatientExperience({
       strengths: string[]; gaps: string[]; examLearning: string[]; feedback: string; correctDiagnosis: string;
     } | null>(null);
   const chatRef = useRef<HTMLElement>(null);
+  const user = useUser();
+  const sessionStorageKey = patientSessionKey(user.id);
+  const historyStorageKey = patientHistoryKey(user.id);
 
   useEffect(() => {
     try {
-      // versões antigas (ex.: antes da simulação por IA) usavam outra chave;
-      // remove qualquer resquício para não deixar lixo no navegador.
-      window.localStorage.removeItem("semiolab:patient-session:v2");
-      const saved = window.localStorage.getItem(PATIENT_SESSION_KEY);
+      // Versões antigas/globais (sem isolamento por usuário) — remove
+      // incondicionalmente para não vazar dados entre contas no mesmo navegador.
+      LEGACY_GLOBAL_KEYS.forEach((key) => window.localStorage.removeItem(key));
+      const saved = window.localStorage.getItem(sessionStorageKey);
       if (saved) {
         const session = JSON.parse(saved);
         const hasValidSession =
           session.version === PATIENT_SESSION_VERSION &&
+          session.userId === user.id &&
           typeof session.sessionId === "string" &&
           session.sessionId.length > 0 &&
           session.caseInfo &&
           typeof session.caseInfo.receptionReason === "string";
-        // Estado antigo/incompatível ou corrompido: sem sessionId válido não
-        // há como continuar a conversa — descarta e volta para a tela de
-        // espera, em vez de travar o envio de mensagens.
+        // Estado antigo/incompatível, de outro usuário, ou corrompido: sem
+        // sessionId válido do MESMO usuário autenticado não há como
+        // continuar a conversa — descarta e volta para a tela de espera, em
+        // vez de travar o envio de mensagens ou vazar dados entre contas.
         if (session.phase && session.phase !== "result" && (session.phase === "wait" || hasValidSession)) {
           setPhase(session.phase);
         }
@@ -159,33 +169,34 @@ export default function PatientExperience({
         if (typeof session.differentials === "string") setDifferentials(session.differentials);
         if (typeof session.conduct === "string") setConduct(session.conduct);
         if (!hasValidSession && session.phase && session.phase !== "wait") {
-          window.localStorage.removeItem(PATIENT_SESSION_KEY);
+          window.localStorage.removeItem(sessionStorageKey);
         }
       }
-      const savedHistory = window.localStorage.getItem(PATIENT_HISTORY_KEY);
+      const savedHistory = window.localStorage.getItem(historyStorageKey);
       if (savedHistory) {
         const parsed = JSON.parse(savedHistory);
         if (Array.isArray(parsed)) setHistory(parsed.slice(0, 12));
       }
     } catch {
-      window.localStorage.removeItem(PATIENT_SESSION_KEY);
+      window.localStorage.removeItem(sessionStorageKey);
     } finally {
       setRestored(true);
     }
-  }, []);
+  }, [user.id, sessionStorageKey, historyStorageKey]);
 
   useEffect(() => {
     if (!restored) return;
     if (phase === "result") {
-      window.localStorage.removeItem(PATIENT_SESSION_KEY);
+      window.localStorage.removeItem(sessionStorageKey);
       return;
     }
     if (phase === "wait" && messages.length === 0) return;
     if (phase !== "wait" && !sessionId) return;
     window.localStorage.setItem(
-      PATIENT_SESSION_KEY,
+      sessionStorageKey,
       JSON.stringify({
         version: PATIENT_SESSION_VERSION,
+        userId: user.id,
         phase,
         messages,
         sessionId,
@@ -212,6 +223,8 @@ export default function PatientExperience({
     hypothesis,
     differentials,
     conduct,
+    user.id,
+    sessionStorageKey,
   ]);
 
   useEffect(() => {
@@ -288,6 +301,18 @@ export default function PatientExperience({
       setLoadError("Não foi possível conectar ao servidor. Tente novamente.");
     }
   }
+  function resetToWaitDueToInvalidSession(message: string) {
+    // O servidor é a fonte de verdade: se a sessão não pertence mais ao
+    // usuário autenticado ou já foi encerrada, descarta o estado local
+    // imediatamente e volta para a tela de "chamar próximo paciente" — nunca
+    // deixa o estudante preso numa conversa que o servidor já rejeitou.
+    localStorage.removeItem(sessionStorageKey);
+    setSessionId(null);
+    setCaseInfo(null);
+    setMessages([]);
+    setPhase("wait");
+    setLoadError(message);
+  }
   async function send() {
     const question = input.trim();
     if (!question || !sessionId || typing) return;
@@ -300,6 +325,11 @@ export default function PatientExperience({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ sessionId, message: question }),
       });
+      if (response.status === 404) {
+        setTyping(false);
+        resetToWaitDueToInvalidSession("Esta consulta não está mais disponível. Chame um novo paciente.");
+        return;
+      }
       if (!response.ok || !response.body) {
         const data = await response.json().catch(() => ({}));
         setMessages((m) => [...m, { who: "patient", text: data.error || "Não consegui responder agora.", createdAt: Date.now() }]);
@@ -350,6 +380,10 @@ export default function PatientExperience({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ sessionId, order }),
       });
+      if (response.status === 404) {
+        resetToWaitDueToInvalidSession("Esta consulta não está mais disponível. Chame um novo paciente.");
+        return;
+      }
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         setMessages((m) => [...m, { who: "patient", text: data.error || "Não foi possível liberar o exame.", createdAt: Date.now() }]);
@@ -370,6 +404,11 @@ export default function PatientExperience({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ sessionId, physical: true }),
       });
+      if (response.status === 404) {
+        setPhysicalOpen(false);
+        resetToWaitDueToInvalidSession("Esta consulta não está mais disponível. Chame um novo paciente.");
+        return;
+      }
       const data = await response.json().catch(() => ({}));
       if (response.ok) setPhysicalFindings(data.physicalExam || {});
     } catch {
@@ -395,6 +434,11 @@ export default function PatientExperience({
     })
       .then(async (response) => {
         const data = await response.json().catch(() => ({}));
+        if (response.status === 404) {
+          setFinishing(false);
+          resetToWaitDueToInvalidSession("Esta consulta não está mais disponível.");
+          return;
+        }
         if (!response.ok) {
           setLoadError(data.error || "Não foi possível avaliar o atendimento.");
           setFinishing(false);
@@ -416,7 +460,7 @@ export default function PatientExperience({
         };
         const next = [record, ...history].slice(0, 12);
         setHistory(next);
-        window.localStorage.setItem(PATIENT_HISTORY_KEY, JSON.stringify(next));
+        window.localStorage.setItem(historyStorageKey, JSON.stringify(next));
         window.dispatchEvent(new Event("semiolab:learning-updated"));
         setFinishing(false);
         setPhase("result");
