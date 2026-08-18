@@ -258,35 +258,46 @@ export async function POST(request: Request) {
     "score deve ser a soma dos quatro sub-escores. Seja justo e educativo, em português do Brasil.",
   ].join("\n");
 
-  // ── Etapa 1: chamada ao Gemini (com fallback determinístico obrigatório
-  // para 429/5xx/timeout — nunca para erro de autenticação/chave) ────────
+  // ── Etapa 1: chamada ao provedor (com fallback determinístico obrigatório
+  // para 429/5xx/timeout — nunca para erro de autenticação/chave). Também
+  // tenta 1 vez a mais com orçamento maior se a resposta vier vazia (ex.:
+  // "reasoning" consumindo todo o orçamento de saída), antes de desistir. ──
   let evaluation: Evaluation | null = null;
   let rawText = "";
   try {
     const client = getOpenAIClient();
-    const result = await client.responses.create({
-      model: OPENAI_MODEL,
-      instructions: "Você avalia atendimentos clínicos simulados e responde APENAS com JSON válido, sem markdown.",
-      input: evalPrompt,
-      max_output_tokens: 900,
-    });
+    const call = (maxOutputTokens: number) =>
+      client.responses.create({
+        model: OPENAI_MODEL,
+        instructions: "Você avalia atendimentos clínicos simulados e responde APENAS com JSON válido, sem markdown.",
+        input: evalPrompt,
+        max_output_tokens: maxOutputTokens,
+        // "minimal": sem isso, um modelo de raciocínio pode gastar todo o
+        // orçamento de saída "pensando" e deixar 0 tokens para o JSON
+        // visível — foi exatamente essa a causa de respostas vazias aqui.
+        reasoning: { effort: "minimal" },
+      });
+
+    let result = await call(900);
     rawText = result.output_text ?? "";
-    await logAiUsage(service, {
-      userId: user.id,
-      sessionId,
-      operation: "evaluation",
-      model: OPENAI_MODEL,
-      usage: extractUsage(result.usage),
-    });
-    if (!rawText.trim()) throw new Error("Resposta vazia do provedor");
+    await logAiUsage(service, { userId: user.id, sessionId, operation: "evaluation", model: OPENAI_MODEL, usage: extractUsage(result.usage) });
+
+    if (!rawText.trim()) {
+      console.error("[patient/finish] etapa=avaliacao_vazia status=retry", { sessionId });
+      result = await call(1400);
+      rawText = result.output_text ?? "";
+      await logAiUsage(service, { userId: user.id, sessionId, operation: "evaluation", model: OPENAI_MODEL, usage: extractUsage(result.usage) });
+    }
+    if (!rawText.trim()) throw Object.assign(new Error("Resposta vazia do provedor mesmo após nova tentativa"), { emptyAfterRetry: true });
   } catch (err) {
+    const errObj = err as { emptyAfterRetry?: boolean } | undefined;
     console.error("[patient/finish] etapa=chamada_provedor status=error", {
       sessionId,
       ...safeErrorMeta(err),
       model: OPENAI_MODEL,
       apiKeyPresent: Boolean(process.env.OPENAI_API_KEY),
     });
-    if (isRetryableProviderError(err)) {
+    if (isRetryableProviderError(err) || errObj?.emptyAfterRetry) {
       console.error("[patient/finish] etapa=fallback_deterministico status=aplicado", { sessionId });
       evaluation = buildDeterministicEvaluation(hidden, historyRows, hypothesis, differentials, conduct);
     } else {
@@ -313,6 +324,7 @@ export async function POST(request: Request) {
           instructions: "Corrija o texto para JSON válido, mantendo exatamente os mesmos valores e chaves. Responda apenas com o JSON, sem markdown.",
           input: cleaned,
           max_output_tokens: 900,
+          reasoning: { effort: "minimal" },
         });
         await logAiUsage(service, {
           userId: user.id,
