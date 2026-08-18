@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { getGeminiClient, GEMINI_MODEL } from "@/lib/gemini";
+import { getOpenAIClient, OPENAI_MODEL, extractUsage, safeErrorMeta, isRetryableProviderError } from "@/lib/openai";
+import { logAiUsage } from "@/lib/ai-usage";
 import type { HiddenCase } from "@/lib/patient-case-schema";
 
 export const dynamic = "force-dynamic";
@@ -140,21 +141,6 @@ function buildDeterministicEvaluation(
   };
 }
 
-function isAuthOrKeyError(errObj: { status?: number } | undefined): boolean {
-  return errObj?.status === 401 || errObj?.status === 403;
-}
-/** 429 (cota/rate-limit), 5xx (erro do servidor do Gemini) ou timeout/erro de
- * rede sem status — todos justificam cair para a avaliação determinística.
- * Erro de autenticação/chave NUNCA usa fallback (é um problema de
- * configuração que precisa ser corrigido, não contornado). */
-function isRetryableGeminiError(errObj: { status?: number; name?: string; message?: string } | undefined): boolean {
-  if (isAuthOrKeyError(errObj)) return false;
-  const status = errObj?.status;
-  if (status === 429) return true;
-  if (typeof status === "number" && status >= 500 && status < 600) return true;
-  if (!status && (errObj?.name === "AbortError" || /timeout|network|fetch failed/i.test(errObj?.message || ""))) return true;
-  return false;
-}
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -277,35 +263,35 @@ export async function POST(request: Request) {
   let evaluation: Evaluation | null = null;
   let rawText = "";
   try {
-    const ai = getGeminiClient();
-    const result = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: [{ role: "user", parts: [{ text: evalPrompt }] }],
-      config: { responseMimeType: "application/json", temperature: 0.3, maxOutputTokens: 900 },
+    const client = getOpenAIClient();
+    const result = await client.responses.create({
+      model: OPENAI_MODEL,
+      instructions: "Você avalia atendimentos clínicos simulados e responde APENAS com JSON válido, sem markdown.",
+      input: evalPrompt,
+      max_output_tokens: 900,
     });
-    rawText = result.text ?? "";
-    if (!rawText.trim()) {
-      throw Object.assign(new Error("Resposta vazia do Gemini"), {
-        finishReason: result.candidates?.[0]?.finishReason ?? null,
-      });
-    }
-  } catch (err) {
-    const errObj = err as { message?: string; status?: number; code?: string | number; name?: string; finishReason?: string } | undefined;
-    console.error("[patient/finish] etapa=chamada_gemini status=error", {
+    rawText = result.output_text ?? "";
+    await logAiUsage(service, {
+      userId: user.id,
       sessionId,
-      status: errObj?.status ?? null,
-      code: errObj?.code ?? null,
-      finishReason: errObj?.finishReason ?? null,
-      message: errObj?.message ?? String(err),
-      model: GEMINI_MODEL,
-      geminiApiKeyPresent: Boolean(process.env.GEMINI_API_KEY),
+      operation: "evaluation",
+      model: OPENAI_MODEL,
+      usage: extractUsage(result.usage),
     });
-    if (isRetryableGeminiError(errObj)) {
-      console.error("[patient/finish] etapa=fallback_deterministico status=aplicado", { sessionId, motivo: errObj?.status ?? "timeout" });
+    if (!rawText.trim()) throw new Error("Resposta vazia do provedor");
+  } catch (err) {
+    console.error("[patient/finish] etapa=chamada_provedor status=error", {
+      sessionId,
+      ...safeErrorMeta(err),
+      model: OPENAI_MODEL,
+      apiKeyPresent: Boolean(process.env.OPENAI_API_KEY),
+    });
+    if (isRetryableProviderError(err)) {
+      console.error("[patient/finish] etapa=fallback_deterministico status=aplicado", { sessionId });
       evaluation = buildDeterministicEvaluation(hidden, historyRows, hypothesis, differentials, conduct);
     } else {
       await revertToActive(service, sessionId);
-      return Response.json({ error: "Não foi possível avaliar o atendimento agora. Tente novamente.", code: "GEMINI_ERROR" }, { status: 502 });
+      return Response.json({ error: "Não foi possível avaliar o atendimento agora. Tente novamente.", code: "PROVIDER_ERROR" }, { status: 502 });
     }
   }
 
@@ -321,13 +307,21 @@ export async function POST(request: Request) {
         // 1 tentativa de reparo: pede ao próprio Gemini para corrigir o JSON,
         // sem alterar os valores.
         console.error("[patient/finish] etapa=parse_json status=malformed_retry_repair", { sessionId, length: cleaned.length });
-        const ai = getGeminiClient();
-        const repair = await ai.models.generateContent({
-          model: GEMINI_MODEL,
-          contents: [{ role: "user", parts: [{ text: `Corrija o texto abaixo para ser um JSON válido, mantendo exatamente os mesmos valores e chaves, sem markdown:\n\n${cleaned}` }] }],
-          config: { responseMimeType: "application/json", temperature: 0, maxOutputTokens: 900 },
+        const client = getOpenAIClient();
+        const repair = await client.responses.create({
+          model: OPENAI_MODEL,
+          instructions: "Corrija o texto para JSON válido, mantendo exatamente os mesmos valores e chaves. Responda apenas com o JSON, sem markdown.",
+          input: cleaned,
+          max_output_tokens: 900,
         });
-        parsedJson = JSON.parse(stripCodeFences(repair.text ?? "{}"));
+        await logAiUsage(service, {
+          userId: user.id,
+          sessionId,
+          operation: "repair",
+          model: OPENAI_MODEL,
+          usage: extractUsage(repair.usage),
+        });
+        parsedJson = JSON.parse(stripCodeFences(repair.output_text ?? "{}"));
       }
       evaluation = normalizeEvaluation(parsedJson);
     } catch (err) {

@@ -120,6 +120,7 @@ export default function PatientExperience({
     [blocked, setBlocked] = useState<{ checkoutUrls: { monthly: string; annual: string }; message: string } | null>(null),
     [loadError, setLoadError] = useState(""),
     [finishing, setFinishing] = useState(false),
+    [quota, setQuota] = useState<{ questionsUsed: number; questionsLimit: number; sessionsUsedToday: number; sessionsLimitToday: number } | null>(null),
     [serverEvaluation, setServerEvaluation] = useState<{
       score: number; historyScore: number; physicalScore: number; examsScore: number; reasoningScore: number;
       strengths: string[]; gaps: string[]; examLearning: string[]; feedback: string; correctDiagnosis: string;
@@ -324,6 +325,12 @@ export default function PatientExperience({
         patientName: data.patientName,
         patientAge: data.patientAge,
       });
+      setQuota({
+        questionsUsed: data.questionsUsed ?? 0,
+        questionsLimit: data.questionsLimit ?? 20,
+        sessionsUsedToday: data.sessionsUsedToday ?? 1,
+        sessionsLimitToday: data.sessionsLimitToday ?? 3,
+      });
       setMessages([{ who: "patient", text: data.openingLine, createdAt: Date.now() }]);
     } catch {
       setLoadError("Não foi possível conectar ao servidor. Tente novamente.");
@@ -363,6 +370,11 @@ export default function PatientExperience({
         setMessages((m) => [...m, { who: "patient", text: data.error || "Não consegui responder agora.", createdAt: Date.now() }]);
         setTyping(false);
         return;
+      }
+      const used = Number(response.headers.get("X-Questions-Used"));
+      const limit = Number(response.headers.get("X-Questions-Limit"));
+      if (Number.isFinite(used) && used > 0) {
+        setQuota((q) => (q ? { ...q, questionsUsed: used, questionsLimit: limit || q.questionsLimit } : q));
       }
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -718,7 +730,11 @@ export default function PatientExperience({
         <section className="patient-chat-profile">
           <i className="patient-profile-avatar">{patientInitials}<span /></i>
           <b>{patientName}</b>
-          <small>Consulta simulada · Atendimento em andamento</small>
+          <small>
+            {quota
+              ? `Pergunta ${quota.questionsUsed} de ${quota.questionsLimit} · ${quota.sessionsUsedToday} de ${quota.sessionsLimitToday} atendimentos usados hoje`
+              : "Consulta simulada · Atendimento em andamento"}
+          </small>
         </section>
         <div className="chat-day">
           <span>{today}</span>
@@ -862,6 +878,7 @@ export default function PatientExperience({
             onKeyDown={(e) => e.key === "Enter" && !typing && send()}
             placeholder={typing ? "Aguardando resposta do paciente..." : "Faça uma pergunta ao paciente..."}
             disabled={typing}
+            maxLength={500}
           />
           <button aria-label="Enviar pergunta" disabled={!input.trim() || typing} onClick={send}>
             <Send />

@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { CAKTO_CHECKOUT_URLS } from "@/lib/pro";
 import { resolveUserAccess } from "@/lib/user-access";
+import { MAX_SESSIONS_PER_DAY, MAX_STUDENT_MESSAGES_PER_SESSION } from "@/lib/patient-ai-rules";
+import { startOfBrasiliaDayUtc } from "@/lib/ai-usage";
 
 export const dynamic = "force-dynamic";
 
@@ -10,28 +12,36 @@ export async function POST() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
+  if (!user) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
 
   const access = await resolveUserAccess(supabase, user.id);
 
-  const startOfDay = new Date();
-  startOfDay.setUTCHours(0, 0, 0, 0);
+  // Limite diário aplicado no BACKEND, sempre a partir do usuário
+  // autenticado e de dados do Supabase — nunca do frontend/localStorage.
+  // Vale o menor entre o teto global de atendimentos por dia e o limite do
+  // plano do usuário. Reinicia à meia-noite de Brasília e não acumula.
+  const dailyLimit = Math.min(MAX_SESSIONS_PER_DAY, access.limits.consultationsPerDay);
+  const startOfDay = startOfBrasiliaDayUtc();
   const { count: todayCount } = await supabase
     .from("patient_sessions")
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
-    .gte("started_at", startOfDay.toISOString());
+    .gte("started_at", startOfDay);
+  const sessionsUsedToday = todayCount ?? 0;
 
-  if ((todayCount ?? 0) >= access.limits.consultationsPerDay) {
+  if (sessionsUsedToday >= dailyLimit) {
     return Response.json(
       {
         error:
           access.tier === "free"
-            ? "Você atingiu o limite diário de 1 atendimento do plano básico. Volte amanhã ou assine o Pro para atendimentos ilimitados."
-            : "Você atingiu o limite diário de atendimentos do período de teste.",
+            ? `Você atingiu o limite diário de ${dailyLimit} atendimento${dailyLimit > 1 ? "s" : ""} do plano básico. Volte amanhã ou assine o Pro.`
+            : `Você atingiu o limite diário de ${dailyLimit} atendimentos. O limite reinicia à meia-noite (horário de Brasília).`,
         limitReached: true,
+        code: "DAILY_LIMIT_REACHED",
         tier: access.tier,
         trialDaysLeft: access.trialDaysLeft,
+        sessionsUsedToday,
+        sessionsLimitToday: dailyLimit,
         checkoutUrls: CAKTO_CHECKOUT_URLS,
       },
       { status: 403 },
@@ -75,6 +85,10 @@ export async function POST() {
     tier: access.tier,
     trialDaysLeft: access.trialDaysLeft,
     examsAllowed: access.limits.examsPerConsultation,
+    questionsUsed: 0,
+    questionsLimit: MAX_STUDENT_MESSAGES_PER_SESSION,
+    sessionsUsedToday: sessionsUsedToday + 1,
+    sessionsLimitToday: dailyLimit,
   });
 }
 
