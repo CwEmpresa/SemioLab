@@ -211,7 +211,7 @@ export async function POST(request: Request) {
       finished_at: new Date().toISOString(),
       score: evaluation.score,
       xp_awarded: evaluation.score,
-      feedback: evaluation,
+      feedback: { ...evaluation, hypothesis, differentials, conduct },
     })
     .eq("id", sessionId)
     .eq("status", "evaluating");

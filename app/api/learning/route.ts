@@ -73,7 +73,7 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return unauthorized();
 
-  const [profileRes, rankingRes, attemptsRes, errorsRes, topicsRes, loginDaysRes, patientAttemptsRes, pro] = await Promise.all([
+  const [profileRes, rankingRes, attemptsRes, errorsRes, topicsRes, loginDaysRes, patientAttemptsRes, consultSessionsRes, pro] = await Promise.all([
     supabase.from("profiles").select("name, email, xp").eq("id", user.id).single(),
     supabase.rpc("ranking"),
     supabase.from("quiz_attempts").select("id, topic, total, correct, topic_results, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
@@ -81,6 +81,16 @@ export async function GET(request: Request) {
     supabase.from("topic_activity").select("topic, questions, correct, consultations, reviews, last_activity").eq("user_id", user.id),
     supabase.from("login_days").select("activity_date").eq("user_id", user.id).order("activity_date", { ascending: true }),
     supabase.from("patient_attempts").select("id, created_at").eq("user_id", user.id),
+    // Fonte definitiva do histórico de consultas: sempre do Supabase,
+    // filtrado por dono (user_id = auth.uid(), garantido pela RLS). O
+    // localStorage nunca é a fonte de verdade, só um cache opcional.
+    supabase
+      .from("patient_sessions")
+      .select("id, finished_at, score, feedback, patient_cases(title, patient_name, patient_age)")
+      .eq("user_id", user.id)
+      .eq("status", "finished")
+      .order("finished_at", { ascending: false })
+      .limit(12),
     getProStatus(supabase, user.id),
   ]);
 
@@ -98,6 +108,25 @@ export async function GET(request: Request) {
     explanation: row.explanation,
     createdAt: row.created_at ? new Date(row.created_at).getTime() : null,
   }));
+
+  const recentConsultations = (consultSessionsRes.data || []).map((row) => {
+    const caseInfo = Array.isArray(row.patient_cases) ? row.patient_cases[0] : row.patient_cases;
+    const fb = (row.feedback ?? {}) as { strengths?: string[]; gaps?: string[]; examLearning?: string[]; feedback?: string; hypothesis?: string };
+    const score = row.score ?? 0;
+    return {
+      id: row.id,
+      finishedAt: row.finished_at ? new Date(row.finished_at).getTime() : null,
+      score,
+      level: score >= 85 ? "Excelente condução" : score >= 70 ? "Boa condução" : score >= 50 ? "Condução parcial" : "Precisa aprofundar",
+      title: caseInfo?.title || "Atendimento",
+      patientName: caseInfo?.patient_name || "Paciente",
+      patientAge: caseInfo?.patient_age || 0,
+      hypothesis: fb.hypothesis || "",
+      strengths: fb.strengths || [],
+      gaps: fb.gaps || [],
+      examLearning: fb.examLearning || [],
+    };
+  });
 
   const questionsTotal = attempts.reduce((sum, a) => sum + (a.total || 0), 0);
   const correctTotal = attempts.reduce((sum, a) => sum + (a.correct || 0), 0);
@@ -120,6 +149,7 @@ export async function GET(request: Request) {
     errors,
     attempts,
     mastery,
+    recentConsultations,
     stats: {
       attempts: attempts.length,
       questions: questionsTotal,

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { useUser } from "./user-context";
+import { useLearningSummary } from "./use-learning-summary";
 
 type Phase = "wait" | "chat" | "finish" | "result";
 type LabRow = {
@@ -125,6 +126,7 @@ export default function PatientExperience({
     } | null>(null);
   const chatRef = useRef<HTMLElement>(null);
   const user = useUser();
+  const { summary: learning } = useLearningSummary();
   const sessionStorageKey = patientSessionKey(user.id);
   const historyStorageKey = patientHistoryKey(user.id);
 
@@ -183,6 +185,32 @@ export default function PatientExperience({
       setRestored(true);
     }
   }, [user.id, sessionStorageKey, historyStorageKey]);
+
+  // Fonte definitiva do histórico: sempre o Supabase (filtrado por dono via
+  // RLS), nunca só o localStorage. Assim que o resumo carrega, ele
+  // substitui qualquer cache local — inclusive um cache vazio ou de outra
+  // sessão anterior — garantindo que nada se perca ao trocar de conta ou
+  // limpar o navegador.
+  useEffect(() => {
+    if (!learning?.recentConsultations) return;
+    const fromServer: ConsultHistory[] = learning.recentConsultations.map((item) => ({
+      id: item.id,
+      finishedAt: item.finishedAt ?? Date.now(),
+      score: item.score,
+      level: item.level,
+      title: item.title,
+      patientName: item.patientName,
+      patientAge: item.patientAge,
+      hypothesis: item.hypothesis,
+      strengths: item.strengths,
+      gaps: item.gaps,
+      examLearning: item.examLearning,
+    }));
+    setHistory(fromServer);
+    try {
+      window.localStorage.setItem(historyStorageKey, JSON.stringify(fromServer));
+    } catch { /* cache é só otimização; falha aqui não é crítica */ }
+  }, [learning?.recentConsultations, historyStorageKey]);
 
   useEffect(() => {
     if (!restored) return;

@@ -15,6 +15,7 @@ import { HeartDashboardHero } from "@/components/ui/heart-dashboard-hero";
 import { useUser } from "./user-context";
 import { createClient } from "@/lib/supabase/client";
 import { levelFromXp, safeDisplayName } from "@/lib/level";
+import { useLearningSummary } from "./use-learning-summary";
 import {
   useScreenTransition, useStaggerReveal, useCountUp, useMasteryBars,
   useStreakPop, useModalEntrance, usePulseGlow, useSidebarReveal, useChartBars,
@@ -31,53 +32,6 @@ const systems = [
   { name:"Abdome e digestório", done:24, lessons:8, icon:Stethoscope, color:"rose", summary:"Interprete dor, distensão, massas e sinais de irritação peritoneal com sequência correta.", topics:["Inspeção e ausculta","Percussão e ascite","Palpação superficial e profunda","Fígado, baço e sinais especiais"], clinical:"No abdome, ausculte antes de percutir e palpar. Considere topografia, defesa, rigidez e dor à descompressão como partes de um contexto clínico, não como diagnósticos isolados." },
   { name:"Exame físico",   done:57, lessons:7, icon:ClipboardCheck, color:"cyan", summary:"Construa uma avaliação geral reprodutível, dos sinais vitais ao exame por sistemas.", topics:["Estado geral e consciência","Sinais vitais","Pele e mucosas","Edema, linfonodos e antropometria"], clinical:"Descreva o que observou com medidas e termos padronizados. Reavalie sinais vitais anormais e priorize achados que mudam a urgência ou a hipótese clínica." },
 ];
-type MasteryRecord = {
-  topic: string;
-  score: number | null;
-  status: string;
-  questions: number;
-  consultations: number;
-  reviews: number;
-  sources: string[];
-  lastActivity: number | null;
-};
-type ProStatus = {
-  plan: "monthly" | "annual" | "unknown";
-  status: string;
-  active: boolean;
-  nextPaymentDate: string | null;
-  canceledAt: string | null;
-  checkoutUrls: { monthly: string; annual: string };
-  tier: "trial" | "free" | "pro";
-  trialDaysLeft: number;
-};
-type LearningSummary = {
-  profile?: { xp?: number };
-  mastery?: MasteryRecord[];
-  stats?: { attempts?: number; questions?: number; correct?: number; consultations?: number; activities?: number; averageScore?: number };
-  loginDays?: string[];
-  streak?: number;
-  weeklyActivity?: number[];
-  pro?: ProStatus;
-};
-function useLearningSummary() {
-  const [summary, setSummary] = useState<LearningSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    let active = true;
-    const load = () => {
-      fetch("/api/learning")
-        .then((response) => response.ok ? response.json() : null)
-        .then((value) => { if (active) setSummary(value); })
-        .catch(() => {})
-        .finally(() => { if (active) setLoading(false); });
-    };
-    load();
-    window.addEventListener("semiolab:learning-updated", load);
-    return () => { active = false; window.removeEventListener("semiolab:learning-updated", load); };
-  }, []);
-  return { summary, loading };
-}
 const questions = [
   { text:"Na estenose mitral, qual achado é mais característico à ausculta?", options:["Sopro sistólico ejetivo","Ruflar diastólico em foco mitral","Sopro contínuo","Atrito pericárdico"], correct:1, why:"O ruflar diastólico ocorre pela passagem turbulenta do sangue através da valva mitral estreitada." },
   { text:"Qual sinal sugere comprometimento do trato corticoespinhal?", options:["Romberg","Babinski","Lasègue","Murphy"], correct:1, why:"O sinal de Babinski indica disfunção do neurônio motor superior e do trato corticoespinhal." },
@@ -1307,28 +1261,16 @@ export function QuizLegacy({ go }: { go:(s:Screen)=>void }) {
 
 /* ─── Root ──────────────────────────────────────────────────────── */
 export default function SemioLab() {
-  const user = useUser();
   const [screen, setScreen]   = useState<Screen>("home");
   const [navOpen, setNavOpen] = useState(true);
   const [checkin, setCheckin] = useState(true);
   const [theme, setThemeState] = useState<AppTheme>("light");
 
-  useEffect(() => {
-    // Ao trocar de conta no mesmo navegador, descarta imediatamente
-    // qualquer estado local pertencente a OUTRO usuário (chaves no formato
-    // "semiolab:{uuid}:..."). Isso evita que uma conta nova restaure
-    // consultas, histórico ou preferências de uma conta anterior.
-    try {
-      const toRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (!key) continue;
-        const match = key.match(/^semiolab:([0-9a-f-]{36}):/i);
-        if (match && match[1] !== user.id) toRemove.push(key);
-      }
-      toRemove.forEach((key) => localStorage.removeItem(key));
-    } catch { /* localStorage indisponível (modo privado etc.) — ignora */ }
-  }, [user.id]);
+  // Isolamento entre contas é feito por CHAVE namespaced (semiolab:{userId}:...)
+  // e por dados definitivos vindos do Supabase (RLS) — nunca apagando o
+  // localStorage de outros usuários. Um cache de outra conta que sobrar no
+  // navegador simplesmente nunca é lido nem exibido (chave errada), e segue
+  // intacto para quando aquela conta logar de novo.
 
   useEffect(() => {
     const saved = localStorage.getItem("semiolab.theme");
@@ -1354,11 +1296,9 @@ export default function SemioLab() {
   }, []);
 
   async function logout() {
-    try {
-      // Limpa a consulta ativa da conta atual antes de sair — evita que uma
-      // sessão de chat "pendurada" apareça se outra conta logar depois.
-      localStorage.removeItem(`semiolab:${user.id}:patient-session:v4`);
-    } catch { /* ignora se localStorage não estiver disponível */ }
+    // Não apaga nada do localStorage nem do Supabase: é só o cache/estado
+    // local da própria conta (sempre namespaced por userId) e continua
+    // intacto para quando este usuário logar de novo.
     const supabase = createClient();
     await supabase.auth.signOut();
     window.location.assign("/");
