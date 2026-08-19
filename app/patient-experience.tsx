@@ -42,6 +42,8 @@ type ExamImage = {
   source?: string;
   sourceUrl?: string;
   license?: string;
+  licenseUrl?: string;
+  examId?: string;
 };
 type ExamReport = {
   summary: string;
@@ -102,6 +104,7 @@ export default function PatientExperience({
     [physicalOpen, setPhysicalOpen] = useState(false),
     [physicalFindings, setPhysicalFindings] = useState<Record<string, string>>({}),
     [examOpen, setExamOpen] = useState(false),
+    [zoomedImage, setZoomedImage] = useState<ExamImage | null>(null),
     [examText, setExamText] = useState(""),
     [examOrder, setExamOrder] = useState(""),
     [typing, setTyping] = useState(false),
@@ -430,6 +433,51 @@ export default function PatientExperience({
         return;
       }
       setMessages((m) => [...m, { who: "exam", text: "RESULTADOS LIBERADOS", report: data.report, createdAt: Date.now() }]);
+      // Busca imagens educacionais reais para cada exame de imagem liberado
+      // (só entrega porque o exame já foi solicitado nesta sessão — ver
+      // gate em /api/patient/exam-image). Sem imagem cadastrada, o laudo
+      // em texto continua exatamente como já funcionava.
+      const imagingWithId: { title: string; examId: string }[] = (data.report?.imaging ?? []).filter(
+        (e: { examId?: string }) => e.examId,
+      );
+      for (const item of imagingWithId) {
+        fetch("/api/patient/exam-image", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ sessionId, examId: item.examId }),
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((imgData) => {
+            const firstImage = imgData?.images?.[0];
+            if (!firstImage) return;
+            setMessages((m) =>
+              m.map((msg) =>
+                msg.report
+                  ? {
+                      ...msg,
+                      report: {
+                        ...msg.report,
+                        imaging: msg.report.imaging.map((exam) =>
+                          exam.examId === item.examId
+                            ? {
+                                ...exam,
+                                image: firstImage.url,
+                                caption: firstImage.caption,
+                                source: firstImage.author,
+                                sourceUrl: firstImage.sourceUrl,
+                                license: firstImage.license,
+                                licenseUrl: firstImage.licenseUrl,
+                              }
+                            : exam,
+                        ),
+                      },
+                    }
+                  : msg,
+              ),
+            );
+          })
+          .catch(() => {});
+      }
     } catch {
       setMessages((m) => [...m, { who: "patient", text: "Não foi possível liberar o exame agora.", createdAt: Date.now() }]);
     }
@@ -781,15 +829,22 @@ export default function PatientExperience({
                     </div>
                     {exam.image ? (
                       <figure>
-                        <img
-                          src={exam.image}
-                          alt={`Imagem clínica de referência: ${exam.title}`}
-                        />
+                        <button
+                          type="button"
+                          className="exam-image-zoom-trigger"
+                          onClick={() => setZoomedImage(exam)}
+                          aria-label={`Ampliar imagem: ${exam.title}`}
+                        >
+                          <img
+                            src={exam.image}
+                            alt={`Imagem clínica de referência: ${exam.title}`}
+                          />
+                        </button>
                         <figcaption>
-                          <span>{exam.caption || "Imagem disponibilizada para correlação clínica"}</span>
+                          <span>Imagem educacional representativa{exam.caption ? ` · ${exam.caption}` : ""}</span>
                           {exam.source && exam.sourceUrl && (
                             <a href={exam.sourceUrl} target="_blank" rel="noopener noreferrer">
-                              Fonte: {exam.source} · {exam.license}
+                              Fonte e licença: {exam.source} · {exam.license}
                             </a>
                           )}
                         </figcaption>
@@ -945,6 +1000,29 @@ export default function PatientExperience({
             >
               Confirmar solicitação <ChevronRight />
             </button>
+          </section>
+        </div>
+      )}
+      {zoomedImage && (
+        <div className="overlay" onClick={() => setZoomedImage(null)}>
+          <section className="clinical-modal exam-image-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close" onClick={() => setZoomedImage(null)}><X /></button>
+            <small>{zoomedImage.title}</small>
+            <img src={zoomedImage.image} alt={`Imagem clínica de referência: ${zoomedImage.title}`} />
+            <p className="exam-image-modal-caption">
+              Imagem educacional representativa{zoomedImage.caption ? ` · ${zoomedImage.caption}` : ""}
+            </p>
+            {zoomedImage.source && (
+              <p className="exam-image-modal-license">
+                <b>Fonte e licença:</b> {zoomedImage.source} · {zoomedImage.license}
+                {zoomedImage.licenseUrl && (
+                  <> · <a href={zoomedImage.licenseUrl} target="_blank" rel="noopener noreferrer">ver licença</a></>
+                )}
+                {zoomedImage.sourceUrl && (
+                  <> · <a href={zoomedImage.sourceUrl} target="_blank" rel="noopener noreferrer">ver origem</a></>
+                )}
+              </p>
+            )}
           </section>
         </div>
       )}

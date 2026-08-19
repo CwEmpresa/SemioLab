@@ -130,7 +130,7 @@ export async function POST(request: Request) {
       .map((e) => ({ name: e.name, value: e.result, unit: "", reference: "" })),
     imaging: found
       .filter((e) => e.type === "imaging")
-      .map((e) => ({ title: e.name, findings: e.result, comparison: "Sem exame anterior para comparação." })),
+      .map((e) => ({ title: e.name, findings: e.result, comparison: "Sem exame anterior para comparação.", examId: e.examIds[0] })),
   };
 
   if (found.length > 0) {
