@@ -85,6 +85,21 @@ export const EXAM_CATALOG: ExamCatalogEntry[] = [
     label: "AngioTC de tórax",
     aliases: ["angiotomografia de torax", "angio-tc de torax", "angio tc de torax", "angiotc de torax", "angiotomografia toracica"],
   },
+  {
+    id: "anti_tpo",
+    label: "Anti-TPO (anticorpo anti-peroxidase tireoidiana)",
+    aliases: ["anti-tpo", "anti tpo", "antitpo", "anticorpo anti-peroxidase tireoidiana", "anticorpo antiperoxidase tireoidiana", "anticorpo anti-peroxidase"],
+  },
+  {
+    id: "hemocultura",
+    label: "Hemocultura",
+    aliases: ["hemocultura", "hemoculturas", "cultura de sangue", "culturas de sangue"],
+  },
+  {
+    id: "trigliceridios_calcio",
+    label: "Triglicerídeos e cálcio",
+    aliases: ["trigliceridios e calcio", "triglicerideos e calcio", "dosagem de trigliceridios e calcio", "trigliceridios", "triglicerideos", "calcio total", "calcemia"],
+  },
 ];
 
 const CATALOG_IDS = new Set(EXAM_CATALOG.map((e) => e.id));

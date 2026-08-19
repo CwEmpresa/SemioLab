@@ -163,6 +163,14 @@
           "examIds": [
             "rx_torax"
           ]
+        },
+        {
+          "name": "Ecocardiograma",
+          "type": "imaging",
+          "examIds": [
+            "ecocardiograma"
+          ],
+          "result": "Hipocinesia/acinesia de parede anterior e septo anterior, compatível com território de artéria descendente anterior. Fração de ejeção do ventrículo esquerdo (FEVE) estimada em 40% (moderadamente reduzida). Sem derrame pericárdico. Válvulas sem alterações agudas significativas."
         }
       ],
       "idealConduct": [
@@ -242,6 +250,14 @@
           "examIds": [
             "hemograma"
           ]
+        },
+        {
+          "name": "Ecocardiograma",
+          "type": "imaging",
+          "examIds": [
+            "ecocardiograma"
+          ],
+          "result": "Átrio esquerdo discretamente aumentado (compatível com cardiopatia hipertensiva). Função sistólica do ventrículo esquerdo preservada, FEVE 60%. Sem trombo intracavitário visível. Sem valvopatia significativa."
         }
       ],
       "idealConduct": [
@@ -322,6 +338,14 @@
           "examIds": [
             "pcr"
           ]
+        },
+        {
+          "name": "Gasometria arterial",
+          "type": "lab",
+          "examIds": [
+            "gasometria_arterial"
+          ],
+          "result": "Ar ambiente: pH 7.44, PaO2 68 mmHg (reduzida), PaCO2 34 mmHg, HCO3 24 mEq/L, SatO2 93%. Hipoxemia leve a moderada com alcalose respiratória compensatória, compatível com quadro infeccioso pulmonar em curso."
         }
       ],
       "idealConduct": [
@@ -648,6 +672,14 @@
           "examIds": [
             "ct_head_noncontrast"
           ]
+        },
+        {
+          "name": "Hemocultura",
+          "type": "lab",
+          "examIds": [
+            "hemocultura"
+          ],
+          "result": "2 amostras, coletadas antes da antibioticoterapia: positivas para Neisseria meningitidis (meningococo), sensibilidade preservada a penicilina e ceftriaxona. Resultado definitivo disponível em 24-48h após coleta."
         }
       ],
       "idealConduct": [
@@ -896,6 +928,14 @@
           "examIds": [
             "funcao_hepatica"
           ]
+        },
+        {
+          "name": "Triglicerídeos e cálcio",
+          "type": "lab",
+          "examIds": [
+            "trigliceridios_calcio"
+          ],
+          "result": "Triglicerídeos: 180 mg/dL (referência: < 150 mg/dL) — discretamente elevado, bem abaixo do limiar associado a pancreatite por hipertrigliceridemia (>1000 mg/dL). Cálcio total: 9,2 mg/dL (referência: 8,5-10,5 mg/dL) — normal. Conclusão: achados não sugerem hipertrigliceridemia grave nem hipercalcemia como causa da pancreatite, reforçando a etiologia alcoólica sugerida pela história."
         }
       ],
       "idealConduct": [
@@ -1316,6 +1356,14 @@
           "examIds": [
             "perfil_lipidico"
           ]
+        },
+        {
+          "name": "Anti-TPO",
+          "type": "lab",
+          "examIds": [
+            "anti_tpo"
+          ],
+          "result": "185 UI/mL (referência: < 34 UI/mL) — positivo/elevado. Achado compatível com tireoidite autoimune (Hashimoto) como causa do hipotireoidismo, reforçado pelo antecedente familiar de doença tireoidiana."
         }
       ],
       "idealConduct": [
