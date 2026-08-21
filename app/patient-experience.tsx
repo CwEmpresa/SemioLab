@@ -13,6 +13,7 @@ import {
   History,
   FileHeart,
   Lightbulb,
+  LockKeyhole,
   Mic,
   NotebookPen,
   Plus,
@@ -109,6 +110,7 @@ export default function PatientExperience({
     [physicalFindings, setPhysicalFindings] = useState<Record<string, string>>({}),
     [examOpen, setExamOpen] = useState(false),
     [zoomedImage, setZoomedImage] = useState<ExamImage | null>(null),
+    [voiceUpsellOpen, setVoiceUpsellOpen] = useState(false),
     [recording, setRecording] = useState(false),
     [transcribing, setTranscribing] = useState(false),
     [micError, setMicError] = useState(""),
@@ -1089,7 +1091,7 @@ export default function PatientExperience({
             disabled={typing || transcribing}
             maxLength={500}
           />
-          {learning?.pro?.tier === "pro" && (
+          {learning?.pro?.tier === "pro" ? (
             <button
               className={`chat-mic ${recording ? "is-recording" : ""}`}
               aria-label={recording ? "Parar gravação" : "Gravar pergunta por voz"}
@@ -1098,6 +1100,20 @@ export default function PatientExperience({
               type="button"
             >
               {recording ? <Square /> : <Mic />}
+            </button>
+          ) : (
+            // Sempre visível para contas Free/trial (nunca escondido), mas
+            // travado: mostra o aviso de upsell em vez de gravar. Enquanto o
+            // status Pro ainda está carregando, também fica neste estado
+            // travado por padrão — nunca mostra o microfone funcional antes
+            // de confirmar de verdade que a conta é Pro.
+            <button
+              className="chat-mic is-locked"
+              aria-label="Conversa por voz — recurso do plano Pro"
+              onClick={() => setVoiceUpsellOpen(true)}
+              type="button"
+            >
+              <Mic /><LockKeyhole className="chat-mic-lock-badge" />
             </button>
           )}
           <button aria-label="Enviar pergunta" disabled={!input.trim() || typing || transcribing} onClick={send}>
@@ -1166,6 +1182,22 @@ export default function PatientExperience({
             >
               Confirmar solicitação <ChevronRight />
             </button>
+          </section>
+        </div>
+      )}
+      {voiceUpsellOpen && (
+        <div className="overlay" onClick={() => setVoiceUpsellOpen(false)}>
+          <section className="clinical-modal voice-upsell-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close" onClick={() => setVoiceUpsellOpen(false)}><X /></button>
+            <LockKeyhole className="voice-upsell-icon" />
+            <h2>Conversa por voz disponível no SemioLab Pro.</h2>
+            <p>Grave sua pergunta e ouça a resposta do paciente com voz gerada por inteligência artificial.</p>
+            <a className="primary" href={learning?.pro?.checkoutUrls?.monthly} target="_blank" rel="noopener noreferrer">
+              <span>Assinar mensal</span>
+            </a>
+            <a className="primary" href={learning?.pro?.checkoutUrls?.annual} target="_blank" rel="noopener noreferrer">
+              <span>Assinar anual</span>
+            </a>
           </section>
         </div>
       )}

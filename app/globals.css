@@ -4435,6 +4435,48 @@ em {
   border-color: #e0453f;
   animation: mic-pulse 1.2s ease infinite;
 }
+.consult > footer .chat-mic.is-locked {
+  position: relative;
+  color: #9fb0b3;
+}
+.chat-mic-lock-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 13px !important;
+  height: 13px !important;
+  padding: 1px;
+  color: #fff;
+  background: #6a8387;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #fff;
+}
+.voice-upsell-modal {
+  max-width: 360px;
+  text-align: center;
+}
+.voice-upsell-icon {
+  width: 34px;
+  height: 34px;
+  margin: 4px auto 12px;
+  padding: 8px;
+  color: #087f70;
+  background: #e6f5f1;
+  border-radius: 50%;
+}
+.voice-upsell-modal h2 {
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+.voice-upsell-modal p {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+.voice-upsell-modal .primary {
+  display: block;
+  margin-bottom: 8px;
+}
 @keyframes mic-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(224,69,63,.4); }
   50% { box-shadow: 0 0 0 8px rgba(224,69,63,0); }
