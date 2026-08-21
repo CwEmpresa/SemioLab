@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { CAKTO_CHECKOUT_URLS, isProActive } from "@/lib/pro";
 import { resolveUserAccess } from "@/lib/user-access";
+import { brasiliaDateKey } from "@/lib/ai-usage";
 
 export const dynamic = "force-dynamic";
 
@@ -28,40 +29,46 @@ async function getProStatus(supabase: Awaited<ReturnType<typeof createClient>>, 
   };
 }
 
+/** Streak = dias CONSECUTIVOS até hoje (ou até ontem, se hoje ainda não
+ * tiver sido registrado), sempre no calendário de Brasília — a mesma fonte
+ * de verdade usada para gravar cada dia em login_days. Nunca usa o fuso do
+ * runtime do servidor (UTC na Vercel) nem o do navegador do usuário. */
 function computeCurrentStreak(loginDays: string[]): number {
   const set = new Set(loginDays);
   const cursor = new Date();
   let streak = 0;
   for (;;) {
-    const y = cursor.getFullYear();
-    const m = String(cursor.getMonth() + 1).padStart(2, "0");
-    const d = String(cursor.getDate()).padStart(2, "0");
-    const key = `${y}-${m}-${d}`;
+    const key = brasiliaDateKey(cursor);
     if (!set.has(key)) break;
     streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
   }
   return streak;
 }
 
-/** Conta atividades (quiz + atendimentos) por dia da semana atual (seg..dom),
- * a partir de timestamps reais — nunca um gráfico de exemplo fixo. */
+/** Conta atividades (quiz + atendimentos) por dia da semana atual (seg..dom,
+ * calendário de Brasília), a partir de timestamps reais — nunca um gráfico
+ * de exemplo fixo. */
 function computeWeeklyActivity(dates: string[]): number[] {
   const counts = [0, 0, 0, 0, 0, 0, 0];
   const now = new Date();
-  const todayIndex = (now.getDay() + 6) % 7; // 0 = segunda
-  const startOfWeek = new Date(now);
-  startOfWeek.setHours(0, 0, 0, 0);
-  startOfWeek.setDate(startOfWeek.getDate() - todayIndex);
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(endOfWeek.getDate() + 7);
+  const todayKey = brasiliaDateKey(now);
+  const todayIndex = (new Date(todayKey + "T12:00:00Z").getUTCDay() + 6) % 7; // 0 = segunda
+  const startOfWeekKey = (() => {
+    const d = new Date(todayKey + "T12:00:00Z");
+    d.setUTCDate(d.getUTCDate() - todayIndex);
+    return brasiliaDateKey(d);
+  })();
+  const weekKeys = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(startOfWeekKey + "T12:00:00Z");
+    d.setUTCDate(d.getUTCDate() + i);
+    return brasiliaDateKey(d);
+  });
 
   for (const iso of dates) {
-    const d = new Date(iso);
-    if (d >= startOfWeek && d < endOfWeek) {
-      const index = (d.getDay() + 6) % 7;
-      counts[index] += 1;
-    }
+    const key = brasiliaDateKey(new Date(iso));
+    const index = weekKeys.indexOf(key);
+    if (index !== -1) counts[index] += 1;
   }
   return counts;
 }
@@ -289,12 +296,14 @@ export async function POST(request: Request) {
   }
 
   if (body.action === "login_day") {
-    const activityDate = body.activityDate && /^\d{4}-\d{2}-\d{2}$/.test(body.activityDate)
-      ? body.activityDate
-      : new Date().toISOString().slice(0, 10);
-    // ignora duplicidade: um único registro por usuário por dia (UNIQUE no banco)
-    await supabase.from("login_days").insert({ user_id: user.id, activity_date: activityDate });
-    return Response.json({ ok: true });
+    // A data é SEMPRE calculada aqui no servidor, em horário de Brasília —
+    // nunca a partir do que o cliente envia (fuso do navegador não é
+    // confiável nem consistente com o cálculo do streak).
+    const activityDate = brasiliaDateKey();
+    await supabase
+      .from("login_days")
+      .upsert({ user_id: user.id, activity_date: activityDate }, { onConflict: "user_id,activity_date", ignoreDuplicates: true });
+    return Response.json({ ok: true, activityDate });
   }
 
   return Response.json({ message: "Ação inválida." }, { status: 400 });

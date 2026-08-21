@@ -4416,6 +4416,20 @@ em {
   color: inherit;
   text-decoration: underline;
 }
+.skeleton-number {
+  display: inline-block;
+  width: 64px;
+  height: 1em;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(113,135,142,.15) 25%, rgba(113,135,142,.3) 37%, rgba(113,135,142,.15) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  vertical-align: middle;
+}
+@keyframes skeleton-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
 .lab-table-wrap {
   overflow-x: auto;
   margin-top: 17px;

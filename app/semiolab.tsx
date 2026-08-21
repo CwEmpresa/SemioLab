@@ -305,7 +305,7 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
   useChartBars(dashRef);
   useMasteryBars(dashRef);
 
-  const { summary: learning } = useLearningSummary();
+  const { summary: learning, loading: learningLoading } = useLearningSummary();
   // Contadores animados com dados reais — nunca valores de exemplo.
   const realXp = learning?.profile?.xp ?? 0;
   const realActivities = learning?.stats?.activities ?? 0;
@@ -367,7 +367,7 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
             </div>
             <span>
               <small>STREAK DE ESTUDOS</small>
-              <b>{streak} <em>{streak === 1 ? "dia em sequência" : "dias em sequência"}</em></b>
+              <b>{learningLoading ? <span className="skeleton-number" aria-hidden="true" /> : <>{streak} <em>{streak === 1 ? "dia em sequência" : "dias em sequência"}</em></>}</b>
               <p>{today}</p>
             </span>
             <button>Detalhes <ChevronRight /></button>
@@ -445,8 +445,12 @@ function Checkin({ close }: { close: () => void }) {
   const { summary, loading } = useLearningSummary();
   const calendar = useMemo(() => activityCalendar(summary?.loginDays || []), [summary?.loginDays]);
   const claimed = calendar.active.has(localDateKey());
-  const nextMilestone = Math.max(5, Math.ceil((calendar.currentStreak + 1) / 5) * 5);
-  const milestoneProgress = Math.min(100, Math.round((calendar.currentStreak / nextMilestone) * 100));
+  // O streak exibido é SEMPRE o valor calculado pelo servidor (horário de
+  // Brasília, única fonte de verdade) — nunca recalculado no cliente, para
+  // nunca divergir do número mostrado na Home.
+  const streak = summary?.streak ?? 0;
+  const nextMilestone = Math.max(5, Math.ceil((streak + 1) / 5) * 5);
+  const milestoneProgress = Math.min(100, Math.round((streak / nextMilestone) * 100));
 
   return (
     <div className="overlay" onMouseDown={close}>
@@ -466,12 +470,12 @@ function Checkin({ close }: { close: () => void }) {
             {claimed && <span className="claimed-check"><Check /></span>}
           </div>
           <small>{claimed ? "ACESSO DE HOJE REGISTRADO" : "SEQUÊNCIA ATUAL"}</small>
-          <h2><strong>{calendar.currentStreak}</strong> {calendar.currentStreak === 1 ? "dia" : "dias"}</h2>
+          <h2>{loading && !summary ? <span className="skeleton-number" aria-hidden="true" /> : <><strong>{streak}</strong> {streak === 1 ? "dia" : "dias"}</>}</h2>
           <p>{claimed ? "Sua chama continua acesa. O calendário foi atualizado automaticamente." : "Acesse diariamente para construir sua sequência clínica."}</p>
         </header>
 
         <div className="streak-activity-card">
-          <header><b>Calendário de atividade</b><span>{loading ? "Atualizando…" : `${calendar.active.size} dias registrados`}</span></header>
+          <header><b>Calendário de atividade</b><span>{loading && !summary ? "Atualizando…" : `${calendar.active.size} dias registrados`}</span></header>
           <div className="activity-months" aria-hidden="true">
             <i />{calendar.months.map((month, index) => <small key={`${month}-${index}`}>{month}</small>)}
           </div>
@@ -492,10 +496,10 @@ function Checkin({ close }: { close: () => void }) {
         </div>
 
         <div className="streak-milestone">
-          <span className="milestone-badge"><Flame /><b>{calendar.currentStreak}</b></span>
+          <span className="milestone-badge"><Flame /><b>{streak}</b></span>
           <div>
             <small>PRÓXIMO MARCO</small>
-            <b>Faltam {Math.max(0, nextMilestone - calendar.currentStreak)} dias para {nextMilestone} dias</b>
+            <b>Faltam {Math.max(0, nextMilestone - streak)} dias para {nextMilestone} dias</b>
             <span><i style={{ width:`${milestoneProgress}%` }} /></span>
             <em>{milestoneProgress}% concluído</em>
           </div>
@@ -503,7 +507,7 @@ function Checkin({ close }: { close: () => void }) {
         </div>
 
         <div className="check-stats">
-          <span><b>{calendar.currentStreak} dias</b><small>sequência atual</small></span>
+          <span><b>{streak} dias</b><small>sequência atual</small></span>
           <span><b>{calendar.longestStreak} dias</b><small>melhor sequência</small></span>
           <span><b>{calendar.active.size} dias</b><small>acessos registrados</small></span>
         </div>
@@ -1284,7 +1288,7 @@ export default function SemioLab() {
     fetch("/api/learning", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action:"login_day", activityDate:localDateKey() }),
+      body: JSON.stringify({ action:"login_day" }),
     }).then((response) => {
       if (response.ok) window.dispatchEvent(new Event("semiolab:learning-updated"));
     }).catch(() => {});

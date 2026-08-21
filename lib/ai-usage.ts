@@ -42,3 +42,17 @@ export function startOfBrasiliaDayUtc(now: Date = new Date()): string {
   brasilia.setUTCHours(0, 0, 0, 0);
   return new Date(brasilia.getTime() + BRASILIA_OFFSET_MS).toISOString();
 }
+
+/** Data (YYYY-MM-DD) do dia civil em horário de Brasília (UTC-3, sem
+ * horário de verão) para um instante qualquer. Única fonte de verdade para
+ * "que dia é hoje" no streak — nunca o fuso do runtime do servidor (UTC na
+ * Vercel) nem o fuso local do navegador do usuário, que nunca são
+ * garantidamente iguais. */
+export function brasiliaDateKey(date: Date = new Date()): string {
+  const BRASILIA_OFFSET_MS = 3 * 60 * 60 * 1000;
+  const shifted = new Date(date.getTime() - BRASILIA_OFFSET_MS);
+  const y = shifted.getUTCFullYear();
+  const m = String(shifted.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(shifted.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
