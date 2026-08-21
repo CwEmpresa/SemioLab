@@ -435,6 +435,12 @@ body{
 [data-semiolab-theme="dark"] .icard{background:#0d2329;border-color:#29434a;box-shadow:0 8px 25px #0005}
 [data-semiolab-theme="dark"] .cond-img-caption{background:#102830;color:#a5b8ba;border-color:#29444a}
 [data-semiolab-theme="dark"] .findings-list li{border-color:#203940}
+/* Remove completamente (não apenas esconde atrás/reposiciona) o botão de
+ * favoritos e o indicador de progresso — ficavam junto ao botão flutuante
+ * de navegação do app (que existe até 760px). Marca/título continuam. */
+@media (max-width:760px){
+  .top-status{display:none}
+}
 </style>
 </head>
 <body>

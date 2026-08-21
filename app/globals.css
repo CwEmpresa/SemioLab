@@ -6489,29 +6489,6 @@ button.avatar:hover {
     -webkit-backdrop-filter: blur(18px) saturate(150%);
   }
   .mobile-drawer-trigger svg { width: 20px; }
-  /* Reserva o canto superior direito (onde o botão flutuante de menu fica)
-   * nos cabeçalhos que têm conteúdo próprio nessa posição — nunca remove
-   * nem esconde esses elementos, só evita que fiquem embaixo do botão. */
-  .top,
-  .quiz-home .quiz-top,
-  .patient-wait-header,
-  .consult > header {
-    padding-right: 58px;
-  }
-  /* O grupo de botões da direita nunca pode encolher a ponto de
-   * desaparecer — quem cede espaço é o texto do título, não os botões. */
-  .top > div:first-child {
-    min-width: 0;
-    overflow: hidden;
-  }
-  .top > div:first-child h2 {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .top > div:last-child {
-    flex-shrink: 0;
-  }
   .mobile-drawer-layer { position: fixed; z-index: 120; inset: 0; display: block; pointer-events: none; visibility: hidden; }
   .mobile-drawer-layer.open { pointer-events: auto; visibility: visible; }
   .mobile-drawer-backdrop { position: absolute; inset: 0; width:100%; height:100%; background: rgba(2,18,17,.46); opacity:0; backdrop-filter: blur(5px); transition: opacity .32s ease; }
@@ -7970,7 +7947,7 @@ button.avatar:hover {
 
 @media (max-width: 760px) {
   .profile-page { width: 100%; padding: 0 14px 112px; }
-  .profile-page .top { padding: 0 58px 0 4px; }
+  .profile-page .top { padding: 0 4px; }
   .profile-identity-card { margin-top: 12px; border-radius: 25px; }
   .profile-cover { height: 155px; }
   .profile-cover-orbit.one { width: 68%; right: -3%; top: 38px; }
@@ -10082,4 +10059,25 @@ button.avatar:hover {
   }
   [data-semiolab-theme="dark"] .bottom-nav button { color:#9bb9b4; }
   [data-semiolab-theme="dark"] .bottom-nav button.active { color:#8af2dc; background:rgba(115,214,195,.17); box-shadow:inset 0 1px 0 rgba(255,255,255,.12); }
+}
+
+/* ── Remoção definitiva dos elementos junto ao botão flutuante de menu ──
+ * Colocado no final do arquivo de propósito: garante prioridade sobre
+ * qualquer regra anterior com a mesma especificidade (ex.: bases que
+ * reafirmam display:flex fora de media query). Título e botão de voltar
+ * de cada tela continuam intactos; só remove — nunca reposiciona nem
+ * esconde atrás. */
+@media (max-width: 760px) {
+  .top > div:last-child {
+    display: none;
+  }
+  .consult > header .header-clinical-actions {
+    display: none;
+  }
+  .patient-wait-header > button[aria-label="Ajuda sobre a simulação"] {
+    display: none;
+  }
+  .quiz-home .quiz-insights-button {
+    display: none;
+  }
 }
