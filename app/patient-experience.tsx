@@ -13,12 +13,15 @@ import {
   History,
   FileHeart,
   Lightbulb,
+  Mic,
   NotebookPen,
   Plus,
   Send,
   ShieldCheck,
   Stethoscope,
+  Square,
   Video,
+  Volume2,
   X,
 } from "lucide-react";
 
@@ -55,6 +58,7 @@ type Message = {
   text: string;
   report?: ExamReport;
   createdAt: number;
+  id?: string;
 };
 type ConsultHistory = {
   id: string;
@@ -105,6 +109,11 @@ export default function PatientExperience({
     [physicalFindings, setPhysicalFindings] = useState<Record<string, string>>({}),
     [examOpen, setExamOpen] = useState(false),
     [zoomedImage, setZoomedImage] = useState<ExamImage | null>(null),
+    [recording, setRecording] = useState(false),
+    [transcribing, setTranscribing] = useState(false),
+    [micError, setMicError] = useState(""),
+    [playingMessageId, setPlayingMessageId] = useState<string | null>(null),
+    [loadingAudioMessageId, setLoadingAudioMessageId] = useState<string | null>(null),
     [examText, setExamText] = useState(""),
     [examOrder, setExamOrder] = useState(""),
     [typing, setTyping] = useState(false),
@@ -129,6 +138,15 @@ export default function PatientExperience({
       strengths: string[]; gaps: string[]; examLearning: string[]; feedback: string; correctDiagnosis: string;
     } | null>(null);
   const chatRef = useRef<HTMLElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordingStartRef = useRef(0);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  // Cache em memória do áudio já gerado por mensagem — nunca localStorage,
+  // e some quando a página é recarregada/fechada. Evita gerar (e cobrar) o
+  // TTS de novo em cliques repetidos no mesmo "Ouvir resposta".
+  const audioCacheRef = useRef<Map<string, string>>(new Map());
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const user = useUser();
   const { summary: learning } = useLearningSummary();
   const sessionStorageKey = patientSessionKey(user.id);
@@ -384,14 +402,20 @@ export default function PatientExperience({
       let full = "";
       const createdAt = Date.now();
       setMessages((m) => [...m, { who: "patient", text: "", createdAt }]);
+      const stripMarker = (text: string) => {
+        const markerIndex = text.indexOf("\u0000MSGID:");
+        if (markerIndex === -1) return { clean: text, id: undefined as string | undefined };
+        return { clean: text.slice(0, markerIndex), id: text.slice(markerIndex + 7).trim() };
+      };
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
         full += decoder.decode(value, { stream: true });
+        const { clean } = stripMarker(full);
         setMessages((m) => {
           const next = [...m];
           const last = next[next.length - 1];
-          if (last && last.who === "patient" && last.createdAt === createdAt) next[next.length - 1] = { ...last, text: full };
+          if (last && last.who === "patient" && last.createdAt === createdAt) next[next.length - 1] = { ...last, text: clean };
           return next;
         });
       }
@@ -399,10 +423,11 @@ export default function PatientExperience({
       // um caractere acentuado partido entre dois chunks no fim do stream) —
       // sem isso, o último caractere/palavra podia ficar cortado.
       full += decoder.decode();
+      const { clean: finalText, id: messageId } = stripMarker(full);
       setMessages((m) => {
         const next = [...m];
         const last = next[next.length - 1];
-        if (last && last.who === "patient" && last.createdAt === createdAt) next[next.length - 1] = { ...last, text: full };
+        if (last && last.who === "patient" && last.createdAt === createdAt) next[next.length - 1] = { ...last, text: finalText, id: messageId };
         return next;
       });
     } catch {
@@ -411,6 +436,123 @@ export default function PatientExperience({
       setTyping(false);
     }
   }
+  const MAX_RECORDING_MS = 30_000;
+  const MAX_RECORDING_BYTES = 2 * 1024 * 1024;
+
+  async function startRecording() {
+    setMicError("");
+    if (typing || recording || transcribing) return;
+    if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      setMicError("Gravação de voz não é suportada neste navegador.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordingStreamRef.current = stream;
+      const mimeType = ["audio/webm", "audio/ogg", "audio/mp4"].find((type) => MediaRecorder.isTypeSupported(type)) || "";
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      recordedChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordedChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        recordingStreamRef.current = null;
+      };
+      mediaRecorderRef.current = recorder;
+      recordingStartRef.current = Date.now();
+      recorder.start();
+      setRecording(true);
+      window.setTimeout(() => {
+        if (mediaRecorderRef.current === recorder && recorder.state === "recording") stopRecording();
+      }, MAX_RECORDING_MS);
+    } catch {
+      setMicError("Não foi possível acessar o microfone. Verifique a permissão do navegador.");
+    }
+  }
+
+  function stopRecording() {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state !== "recording") return;
+    setRecording(false);
+    const durationSeconds = Math.min(30, (Date.now() - recordingStartRef.current) / 1000);
+    recorder.addEventListener(
+      "stop",
+      async () => {
+        const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        mediaRecorderRef.current = null;
+        if (blob.size === 0) return;
+        if (blob.size > MAX_RECORDING_BYTES) {
+          setMicError("Gravação maior que 2 MB. Tente uma pergunta mais curta.");
+          return;
+        }
+        if (!sessionId) return;
+        setTranscribing(true);
+        try {
+          const form = new FormData();
+          form.append("sessionId", sessionId);
+          form.append("durationSeconds", String(durationSeconds));
+          form.append("audio", blob, "gravacao.webm");
+          const response = await fetch("/api/patient/transcribe", { method: "POST", body: form });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            setMicError(data.error || "Não foi possível transcrever o áudio.");
+            return;
+          }
+          // A transcrição só preenche o campo para revisão — não envia
+          // sozinha, e não consome nenhuma das 20 perguntas ainda.
+          setInput((current) => (current ? `${current} ${data.transcript}`.trim() : data.transcript || ""));
+        } catch {
+          setMicError("Não foi possível transcrever o áudio agora. Digite sua pergunta.");
+        } finally {
+          setTranscribing(false);
+        }
+      },
+      { once: true },
+    );
+    recorder.stop();
+  }
+
+  async function playPatientAudio(message: Message) {
+    if (!message.id || !sessionId) return;
+    // Reaproveita o áudio já gerado nesta página, sem nova cobrança.
+    const cached = audioCacheRef.current.get(message.id);
+    if (cached) {
+      currentAudioRef.current?.pause();
+      const audio = new Audio(cached);
+      currentAudioRef.current = audio;
+      setPlayingMessageId(message.id);
+      audio.onended = () => setPlayingMessageId(null);
+      audio.play().catch(() => setPlayingMessageId(null));
+      return;
+    }
+    setLoadingAudioMessageId(message.id);
+    try {
+      const response = await fetch("/api/patient/tts", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sessionId, messageId: message.id }),
+      });
+      if (!response.ok) {
+        setMicError("Não foi possível gerar o áudio desta resposta agora.");
+        return;
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      audioCacheRef.current.set(message.id, url);
+      currentAudioRef.current?.pause();
+      const audio = new Audio(url);
+      currentAudioRef.current = audio;
+      setPlayingMessageId(message.id);
+      audio.onended = () => setPlayingMessageId(null);
+      audio.play().catch(() => setPlayingMessageId(null));
+    } catch {
+      setMicError("Não foi possível gerar o áudio desta resposta agora.");
+    } finally {
+      setLoadingAudioMessageId(null);
+    }
+  }
+
   async function requestExam() {
     const order = examText.trim();
     if (!order || !sessionId) return;
@@ -798,7 +940,7 @@ export default function PatientExperience({
           <div key={i} className={`msg ${m.who}`}>
             <i>
               {m.who === "patient" ? (
-                "MR"
+                patientInitials
               ) : m.who === "exam" ? (
                 <FileHeart />
               ) : (
@@ -893,6 +1035,18 @@ export default function PatientExperience({
               <div className="message-content">
                 <p>{m.text}</p>
                 <time>{messageTime(m.createdAt)}</time>
+                {m.who === "patient" && m.id && learning?.pro?.tier === "pro" && (
+                  <button
+                    type="button"
+                    className="listen-response-btn"
+                    onClick={() => playPatientAudio(m)}
+                    disabled={loadingAudioMessageId === m.id}
+                    aria-label="Ouvir resposta gerada por inteligência artificial"
+                  >
+                    <Volume2 />
+                    {loadingAudioMessageId === m.id ? "Gerando áudio..." : playingMessageId === m.id ? "Tocando..." : "Ouvir resposta (voz por IA)"}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -931,14 +1085,26 @@ export default function PatientExperience({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !typing && send()}
-            placeholder={typing ? "Aguardando resposta do paciente..." : "Faça uma pergunta ao paciente..."}
-            disabled={typing}
+            placeholder={transcribing ? "Transcrevendo áudio..." : typing ? "Aguardando resposta do paciente..." : "Faça uma pergunta ao paciente..."}
+            disabled={typing || transcribing}
             maxLength={500}
           />
-          <button aria-label="Enviar pergunta" disabled={!input.trim() || typing} onClick={send}>
+          {learning?.pro?.tier === "pro" && (
+            <button
+              className={`chat-mic ${recording ? "is-recording" : ""}`}
+              aria-label={recording ? "Parar gravação" : "Gravar pergunta por voz"}
+              disabled={typing || transcribing}
+              onClick={recording ? stopRecording : startRecording}
+              type="button"
+            >
+              {recording ? <Square /> : <Mic />}
+            </button>
+          )}
+          <button aria-label="Enviar pergunta" disabled={!input.trim() || typing || transcribing} onClick={send}>
             <Send />
           </button>
         </label>
+        {micError && <div role="alert" className="patient-load-error">{micError}</div>}
       </footer>
       {physicalOpen && (
         <div className="overlay">

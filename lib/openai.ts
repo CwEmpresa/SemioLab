@@ -5,6 +5,13 @@ import OpenAI from "openai";
  * explicitamente como "gemini". */
 export const AI_PROVIDER = process.env.AI_PROVIDER || "openai";
 export const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5-mini";
+export const OPENAI_TRANSCRIPTION_MODEL = process.env.OPENAI_TRANSCRIPTION_MODEL || "gpt-4o-mini-transcribe";
+export const OPENAI_TTS_MODEL = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
+// Voz escolhida com base em recomendações públicas da OpenAI para tom
+// natural/caloroso — ainda precisa ser ouvida em português brasileiro por
+// um humano antes de considerar definitiva (não há como testar áudio real
+// neste ambiente).
+export const OPENAI_TTS_VOICE = process.env.OPENAI_TTS_VOICE || "coral";
 
 let client: OpenAI | null = null;
 
@@ -27,6 +34,18 @@ const PRICE_PER_MILLION = {
   input: Number(process.env.OPENAI_PRICE_INPUT ?? 0.25),
   cachedInput: Number(process.env.OPENAI_PRICE_CACHED_INPUT ?? 0.025),
   output: Number(process.env.OPENAI_PRICE_OUTPUT ?? 2),
+};
+
+// Preços de áudio confirmados em múltiplas fontes independentes (ago/2026):
+// gpt-4o-mini-transcribe ~$1.25/1M tokens input, $5/1M output (~$0.003/min).
+// gpt-4o-mini-tts ~$0.60/1M tokens texto input, $12/1M tokens áudio output
+// (~$0.015/min de áudio gerado). A Speech API não devolve contagem real de
+// tokens, então o custo do TTS é uma ESTIMATIVA por caractere.
+const AUDIO_PRICE_PER_MILLION = {
+  transcribeInput: Number(process.env.OPENAI_PRICE_TRANSCRIBE_INPUT ?? 1.25),
+  transcribeOutput: Number(process.env.OPENAI_PRICE_TRANSCRIBE_OUTPUT ?? 5),
+  ttsInputTokens: Number(process.env.OPENAI_PRICE_TTS_INPUT ?? 0.6),
+  ttsOutputTokens: Number(process.env.OPENAI_PRICE_TTS_OUTPUT ?? 12),
 };
 
 export type UsageTokens = {
@@ -87,4 +106,26 @@ export function safeErrorMeta(err: unknown) {
     code: e?.code ?? null,
     message: (e?.message ?? String(err)).slice(0, 500),
   };
+}
+
+/** Custo real da transcrição (a API devolve contagem real de tokens). */
+export function estimateTranscriptionCostUsd(inputTokens: number, outputTokens: number): number {
+  const cost =
+    (inputTokens / 1_000_000) * AUDIO_PRICE_PER_MILLION.transcribeInput +
+    (outputTokens / 1_000_000) * AUDIO_PRICE_PER_MILLION.transcribeOutput;
+  return Number(cost.toFixed(8));
+}
+
+/** Custo ESTIMADO do TTS (a Speech API não devolve tokens reais). Estimativa
+ * grosseira a partir do texto de entrada: ~4 caracteres por token de texto,
+ * e ~150 tokens de áudio de saída por segundo de fala gerada (heurística
+ * documentada pela comunidade, não um valor oficial exato). */
+export function estimateTtsCostUsd(inputText: string): number {
+  const inputTokens = Math.ceil(inputText.length / 4);
+  const estimatedSeconds = Math.max(1, inputText.length / 15); // ~15 caracteres/segundo de fala
+  const outputAudioTokens = estimatedSeconds * 150;
+  const cost =
+    (inputTokens / 1_000_000) * AUDIO_PRICE_PER_MILLION.ttsInputTokens +
+    (outputAudioTokens / 1_000_000) * AUDIO_PRICE_PER_MILLION.ttsOutputTokens;
+  return Number(cost.toFixed(8));
 }

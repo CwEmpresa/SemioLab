@@ -4416,6 +4416,44 @@ em {
   color: inherit;
   text-decoration: underline;
 }
+.consult > footer .chat-mic {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  color: #6a8387;
+  background: #fff;
+  border: 1px solid #dce7e5;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px #315d520d;
+}
+.consult > footer .chat-mic:hover { color: #087f70; background: #e6f5f1; }
+.consult > footer .chat-mic.is-recording {
+  color: #fff;
+  background: #e0453f;
+  border-color: #e0453f;
+  animation: mic-pulse 1.2s ease infinite;
+}
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(224,69,63,.4); }
+  50% { box-shadow: 0 0 0 8px rgba(224,69,63,0); }
+}
+.listen-response-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: #087f70;
+  background: #e6f5f1;
+  border: 1px solid #cfe9e3;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.listen-response-btn:disabled { opacity: .6; cursor: default; }
+.listen-response-btn svg { width: 14px; height: 14px; }
 .skeleton-number {
   display: inline-block;
   width: 64px;

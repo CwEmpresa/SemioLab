@@ -102,12 +102,14 @@ export async function POST(request: Request) {
   // Defesa contra prompt injection: bloqueia ANTES de chamar o provedor.
   // A pergunta recusada TAMBÉM conta no limite do atendimento.
   if (looksLikePromptInjection(message)) {
-    await service.from("patient_messages").insert([
-      { session_id: sessionId, role: "student", content: message },
-      { session_id: sessionId, role: "patient", content: INJECTION_DEFLECTION },
-    ]);
+    await service.from("patient_messages").insert({ session_id: sessionId, role: "student", content: message });
+    const { data: deflectionMessage } = await service
+      .from("patient_messages")
+      .insert({ session_id: sessionId, role: "patient", content: INJECTION_DEFLECTION })
+      .select("id")
+      .single();
     await service.from("patient_sessions").update({ message_count: questionsUsed }).eq("id", sessionId);
-    return new Response(INJECTION_DEFLECTION, {
+    return new Response(deflectionMessage?.id ? `${INJECTION_DEFLECTION}\u0000MSGID:${deflectionMessage.id}` : INJECTION_DEFLECTION, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "X-Questions-Used": String(questionsUsed),
@@ -187,11 +189,17 @@ export async function POST(request: Request) {
           const contentToSave = trimmed.length > 0 ? fullText : FALLBACK_REPLY;
           if (trimmed.length === 0) controller.enqueue(encoder.encode(FALLBACK_REPLY));
 
-          await service.from("patient_messages").insert({
-            session_id: sessionId,
-            role: "patient",
-            content: contentToSave,
-          });
+          const { data: savedMessage } = await service
+            .from("patient_messages")
+            .insert({ session_id: sessionId, role: "patient", content: contentToSave })
+            .select("id")
+            .single();
+          // Marcador invisível no fim do stream com o id real da mensagem
+          // salva — necessário para o botão "Ouvir resposta" (TTS), já que
+          // o id só existe depois do insert, e os headers HTTP já foram
+          // fixados antes do corpo do stream começar a ser gerado. O
+          // cliente remove esse marcador antes de exibir o texto.
+          if (savedMessage?.id) controller.enqueue(encoder.encode(`\u0000MSGID:${savedMessage.id}`));
           await service.from("patient_sessions").update({ message_count: questionsUsed }).eq("id", sessionId);
           for (const usage of usageLog.length ? usageLog : [ZERO_USAGE]) {
             await logAiUsage(service, { userId: user.id, sessionId, operation: "chat", model: OPENAI_MODEL, usage });

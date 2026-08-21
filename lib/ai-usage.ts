@@ -34,6 +34,56 @@ export async function logAiUsage(
   }
 }
 
+/** Grava o consumo de uma operação de áudio (transcrição/TTS) — custo já
+ * calculado (transcrição usa tokens reais devolvidos pela API; TTS usa
+ * estimativa, já que a Speech API não devolve contagem de tokens). */
+export async function logAudioUsage(
+  service: ReturnType<typeof createServiceClient>,
+  params: {
+    userId: string;
+    sessionId: string | null;
+    operation: "transcription" | "tts";
+    model: string;
+    inputTokens?: number;
+    outputTokens?: number;
+    estimatedCostUsd: number;
+  },
+) {
+  try {
+    await service.from("ai_usage_logs").insert({
+      user_id: params.userId,
+      session_id: params.sessionId,
+      operation: params.operation,
+      provider: "openai",
+      model: params.model,
+      input_tokens: params.inputTokens ?? 0,
+      cached_input_tokens: 0,
+      output_tokens: params.outputTokens ?? 0,
+      reasoning_tokens: 0,
+      estimated_cost_usd: params.estimatedCostUsd,
+    });
+  } catch {
+    console.error("[ai-usage] falha ao registrar consumo de áudio", { operation: params.operation });
+  }
+}
+
+/** Rate limit simples por usuário + operação, usando o próprio log de
+ * consumo como fonte (sem tabela nova): conta quantas chamadas dessa
+ * operação o usuário fez nos últimos `windowSeconds`. */
+export async function isRateLimited(
+  service: ReturnType<typeof createServiceClient>,
+  params: { userId: string; operation: "transcription" | "tts"; maxPerWindow: number; windowSeconds: number },
+): Promise<boolean> {
+  const since = new Date(Date.now() - params.windowSeconds * 1000).toISOString();
+  const { count } = await service
+    .from("ai_usage_logs")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", params.userId)
+    .eq("operation", params.operation)
+    .gte("created_at", since);
+  return (count ?? 0) >= params.maxPerWindow;
+}
+
 /** Início do dia corrente no horário de Brasília (UTC-3), em ISO UTC.
  * Os limites diários reiniciam à meia-noite de Brasília e não acumulam. */
 export function startOfBrasiliaDayUtc(now: Date = new Date()): string {
