@@ -1270,6 +1270,19 @@ export default function SemioLab() {
   const [checkin, setCheckin] = useState(true);
   const [theme, setThemeState] = useState<AppTheme>("light");
 
+  // A sidebar reserva 248px (aberta) de largura fixa no conteúdo. Em telas
+  // médias (mesmo breakpoint já usado pelo grid do dashboard, <=1100px),
+  // isso espreme demais o conteúdo e pode causar rolagem horizontal (ex.:
+  // botões que não encolhem). Recolhe automaticamente nessas larguras — o
+  // usuário ainda pode reabrir manualmente, e isso é reavaliado a cada
+  // redimensionamento real da janela.
+  useEffect(() => {
+    const applyResponsiveNav = () => setNavOpen(window.innerWidth > 1100);
+    applyResponsiveNav();
+    window.addEventListener("resize", applyResponsiveNav);
+    return () => window.removeEventListener("resize", applyResponsiveNav);
+  }, []);
+
   // Isolamento entre contas é feito por CHAVE namespaced (semiolab:{userId}:...)
   // e por dados definitivos vindos do Supabase (RLS) — nunca apagando o
   // localStorage de outros usuários. Um cache de outra conta que sobrar no

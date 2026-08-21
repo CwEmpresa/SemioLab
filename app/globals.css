@@ -1250,6 +1250,7 @@ em {
 .section-title h3 {
   font-size: 20px;
   margin: 5px 0 18px;
+  min-width: 0;
 }
 .next-patient,
 .quick > div button {
@@ -1402,6 +1403,9 @@ em {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
 }
 .metrics {
   display: flex;
