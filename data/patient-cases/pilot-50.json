@@ -1,0 +1,4021 @@
+[
+  {
+    "slug": "ic-descompensada-01",
+    "title": "Dispneia e inchaço nas pernas",
+    "specialty": "Cardiovascular",
+    "difficulty": "moderado",
+    "openingLine": "Bom dia, doutor. Desde ontem estou muito cansada e hoje tive uma falta de ar estranha.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Marta",
+        "age": 68,
+        "sex": "feminino",
+        "tone": "cansada, um pouco ansiosa"
+      },
+      "diagnosis": "Insuficiência cardíaca descompensada",
+      "differentials": [
+        "Síndrome coronariana aguda",
+        "Pneumonia",
+        "Tromboembolismo pulmonar",
+        "DPOC exacerbado"
+      ],
+      "history": {
+        "inicio": "Piora da falta de ar há 5 dias, hoje piorou muito",
+        "ortopneia": "Precisa dormir com 3 travesseiros há uma semana",
+        "dispneia_paroxistica_noturna": "Acordou 2 vezes essa semana engasgada, sentindo falta de ar",
+        "edema": "Pés e tornozelos inchados há dias, piorando à tarde",
+        "peso": "Ganhou quase 3kg em uma semana",
+        "medicacoes": "Toma losartana e furosemida, mas esqueceu a furosemida por 4 dias",
+        "comorbidades": "Hipertensão há 15 anos, já teve um problema no coração há 2 anos",
+        "dor_toracica": "Não sente dor no peito",
+        "tabagismo": "Nunca fumou",
+        "alergias": "Não tem alergia a nenhum remédio que ela saiba.",
+        "internacoes_cirurgias": "Já foi internada uma vez há 2 anos por causa do coração.",
+        "historia_familiar": "A mãe também tinha pressão alta; não sabe de outros problemas de coração na família.",
+        "tabagismo_alcool": "Nunca fumou e bebe socialmente, bem raramente.",
+        "medicamentos_em_uso": "Toma losartana e furosemida, mas esqueceu a furosemida por 4 dias"
+      },
+      "physicalExam": {
+        "geral": "Levemente taquipneica, ortopneica",
+        "sinais_vitais": "PA 150/95, FC 102, FR 26, SatO2 91% em ar ambiente",
+        "cardiovascular": "Terceira bulha presente, turgência jugular a 45 graus",
+        "pulmonar": "Estertores crepitantes em bases bilaterais",
+        "extremidades": "Edema de membros inferiores 2+/4+, cacifo positivo"
+      },
+      "exams": [
+        {
+          "name": "Radiografia de tórax",
+          "result": "Cardiomegalia, redistribuição vascular para ápices, pequeno derrame pleural bilateral",
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ]
+        },
+        {
+          "name": "ECG",
+          "result": "Ritmo sinusal, sobrecarga ventricular esquerda, sem sinais de isquemia aguda",
+          "type": "lab",
+          "examIds": [
+            "ecg"
+          ]
+        },
+        {
+          "name": "BNP",
+          "result": "980 pg/mL (elevado)",
+          "type": "lab",
+          "examIds": [
+            "bnp"
+          ]
+        },
+        {
+          "name": "Ecocardiograma",
+          "result": "FEVE 32%, hipocinesia global, disfunção sistólica moderada a grave",
+          "type": "imaging",
+          "examIds": [
+            "ecocardiograma"
+          ]
+        },
+        {
+          "name": "Função renal e eletrólitos",
+          "result": "Creatinina 1.3, sódio 137, potássio 4.2",
+          "type": "lab",
+          "examIds": [
+            "funcao_renal_eletrolitos"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Furosemida endovenosa",
+        "Oxigenoterapia se saturação baixa",
+        "Monitorização de sinais vitais",
+        "Internação para compensação"
+      ],
+      "keyQuestions": [
+        "Ortopneia",
+        "Dispneia paroxística noturna",
+        "Edema e ganho de peso",
+        "Adesão à furosemida",
+        "Antecedente cardiológico"
+      ]
+    },
+    "receptionReason": "Cansaço e falta de ar há 5 dias, piorando"
+  },
+  {
+    "slug": "iam-supra-01",
+    "title": "Dor no peito súbita",
+    "specialty": "Cardiovascular",
+    "difficulty": "dificil",
+    "openingLine": "Doutor, comecei a sentir uma dor forte no peito há uns 40 minutos, não passa.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Roberto",
+        "age": 57,
+        "sex": "masculino",
+        "tone": "aflito, suado, fala rápido"
+      },
+      "diagnosis": "Infarto agudo do miocárdio com supradesnivelamento de ST",
+      "differentials": [
+        "Angina instável",
+        "Dissecção de aorta",
+        "Pericardite aguda",
+        "Refluxo gastroesofágico grave"
+      ],
+      "history": {
+        "caracteristica_dor": "Aperto forte no meio do peito, como um peso",
+        "irradiacao": "A dor vai para o braço esquerdo e para o queixo",
+        "sintomas_associados": "Suor frio, náusea, falta de ar leve",
+        "fatores": "Nada piora nem melhora a dor",
+        "antecedentes": "Fumante há 30 anos, diabético, pai teve infarto aos 55",
+        "uso_medicacao": "Não tomou nada",
+        "alergias": "Não tem alergia a remédio nenhum.",
+        "medicamentos_em_uso": "Toma metformina para o diabetes, mas não tomou nada hoje por causa da dor.",
+        "internacoes_cirurgias": "Nunca foi internado nem operado antes.",
+        "historia_familiar": "O pai teve infarto aos 55 anos; não sabe de mais ninguém na família com problema assim.",
+        "tabagismo_alcool": "Fuma cerca de um maço de cigarros por dia há 30 anos e bebe cerveja nos fins de semana."
+      },
+      "physicalExam": {
+        "geral": "Pálido, sudoreico, ansioso",
+        "sinais_vitais": "PA 100/70, FC 96, FR 20, SatO2 95%",
+        "cardiovascular": "Ritmo regular, sem sopros, bulhas hipofonéticas",
+        "pulmonar": "Murmúrio vesicular presente, sem estertores"
+      },
+      "exams": [
+        {
+          "name": "ECG",
+          "result": "Supradesnivelamento de ST de 3mm em parede anterior (V1-V4)",
+          "type": "lab",
+          "examIds": [
+            "ecg"
+          ]
+        },
+        {
+          "name": "Troponina",
+          "result": "Elevada, 3x o limite superior",
+          "type": "lab",
+          "examIds": [
+            "troponina"
+          ]
+        },
+        {
+          "name": "Radiografia de tórax",
+          "result": "Sem alterações agudas, área cardíaca normal",
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ]
+        },
+        {
+          "name": "Ecocardiograma",
+          "type": "imaging",
+          "examIds": [
+            "ecocardiograma"
+          ],
+          "result": "Hipocinesia/acinesia de parede anterior e septo anterior, compatível com território de artéria descendente anterior. Fração de ejeção do ventrículo esquerdo (FEVE) estimada em 40% (moderadamente reduzida). Sem derrame pericárdico. Válvulas sem alterações agudas significativas."
+        }
+      ],
+      "idealConduct": [
+        "Encaminhamento imediato para hemodinâmica/angioplastia primária",
+        "AAS e antiplaquetário",
+        "Monitorização contínua",
+        "Não atrasar por exames adicionais"
+      ],
+      "keyQuestions": [
+        "Características e irradiação da dor",
+        "Sintomas associados (sudorese, náusea)",
+        "Fatores de risco cardiovascular",
+        "Tempo de início dos sintomas"
+      ]
+    },
+    "receptionReason": "Dor forte no peito há 40 minutos"
+  },
+  {
+    "slug": "fibrilacao-atrial-01",
+    "title": "Palpitações e tontura",
+    "specialty": "Cardiovascular",
+    "difficulty": "moderado",
+    "openingLine": "Doutor, meu coração está disparado desde hoje de manhã e estou meio tonta.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Cecília",
+        "age": 72,
+        "sex": "feminino",
+        "tone": "assustada, fala devagar"
+      },
+      "diagnosis": "Fibrilação atrial com resposta ventricular rápida",
+      "differentials": [
+        "Taquicardia supraventricular",
+        "Hipertireoidismo",
+        "Ansiedade",
+        "Anemia"
+      ],
+      "history": {
+        "inicio": "Começou hoje de manhã, do nada",
+        "caracteristica": "Sente o coração batendo irregular e rápido",
+        "sintomas_associados": "Tontura leve, cansaço, sem dor no peito",
+        "antecedentes": "Hipertensa, já teve um episódio parecido há 1 ano",
+        "habitos": "Bebeu mais café que o normal ontem",
+        "alergias": "Não tem alergia a nada.",
+        "medicamentos_em_uso": "Toma losartana para a pressão todos os dias.",
+        "internacoes_cirurgias": "Nunca foi internada nem operada.",
+        "historia_familiar": "Não sabe de ninguém na família com problema de coração.",
+        "tabagismo_alcool": "Nunca fumou e não bebe."
+      },
+      "physicalExam": {
+        "geral": "Levemente pálida, orientada",
+        "sinais_vitais": "PA 110/70, FC irregular em torno de 140, FR 18, SatO2 97%",
+        "cardiovascular": "Ritmo irregularmente irregular, sem sopros",
+        "pulmonar": "Normal"
+      },
+      "exams": [
+        {
+          "name": "ECG",
+          "result": "Fibrilação atrial com resposta ventricular em torno de 140bpm, ausência de onda P",
+          "type": "lab",
+          "examIds": [
+            "ecg"
+          ]
+        },
+        {
+          "name": "TSH",
+          "result": "Normal",
+          "type": "lab",
+          "examIds": [
+            "tsh"
+          ]
+        },
+        {
+          "name": "Hemograma",
+          "result": "Sem anemia, sem leucocitose",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
+        },
+        {
+          "name": "Ecocardiograma",
+          "type": "imaging",
+          "examIds": [
+            "ecocardiograma"
+          ],
+          "result": "Átrio esquerdo discretamente aumentado (compatível com cardiopatia hipertensiva). Função sistólica do ventrículo esquerdo preservada, FEVE 60%. Sem trombo intracavitário visível. Sem valvopatia significativa."
+        }
+      ],
+      "idealConduct": [
+        "Controle de frequência cardíaca",
+        "Avaliar necessidade de anticoagulação (CHA2DS2-VASc)",
+        "Investigar causa desencadeante",
+        "Monitorização"
+      ],
+      "keyQuestions": [
+        "Tempo de início",
+        "Episódios prévios",
+        "Fatores desencadeantes",
+        "Sintomas de instabilidade hemodinâmica"
+      ]
+    },
+    "receptionReason": "Palpitações e tontura desde hoje de manhã"
+  },
+  {
+    "slug": "pneumonia-adquirida-01",
+    "title": "Febre e tosse com catarro",
+    "specialty": "Respiratório",
+    "difficulty": "facil",
+    "openingLine": "Doutor, estou com febre alta e tossindo muito, com um catarro amarelado.",
+    "hiddenCase": {
+      "persona": {
+        "name": "João",
+        "age": 45,
+        "sex": "masculino",
+        "tone": "cansado, tossindo durante a fala"
+      },
+      "diagnosis": "Pneumonia adquirida na comunidade",
+      "differentials": [
+        "Bronquite aguda",
+        "Tuberculose",
+        "COVID-19",
+        "Tromboembolismo pulmonar"
+      ],
+      "history": {
+        "inicio": "Sintomas começaram há 3 dias, piorando",
+        "febre": "Febre até 39°C, com calafrios",
+        "tosse": "Tosse produtiva, catarro amarelo-esverdeado",
+        "dor_toracica": "Dor em pontada no lado direito do peito, piora ao respirar fundo",
+        "falta_de_ar": "Um pouco de falta de ar ao caminhar",
+        "antecedentes": "Fumante, sem outras doenças conhecidas",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Fuma cerca de um maço por dia há muitos anos, bebe cerveja nos fins de semana."
+      },
+      "physicalExam": {
+        "geral": "Febril, taquipneico leve",
+        "sinais_vitais": "Temperatura 38.8°C, FC 100, FR 24, SatO2 93%",
+        "pulmonar": "Estertores crepitantes em base direita, macicez à percussão",
+        "cardiovascular": "Normal"
+      },
+      "exams": [
+        {
+          "name": "Radiografia de tórax",
+          "result": "Consolidação em lobo inferior direito",
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ]
+        },
+        {
+          "name": "Hemograma",
+          "result": "Leucocitose com desvio à esquerda (18.000, 85% neutrófilos)",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
+        },
+        {
+          "name": "PCR",
+          "result": "Elevada, 120 mg/L",
+          "type": "lab",
+          "examIds": [
+            "pcr"
+          ]
+        },
+        {
+          "name": "Gasometria arterial",
+          "type": "lab",
+          "examIds": [
+            "gasometria_arterial"
+          ],
+          "result": "Ar ambiente: pH 7.44, PaO2 68 mmHg (reduzida), PaCO2 34 mmHg, HCO3 24 mEq/L, SatO2 93%. Hipoxemia leve a moderada com alcalose respiratória compensatória, compatível com quadro infeccioso pulmonar em curso."
+        }
+      ],
+      "idealConduct": [
+        "Antibioticoterapia empírica (ex.: amoxicilina-clavulanato ou macrolídeo)",
+        "Avaliar critérios de gravidade (CURB-65)",
+        "Hidratação e antitérmico",
+        "Reavaliação em 48-72h"
+      ],
+      "keyQuestions": [
+        "Características da tosse e do catarro",
+        "Febre e calafrios",
+        "Dor pleurítica",
+        "Fatores de risco (tabagismo)"
+      ]
+    },
+    "receptionReason": "Febre alta e tosse com catarro há 3 dias"
+  },
+  {
+    "slug": "asma-exacerbada-01",
+    "title": "Chiado no peito e falta de ar",
+    "specialty": "Respiratório",
+    "difficulty": "facil",
+    "openingLine": "Doutor, meu peito está chiando muito e não consigo respirar direito desde a noite passada.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Larissa",
+        "age": 22,
+        "sex": "feminino",
+        "tone": "ofegante, fala em frases curtas"
+      },
+      "diagnosis": "Exacerbação aguda de asma",
+      "differentials": [
+        "Bronquite aguda",
+        "Anafilaxia",
+        "Corpo estranho em via aérea",
+        "DPOC"
+      ],
+      "history": {
+        "inicio": "Piora progressiva desde ontem à noite",
+        "gatilho": "Estava limpando a casa, muita poeira",
+        "sintomas": "Chiado, aperto no peito, tosse seca",
+        "antecedentes": "Asmática desde criança, usa bombinha de resgate às vezes",
+        "medicacao": "Usou a bombinha de salbutamol 2 vezes sem melhora completa",
+        "internacoes_previas": "Já foi internada uma vez por crise grave",
+        "alergias": "Tem alergia a poeira e a pelo de gato, que pioram muito a asma.",
+        "medicamentos_em_uso": "Usa a bombinha de salbutamol quando sente falta de ar.",
+        "internacoes_cirurgias": "Já foi internada uma vez por uma crise grave de asma.",
+        "historia_familiar": "A mãe também tem asma.",
+        "tabagismo_alcool": "Nunca fumou e não bebe."
+      },
+      "physicalExam": {
+        "geral": "Uso de musculatura acessória, fala frases curtas",
+        "sinais_vitais": "FC 112, FR 28, SatO2 92%",
+        "pulmonar": "Sibilos difusos bilaterais, expiração prolongada",
+        "cardiovascular": "Taquicárdico, sem sopros"
+      },
+      "exams": [
+        {
+          "name": "Radiografia de tórax",
+          "result": "Hiperinsuflação leve, sem consolidações",
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ]
+        },
+        {
+          "name": "Gasometria arterial",
+          "result": "pH 7.42, pCO2 38, leve hipoxemia",
+          "type": "lab",
+          "examIds": [
+            "gasometria_arterial"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Broncodilatador de curta ação (salbutamol) inalatório repetido",
+        "Corticoide sistêmico",
+        "Oxigenoterapia se necessário",
+        "Reavaliar resposta em 1 hora"
+      ],
+      "keyQuestions": [
+        "Gatilho da crise",
+        "Uso prévio de bombinha",
+        "Frequência das crises",
+        "Histórico de internações/UTI por asma"
+      ]
+    },
+    "receptionReason": "Falta de ar e chiado no peito desde a noite passada"
+  },
+  {
+    "slug": "tep-01",
+    "title": "Falta de ar súbita após cirurgia",
+    "specialty": "Respiratório",
+    "difficulty": "dificil",
+    "openingLine": "Doutor, de repente comecei a sentir muita falta de ar e uma dor no peito.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Eduardo",
+        "age": 60,
+        "sex": "masculino",
+        "tone": "ansioso, respiração curta"
+      },
+      "diagnosis": "Tromboembolismo pulmonar",
+      "differentials": [
+        "Infarto agudo do miocárdio",
+        "Pneumotórax",
+        "Pneumonia",
+        "Ansiedade"
+      ],
+      "history": {
+        "inicio": "Começou de repente há 2 horas",
+        "cirurgia_recente": "Fez cirurgia no joelho há 10 dias, ficou muito tempo na cama",
+        "dor": "Dor no lado direito do peito, piora ao respirar fundo",
+        "perna": "Perna esquerda um pouco inchada e dolorida",
+        "outros_sintomas": "Sensação de coração acelerado",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Toma sinvastatina para o colesterol.",
+        "internacoes_cirurgias": "Fez cirurgia no joelho há 10 dias; foi a única vez que já foi operado.",
+        "historia_familiar": "Não sabe de ninguém na família com problema de trombose ou coágulo.",
+        "tabagismo_alcool": "Nunca fumou; bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Ansioso, taquipneico",
+        "sinais_vitais": "FC 118, FR 26, SatO2 89%, PA 105/68",
+        "pulmonar": "Murmúrio vesicular presente, sem estertores",
+        "membros_inferiores": "Panturrilha esquerda edemaciada, dolorosa, empastada"
+      },
+      "exams": [
+        {
+          "name": "D-dímero",
+          "result": "Muito elevado",
+          "type": "lab",
+          "examIds": [
+            "d_dimero"
+          ]
+        },
+        {
+          "name": "AngioTC de tórax",
+          "result": "Falha de enchimento em artéria pulmonar direita, compatível com TEP",
+          "type": "imaging",
+          "examIds": [
+            "cta_chest"
+          ]
+        },
+        {
+          "name": "ECG",
+          "result": "Taquicardia sinusal, padrão S1Q3T3",
+          "type": "lab",
+          "examIds": [
+            "ecg"
+          ]
+        },
+        {
+          "name": "Gasometria arterial",
+          "result": "Hipoxemia com alcalose respiratória",
+          "type": "lab",
+          "examIds": [
+            "gasometria_arterial"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Anticoagulação plena imediata",
+        "Avaliar estabilidade hemodinâmica",
+        "Oxigenoterapia",
+        "Internação para monitorização"
+      ],
+      "keyQuestions": [
+        "Cirurgia ou imobilização recente",
+        "Dor e edema em membro inferior",
+        "Características da dor torácica",
+        "Fatores de risco para trombose"
+      ]
+    },
+    "receptionReason": "Falta de ar súbita e dor no peito há 2 horas"
+  },
+  {
+    "slug": "avc-isquemico-01",
+    "title": "Fraqueza súbita de um lado do corpo",
+    "specialty": "Neurológico",
+    "difficulty": "dificil",
+    "openingLine": "Doutor, meu braço e minha perna do lado direito ficaram fracos de repente.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Antônio",
+        "age": 71,
+        "sex": "masculino",
+        "tone": "fala arrastada, um pouco confuso"
+      },
+      "diagnosis": "Acidente vascular cerebral isquêmico",
+      "differentials": [
+        "AVC hemorrágico",
+        "Hipoglicemia",
+        "Paralisia de Todd (pós-crise convulsiva)",
+        "Enxaqueca com aura"
+      ],
+      "history": {
+        "inicio": "Começou há 1 hora, do nada",
+        "sintomas": "Fraqueza no braço e perna direitos, dificuldade para falar",
+        "dor_de_cabeca": "Não sente dor de cabeça",
+        "antecedentes": "Hipertenso, fibrilação atrial, não toma anticoagulante direito",
+        "outros": "Esposa notou que a boca ficou torta",
+        "alergias": "Não tem alergia a remédio que ele saiba.",
+        "medicamentos_em_uso": "Toma remédio para pressão, mas às vezes esquece do remédio pra afinar o sangue.",
+        "internacoes_cirurgias": "Já foi internado uma vez por causa do coração, não lembra bem quando.",
+        "historia_familiar": "O irmão dele também já teve um derrame.",
+        "tabagismo_alcool": "Fumou muitos anos, parou há 10 anos; bebe uma cerveja de vez em quando."
+      },
+      "physicalExam": {
+        "geral": "Alerta, disartria leve",
+        "sinais_vitais": "PA 168/98, FC irregular 88, glicemia capilar 110",
+        "neurologico": "Força grau 2/5 em membro superior e inferior direitos, desvio de rima labial à direita, NIHSS estimado 8"
+      },
+      "exams": [
+        {
+          "name": "TC de crânio sem contraste",
+          "result": "Sem sinais de sangramento agudo, sem sinais precoces extensos de isquemia",
+          "type": "imaging",
+          "examIds": [
+            "ct_head_noncontrast"
+          ]
+        },
+        {
+          "name": "Glicemia capilar",
+          "result": "110 mg/dL, normal",
+          "type": "lab",
+          "examIds": [
+            "glicemia_capilar"
+          ]
+        },
+        {
+          "name": "ECG",
+          "result": "Fibrilação atrial",
+          "type": "lab",
+          "examIds": [
+            "ecg"
+          ]
+        },
+        {
+          "name": "Angio-TC de crânio e pescoço",
+          "type": "imaging",
+          "examIds": [
+            "cta_head_neck"
+          ],
+          "result": "Achados: oclusão trombótica do segmento M1 da artéria cerebral média esquerda, sem sinais de dissecção. Artérias carótidas internas, vertebrais e o polígono de Willis pérvios, sem estenose significativa ou placas ateromatosas relevantes. Impressão/conclusão: padrão compatível com oclusão de grande vaso proximal (M1 esquerdo), tecnicamente favorável à trombectomia mecânica, correlacionando-se com o déficit motor à direita e a dificuldade de fala relatados. Comparação: sem exame anterior para comparação."
+        }
+      ],
+      "idealConduct": [
+        "Avaliar janela para trombólise (até 4.5h) ou trombectomia",
+        "Não baixar a pressão agressivamente",
+        "Ativar protocolo de AVC agudo",
+        "Glicemia e ECG imediatos"
+      ],
+      "keyQuestions": [
+        "Horário exato do início dos sintomas",
+        "Assimetria facial e de força",
+        "Uso de anticoagulante",
+        "Fibrilação atrial conhecida"
+      ]
+    },
+    "receptionReason": "Fraqueza súbita do lado direito do corpo há 1 hora"
+  },
+  {
+    "slug": "meningite-01",
+    "title": "Dor de cabeça forte com febre",
+    "specialty": "Neurológico",
+    "difficulty": "dificil",
+    "openingLine": "Doutor, estou com uma dor de cabeça horrível e febre, e a luz está incomodando muito meus olhos.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Beatriz",
+        "age": 19,
+        "sex": "feminino",
+        "tone": "geme de dor, fala baixo"
+      },
+      "diagnosis": "Meningite bacteriana aguda",
+      "differentials": [
+        "Meningite viral",
+        "Enxaqueca",
+        "Hemorragia subaracnóidea",
+        "Sinusite"
+      ],
+      "history": {
+        "inicio": "Começou há 12 horas, piorando rápido",
+        "febre": "Febre alta, 39.5°C",
+        "dor_cabeca": "Dor de cabeça intensa, difusa",
+        "fotofobia": "Luz incomoda muito os olhos",
+        "rigidez": "Sente o pescoço duro e dolorido ao dobrar",
+        "nausea": "Vomitou duas vezes",
+        "confusao": "Está um pouco mais sonolenta que o normal",
+        "alergias": "Não tem alergia a nada.",
+        "medicamentos_em_uso": "Não toma nenhum remédio.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de ninguém na família com doença parecida.",
+        "tabagismo_alcool": "Não fuma; bebe socialmente em festas."
+      },
+      "physicalExam": {
+        "geral": "Sonolenta mas orientada, toxemiada",
+        "sinais_vitais": "Temperatura 39.5°C, FC 110, PA 100/65",
+        "neurologico": "Rigidez de nuca presente, sinal de Kernig positivo",
+        "pele": "Sem petéquias visíveis no momento"
+      },
+      "exams": [
+        {
+          "name": "Líquor (punção lombar)",
+          "result": "Turvo, pressão elevada, muitos leucócitos (predomínio neutrofílico), glicose baixa, proteína alta",
+          "type": "lab",
+          "examIds": [
+            "liquor_puncao_lombar"
+          ]
+        },
+        {
+          "name": "Hemograma",
+          "result": "Leucocitose importante com desvio à esquerda",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
+        },
+        {
+          "name": "TC de crânio",
+          "result": "Sem lesões expansivas, sem contraindicação para punção lombar",
+          "type": "imaging",
+          "examIds": [
+            "ct_head_noncontrast"
+          ]
+        },
+        {
+          "name": "Hemocultura",
+          "type": "lab",
+          "examIds": [
+            "hemocultura"
+          ],
+          "result": "2 amostras, coletadas antes da antibioticoterapia: positivas para Neisseria meningitidis (meningococo), sensibilidade preservada a penicilina e ceftriaxona. Resultado definitivo disponível em 24-48h após coleta."
+        }
+      ],
+      "idealConduct": [
+        "Antibioticoterapia empírica imediata (não atrasar por exames)",
+        "Punção lombar assim que seguro",
+        "Considerar corticoide associado",
+        "Isolamento e notificação"
+      ],
+      "keyQuestions": [
+        "Tríade febre, cefaleia, rigidez de nuca",
+        "Fotofobia",
+        "Alteração do nível de consciência",
+        "Início e progressão rápida"
+      ]
+    },
+    "receptionReason": "Dor de cabeça forte e febre há 12 horas"
+  },
+  {
+    "slug": "crise-convulsiva-01",
+    "title": "Episódio de convulsão presenciado",
+    "specialty": "Neurológico",
+    "difficulty": "moderado",
+    "openingLine": "Doutor, minha família disse que eu 'tive um treco', tremi todo e desmaiei, mas eu não lembro de nada.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Felipe",
+        "age": 28,
+        "sex": "masculino",
+        "tone": "confuso, um pouco sonolento"
+      },
+      "diagnosis": "Primeira crise convulsiva tônico-clônica generalizada",
+      "differentials": [
+        "Síncope",
+        "Crise psicogênica não epiléptica",
+        "Hipoglicemia",
+        "Arritmia cardíaca"
+      ],
+      "history": {
+        "evento": "Familiares relataram tremores generalizados por cerca de 2 minutos, olhos revirados",
+        "pos_ictal": "Ficou confuso e sonolento por 20 minutos depois",
+        "mordedura_lingua": "Mordeu a lateral da língua",
+        "perda_urina": "Perdeu urina durante o episódio",
+        "antecedentes": "Nunca teve isso antes, sem uso de drogas",
+        "privação_sono": "Dormiu pouco essa semana por causa de trabalho",
+        "alcool": "Bebeu bastante no fim de semana",
+        "alergias": "Não tem alergia a nada.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado nem operado.",
+        "historia_familiar": "Não sabe de ninguém na família com epilepsia ou convulsão.",
+        "tabagismo_alcool": "Fuma socialmente e bebe bastante nos fins de semana; bebeu bastante nesse último fim de semana."
+      },
+      "physicalExam": {
+        "geral": "Sonolento, confuso, orientando-se aos poucos",
+        "sinais_vitais": "Normais",
+        "neurologico": "Sem déficit focal após período pós-ictal, língua com lesão lateral",
+        "glicemia": "Normal"
+      },
+      "exams": [
+        {
+          "name": "Glicemia capilar",
+          "result": "92 mg/dL, normal",
+          "type": "lab",
+          "examIds": [
+            "glicemia_capilar"
+          ]
+        },
+        {
+          "name": "Eletrólitos",
+          "result": "Normais",
+          "type": "lab",
+          "examIds": [
+            "eletrolitos"
+          ]
+        },
+        {
+          "name": "TC de crânio",
+          "result": "Sem lesões estruturais agudas",
+          "type": "imaging",
+          "examIds": [
+            "ct_head_noncontrast"
+          ]
+        },
+        {
+          "name": "Eletroencefalograma",
+          "result": "Descargas epileptiformes intermitentes, sem status",
+          "type": "lab",
+          "examIds": [
+            "eletroencefalograma"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Investigar causa desencadeante (privação de sono, álcool)",
+        "Não necessariamente iniciar anticonvulsivante na primeira crise não provocada isolada",
+        "Orientações de segurança",
+        "Encaminhar para neurologia"
+      ],
+      "keyQuestions": [
+        "Descrição do evento por testemunha",
+        "Mordedura de língua e perda de controle esfincteriano",
+        "Estado pós-ictal",
+        "Fatores desencadeantes (sono, álcool)"
+      ]
+    },
+    "receptionReason": "Episódio de tremores e desmaio presenciado pela família"
+  },
+  {
+    "slug": "apendicite-01",
+    "title": "Dor de barriga que mudou de lugar",
+    "specialty": "Gastrointestinal",
+    "difficulty": "moderado",
+    "openingLine": "Doutor, comecei com uma dor perto do umbigo e agora ela desceu pro lado direito, bem forte.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Vinícius",
+        "age": 20,
+        "sex": "masculino",
+        "tone": "queixoso, evita se mexer"
+      },
+      "diagnosis": "Apendicite aguda",
+      "differentials": [
+        "Gastroenterite aguda",
+        "Cálculo ureteral direito",
+        "Doença inflamatória pélvica",
+        "Diverticulite"
+      ],
+      "history": {
+        "inicio": "Dor começou perto do umbigo há 18 horas, depois migrou para a fossa ilíaca direita",
+        "caracteristica": "Dor constante, piora ao andar ou tossir",
+        "apetite": "Perdeu o apetite",
+        "nausea": "Enjoo e um episódio de vômito",
+        "febre": "Febre baixa, 37.8°C",
+        "habito_intestinal": "Não evacua há 1 dia, sem diarreia",
+        "alergias": "Não tem alergia a nada.",
+        "medicamentos_em_uso": "Não toma nenhum remédio.",
+        "internacoes_cirurgias": "Nunca foi operado nem internado.",
+        "historia_familiar": "Não sabe de ninguém na família com problema parecido.",
+        "tabagismo_alcool": "Não fuma; bebe socialmente com os amigos."
+      },
+      "physicalExam": {
+        "geral": "Prefere ficar parado, evita movimentos bruscos",
+        "sinais_vitais": "Temperatura 37.9°C, FC 96",
+        "abdominal": "Dor à palpação em fossa ilíaca direita, sinal de Blumberg positivo, defesa muscular localizada"
+      },
+      "exams": [
+        {
+          "name": "Hemograma",
+          "result": "Leucocitose leve a moderada com desvio à esquerda",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
+        },
+        {
+          "name": "Ultrassonografia/TC de abdome",
+          "result": "Apêndice espessado, com líquido periapendicular, compatível com apendicite aguda",
+          "type": "imaging",
+          "examIds": [
+            "us_tc_abdome_apendicite",
+            "ct_abdome_noncontrast"
+          ]
+        },
+        {
+          "name": "Exame de urina",
+          "result": "Sem alterações significativas",
+          "type": "lab",
+          "examIds": [
+            "urina_eas"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Avaliação cirúrgica para apendicectomia",
+        "Antibioticoterapia perioperatória",
+        "Jejum e hidratação venosa",
+        "Analgesia"
+      ],
+      "keyQuestions": [
+        "Migração da dor (periumbilical para fossa ilíaca direita)",
+        "Piora com movimento",
+        "Febre e náusea",
+        "Sinais de irritação peritoneal"
+      ]
+    },
+    "receptionReason": "Dor de barriga que mudou de lugar há 18 horas"
+  },
+  {
+    "slug": "pancreatite-01",
+    "title": "Dor forte na boca do estômago após bebedeira",
+    "specialty": "Gastrointestinal",
+    "difficulty": "moderado",
+    "openingLine": "Doutor, estou com uma dor muito forte na boca do estômago que vai para as costas, comecei ontem à noite depois de beber bastante.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Marcelo",
+        "age": 41,
+        "sex": "masculino",
+        "tone": "geme de dor, encolhido"
+      },
+      "diagnosis": "Pancreatite aguda",
+      "differentials": [
+        "Colecistite aguda",
+        "Úlcera péptica perfurada",
+        "Infarto agudo do miocárdio",
+        "Obstrução intestinal"
+      ],
+      "history": {
+        "inicio": "Dor forte há 14 horas, começou após consumo excessivo de álcool",
+        "caracteristica": "Dor em faixa, do abdome superior irradiando para as costas",
+        "posicao_antalgica": "Melhora um pouco quando se inclina para frente",
+        "nausea": "Vômitos repetidos",
+        "habitos": "Bebe álcool com frequência, bebeu muito ontem numa festa",
+        "antecedentes": "Nunca teve isso antes",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado antes.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Fuma às vezes e bebe bastante, principalmente em festas; bebeu bastante ontem."
+      },
+      "physicalExam": {
+        "geral": "Desconfortável, taquicárdico pela dor",
+        "sinais_vitais": "FC 108, PA 118/76, Temperatura 37.6°C",
+        "abdominal": "Dor à palpação em epigástrio, distensão leve, ruídos hidroaéreos diminuídos"
+      },
+      "exams": [
+        {
+          "name": "Amilase e lipase",
+          "result": "Lipase 5x acima do limite superior",
+          "type": "lab",
+          "examIds": [
+            "amilase_lipase"
+          ]
+        },
+        {
+          "name": "TC de abdome",
+          "result": "Pâncreas edemaciado com borramento da gordura peripancreática, sem necrose evidente",
+          "type": "imaging",
+          "examIds": [
+            "ct_abdome_noncontrast"
+          ]
+        },
+        {
+          "name": "Função hepática",
+          "result": "Leve elevação de transaminases, bilirrubinas normais",
+          "type": "lab",
+          "examIds": [
+            "funcao_hepatica"
+          ]
+        },
+        {
+          "name": "Triglicerídeos e cálcio",
+          "type": "lab",
+          "examIds": [
+            "trigliceridios_calcio"
+          ],
+          "result": "Triglicerídeos: 180 mg/dL (referência: < 150 mg/dL) — discretamente elevado, bem abaixo do limiar associado a pancreatite por hipertrigliceridemia (>1000 mg/dL). Cálcio total: 9,2 mg/dL (referência: 8,5-10,5 mg/dL) — normal. Conclusão: achados não sugerem hipertrigliceridemia grave nem hipercalcemia como causa da pancreatite, reforçando a etiologia alcoólica sugerida pela história."
+        }
+      ],
+      "idealConduct": [
+        "Jejum e hidratação venosa vigorosa",
+        "Analgesia adequada",
+        "Monitorização de gravidade",
+        "Investigar causa (etilismo, biliar)"
+      ],
+      "keyQuestions": [
+        "Relação com ingestão de álcool",
+        "Irradiação da dor para as costas",
+        "Posição que alivia a dor",
+        "Vômitos associados"
+      ]
+    },
+    "receptionReason": "Dor forte na boca do estômago após consumo de álcool"
+  },
+  {
+    "slug": "colecistite-01",
+    "title": "Dor no lado direito da barriga após comida gordurosa",
+    "specialty": "Gastrointestinal",
+    "difficulty": "facil",
+    "openingLine": "Doutor, depois que comi uma feijoada comecei a sentir uma dor forte do lado direito da barriga.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Sônia",
+        "age": 50,
+        "sex": "feminino",
+        "tone": "queixosa, evita respirar fundo"
+      },
+      "diagnosis": "Colecistite aguda",
+      "differentials": [
+        "Cólica biliar simples",
+        "Pancreatite",
+        "Úlcera péptica",
+        "Pielonefrite direita"
+      ],
+      "history": {
+        "inicio": "Dor há 10 horas, começou após refeição gordurosa",
+        "caracteristica": "Dor constante no lado direito, forte, não passa",
+        "irradiacao": "Vai para a escápula direita",
+        "febre": "Febre baixa, 37.9°C",
+        "nausea": "Náusea e um vômito",
+        "episodios_previos": "Já teve dores parecidas antes, mais leves, que passavam sozinhas",
+        "alergias": "Não tem alergia a remédio que ela saiba.",
+        "medicamentos_em_uso": "Toma losartana para a pressão.",
+        "internacoes_cirurgias": "Nunca foi operada.",
+        "historia_familiar": "A mãe também tinha pedra na vesícula.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Desconfortável, respiração superficial pela dor",
+        "sinais_vitais": "Temperatura 38°C, FC 92",
+        "abdominal": "Sinal de Murphy positivo, dor à palpação em hipocôndrio direito"
+      },
+      "exams": [
+        {
+          "name": "Ultrassonografia de abdome",
+          "result": "Vesícula biliar com paredes espessadas, cálculos no seu interior, líquido perivesicular",
+          "type": "imaging",
+          "examIds": [
+            "us_abdome"
+          ]
+        },
+        {
+          "name": "Hemograma",
+          "result": "Leucocitose leve",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
+        },
+        {
+          "name": "Função hepática",
+          "result": "Discretamente alterada, sem sinais de obstrução biliar franca",
+          "type": "lab",
+          "examIds": [
+            "funcao_hepatica"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Jejum, hidratação e analgesia",
+        "Antibioticoterapia",
+        "Avaliação cirúrgica para colecistectomia",
+        "Considerar timing da cirurgia (precoce)"
+      ],
+      "keyQuestions": [
+        "Relação com alimentação gordurosa",
+        "Irradiação para escápula direita",
+        "Episódios prévios semelhantes",
+        "Sinal de Murphy"
+      ]
+    },
+    "receptionReason": "Dor no lado direito da barriga após refeição gordurosa"
+  },
+  {
+    "slug": "pielonefrite-01",
+    "title": "Dor nas costas e febre com ardência ao urinar",
+    "specialty": "Renal e urinário",
+    "difficulty": "moderado",
+    "openingLine": "Doutor, estou com muita dor nas costas, febre, e está ardendo muito quando vou fazer xixi.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Patrícia",
+        "age": 29,
+        "sex": "feminino",
+        "tone": "cansada, com calafrios"
+      },
+      "diagnosis": "Pielonefrite aguda",
+      "differentials": [
+        "Cistite não complicada",
+        "Cólica renal",
+        "Apendicite",
+        "Doença inflamatória pélvica"
+      ],
+      "history": {
+        "inicio": "Sintomas urinários há 3 dias, febre e dor nas costas começaram ontem",
+        "urinario": "Ardência para urinar, urina mais frequente e com cheiro forte",
+        "dor_lombar": "Dor forte na região lombar direita",
+        "febre": "Febre com calafrios, 39°C",
+        "nausea": "Um pouco de náusea",
+        "antecedentes": "Já teve infecção urinária outras vezes",
+        "alergias": "Tem alergia a penicilina, dá coceira no corpo todo.",
+        "medicamentos_em_uso": "Não toma remédio contínuo, só quando tem infecção urinária.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Febril, com calafrios",
+        "sinais_vitais": "Temperatura 39.2°C, FC 108, PA 105/68",
+        "abdominal": "Punho-percussão lombar direita dolorosa (Giordano positivo)"
+      },
+      "exams": [
+        {
+          "name": "Exame de urina (EAS)",
+          "result": "Piúria intensa, bacteriúria, nitrito positivo",
+          "type": "lab",
+          "examIds": [
+            "urina_eas"
+          ]
+        },
+        {
+          "name": "Urocultura",
+          "result": "Em andamento, colhida antes do antibiótico",
+          "type": "lab",
+          "examIds": [
+            "urocultura"
+          ]
+        },
+        {
+          "name": "Hemograma",
+          "result": "Leucocitose com desvio à esquerda",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
+        },
+        {
+          "name": "Ultrassonografia de rins e vias urinárias",
+          "result": "Rim direito discretamente aumentado, sem sinais de obstrução",
+          "type": "imaging",
+          "examIds": [
+            "us_rins_vias_urinarias"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Coletar urocultura antes do antibiótico",
+        "Antibioticoterapia empírica",
+        "Hidratação e antitérmico",
+        "Avaliar necessidade de internação"
+      ],
+      "keyQuestions": [
+        "Sintomas urinários baixos associados",
+        "Dor lombar e febre",
+        "Giordano positivo",
+        "Episódios prévios de ITU"
+      ]
+    },
+    "receptionReason": "Dor nas costas, febre e ardência ao urinar"
+  },
+  {
+    "slug": "colica-renal-01",
+    "title": "Dor lombar em cólica muito forte",
+    "specialty": "Renal e urinário",
+    "difficulty": "facil",
+    "openingLine": "Doutor, estou com uma dor horrível do lado das costas, vem em ondas, é a pior dor que já senti.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Diego",
+        "age": 38,
+        "sex": "masculino",
+        "tone": "agitado, não consegue ficar parado"
+      },
+      "diagnosis": "Cólica renal por nefrolitíase",
+      "differentials": [
+        "Pielonefrite",
+        "Apendicite",
+        "Aneurisma de aorta abdominal",
+        "Torção testicular"
+      ],
+      "history": {
+        "inicio": "Dor começou de repente há 3 horas",
+        "caracteristica": "Dor em cólica, vai e volta, muito intensa, do flanco para a virilha",
+        "hematuria": "Notou sangue na urina",
+        "nausea": "Náusea e um vômito por causa da dor",
+        "febre": "Sem febre",
+        "antecedentes": "Já teve pedra nos rins uma vez",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado nem operado.",
+        "historia_familiar": "O pai também já teve pedra nos rins.",
+        "tabagismo_alcool": "Fuma às vezes socialmente; bebe cerveja nos fins de semana."
+      },
+      "physicalExam": {
+        "geral": "Muito agitado, não encontra posição confortável",
+        "sinais_vitais": "FC 100, PA 138/88, afebril",
+        "abdominal": "Punho-percussão lombar esquerda dolorosa, abdome sem sinais de irritação peritoneal"
+      },
+      "exams": [
+        {
+          "name": "Exame de urina",
+          "result": "Hematúria presente, sem sinais claros de infecção",
+          "type": "lab",
+          "examIds": [
+            "urina_eas"
+          ]
+        },
+        {
+          "name": "TC de abdome sem contraste (urotomografia)",
+          "result": "Cálculo de 6mm em ureter esquerdo com discreta dilatação pielocalicial",
+          "type": "imaging",
+          "examIds": [
+            "ct_abdome_urotomografia"
+          ]
+        },
+        {
+          "name": "Função renal",
+          "result": "Normal",
+          "type": "lab",
+          "examIds": [
+            "funcao_renal"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Analgesia potente (anti-inflamatório e/ou opioide)",
+        "Hidratação",
+        "Avaliar tamanho do cálculo para conduta expectante ou intervenção",
+        "Filtrar urina para captar o cálculo"
+      ],
+      "keyQuestions": [
+        "Caráter em cólica da dor",
+        "Irradiação para a virilha",
+        "Hematúria",
+        "Ausência de febre (afasta infecção associada)"
+      ]
+    },
+    "receptionReason": "Dor lombar em cólica muito forte há 3 horas"
+  },
+  {
+    "slug": "cetoacidose-diabetica-01",
+    "title": "Muita sede, urina frequente e mal-estar",
+    "specialty": "Endócrino",
+    "difficulty": "dificil",
+    "openingLine": "Doutor, estou com muita sede, fazendo xixi toda hora, e me sinto muito mal, meio enjoada.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Camila",
+        "age": 17,
+        "sex": "feminino",
+        "tone": "fraca, respiração ofegante"
+      },
+      "diagnosis": "Cetoacidose diabética",
+      "differentials": [
+        "Gastroenterite aguda",
+        "Infecção urinária",
+        "Intoxicação",
+        "Abdome agudo"
+      ],
+      "history": {
+        "inicio": "Sintomas de sede e urina excessiva há 1 semana, hoje piorou muito com dor de barriga e vômitos",
+        "diabetes": "É diabética tipo 1, mas ficou sem aplicar insulina por 3 dias por falta de dinheiro",
+        "sintomas": "Sede intensa, fome, emagrecimento recente, hoje com dor abdominal e vômitos",
+        "respiracao": "Sente que está respirando muito fundo e rápido",
+        "hálito": "Familiares notaram um hálito diferente, adocicado",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Usa insulina, mas ficou sem aplicar nos últimos 3 dias.",
+        "internacoes_cirurgias": "Já foi internada uma vez quando descobriu o diabetes.",
+        "historia_familiar": "O avô também tem diabetes.",
+        "tabagismo_alcool": "Não fuma e não bebe."
+      },
+      "physicalExam": {
+        "geral": "Desidratada, respiração profunda e rápida (Kussmaul)",
+        "sinais_vitais": "FC 118, PA 100/65, FR 30, glicemia capilar 480",
+        "abdominal": "Dor difusa leve à palpação, sem sinais de irritação peritoneal",
+        "hidratacao": "Mucosas secas, turgor diminuído"
+      },
+      "exams": [
+        {
+          "name": "Glicemia",
+          "result": "480 mg/dL",
+          "type": "lab",
+          "examIds": [
+            "glicemia_capilar"
+          ]
+        },
+        {
+          "name": "Gasometria arterial",
+          "result": "Acidose metabólica com pH 7.18, bicarbonato baixo",
+          "type": "lab",
+          "examIds": [
+            "gasometria_arterial"
+          ]
+        },
+        {
+          "name": "Cetonas (sangue/urina)",
+          "result": "Cetonúria e cetonemia fortemente positivas",
+          "type": "lab",
+          "examIds": [
+            "cetonas"
+          ]
+        },
+        {
+          "name": "Eletrólitos",
+          "result": "Potássio inicialmente normal-alto, sódio corrigido baixo",
+          "type": "lab",
+          "examIds": [
+            "eletrolitos"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Hidratação venosa vigorosa",
+        "Insulinoterapia endovenosa contínua",
+        "Reposição de potássio conforme necessário",
+        "Monitorização e busca do fator desencadeante"
+      ],
+      "keyQuestions": [
+        "Diagnóstico prévio de diabetes",
+        "Adesão à insulina",
+        "Polidipsia e poliúria",
+        "Respiração de Kussmaul e hálito cetônico"
+      ]
+    },
+    "receptionReason": "Muita sede, urina frequente e mal-estar"
+  },
+  {
+    "slug": "hipotireoidismo-01",
+    "title": "Cansaço, ganho de peso e pele seca",
+    "specialty": "Endócrino",
+    "difficulty": "facil",
+    "openingLine": "Doutor, estou muito cansada ultimamente, ganhei peso sem motivo e minha pele está muito seca.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Rosana",
+        "age": 44,
+        "sex": "feminino",
+        "tone": "voz mais lenta, desanimada"
+      },
+      "diagnosis": "Hipotireoidismo",
+      "differentials": [
+        "Depressão",
+        "Anemia",
+        "Síndrome de Cushing",
+        "Insuficiência cardíaca"
+      ],
+      "history": {
+        "inicio": "Sintomas vêm piorando nos últimos meses",
+        "sintomas": "Cansaço constante, ganho de peso, intolerância ao frio, prisão de ventre",
+        "pele_cabelo": "Pele seca, queda de cabelo",
+        "menstruacao": "Ciclos menstruais mais irregulares e intensos",
+        "antecedentes": "Mãe tem problema de tireoide",
+        "alergias": "Não tem alergia a nada.",
+        "medicamentos_em_uso": "Não toma nenhum remédio no momento.",
+        "internacoes_cirurgias": "Nunca foi internada nem operada.",
+        "historia_familiar": "A mãe também tem problema de tireoide.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Fala e movimentos um pouco lentificados",
+        "sinais_vitais": "FC 58, PA 118/76, Temperatura 36.1°C",
+        "pescoco": "Tireoide discretamente aumentada, indolor",
+        "pele": "Pele seca e fria ao toque",
+        "reflexos": "Reflexos tendinosos com relaxamento lentificado"
+      },
+      "exams": [
+        {
+          "name": "TSH",
+          "result": "Muito elevado",
+          "type": "lab",
+          "examIds": [
+            "tsh"
+          ]
+        },
+        {
+          "name": "T4 livre",
+          "result": "Baixo",
+          "type": "lab",
+          "examIds": [
+            "t4_livre"
+          ]
+        },
+        {
+          "name": "Hemograma",
+          "result": "Discreta anemia normocítica",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
+        },
+        {
+          "name": "Perfil lipídico",
+          "result": "Colesterol total elevado",
+          "type": "lab",
+          "examIds": [
+            "perfil_lipidico"
+          ]
+        },
+        {
+          "name": "Anti-TPO",
+          "type": "lab",
+          "examIds": [
+            "anti_tpo"
+          ],
+          "result": "185 UI/mL (referência: < 34 UI/mL) — positivo/elevado. Achado compatível com tireoidite autoimune (Hashimoto) como causa do hipotireoidismo, reforçado pelo antecedente familiar de doença tireoidiana."
+        }
+      ],
+      "idealConduct": [
+        "Iniciar levotiroxina em dose ajustada à idade e peso",
+        "Reavaliar TSH em 6-8 semanas",
+        "Investigar causa autoimune (anti-TPO)",
+        "Orientação sobre uso correto da medicação"
+      ],
+      "keyQuestions": [
+        "Intolerância ao frio",
+        "Ganho de peso e constipação",
+        "Alterações menstruais",
+        "Antecedente familiar de tireoide"
+      ]
+    },
+    "receptionReason": "Cansaço, ganho de peso e pele seca há meses"
+  },
+  {
+    "slug": "dengue-01",
+    "title": "Febre alta, dor no corpo e manchas na pele",
+    "specialty": "Infectologia",
+    "difficulty": "moderado",
+    "openingLine": "Doutor, estou com febre muito alta há 3 dias, meu corpo todo dói e apareceram umas manchas vermelhas.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Lucas",
+        "age": 26,
+        "sex": "masculino",
+        "tone": "abatido, com dor ao se mexer"
+      },
+      "diagnosis": "Dengue",
+      "differentials": [
+        "Chikungunya",
+        "Zika",
+        "Influenza",
+        "Leptospirose"
+      ],
+      "history": {
+        "inicio": "Febre alta há 3 dias, hoje a febre melhorou mas o mal-estar piorou",
+        "dor": "Dor muscular e nas articulações intensa, dor atrás dos olhos",
+        "pele": "Manchas vermelhas pelo corpo há 1 dia",
+        "sangramento": "Notou uma gengiva sangrando um pouco ao escovar os dentes",
+        "regiao": "Mora em área com muitos casos de dengue na vizinhança",
+        "hidratacao": "Está bebendo pouca água por causa do mal-estar",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma; bebe socialmente com os amigos."
+      },
+      "physicalExam": {
+        "geral": "Prova do laço não realizada ainda, exantema presente",
+        "sinais_vitais": "Temperatura 37.6°C (defervescência), PA 100/70, FC 92",
+        "pele": "Exantema maculopapular difuso",
+        "abdominal": "Sem dor importante à palpação neste momento"
+      },
+      "exams": [
+        {
+          "name": "Hemograma",
+          "result": "Plaquetas 95.000 (baixas), leucopenia leve",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
+        },
+        {
+          "name": "Antígeno NS1/sorologia para dengue",
+          "result": "NS1 positivo",
+          "type": "lab",
+          "examIds": [
+            "sorologia_dengue"
+          ]
+        },
+        {
+          "name": "Hematócrito",
+          "result": "Discretamente elevado em relação ao basal",
+          "type": "lab",
+          "examIds": [
+            "hematocrito"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Hidratação oral vigorosa",
+        "Evitar AINEs e AAS (risco de sangramento)",
+        "Monitorar sinais de alarme (dor abdominal, sangramento, queda de plaquetas)",
+        "Reavaliação clínica seriada, principalmente na fase de defervescência"
+      ],
+      "keyQuestions": [
+        "Padrão da febre e defervescência",
+        "Sinais de alarme (dor abdominal, sangramento, vômitos persistentes)",
+        "Área endêmica",
+        "Prova do laço e contagem de plaquetas"
+      ]
+    },
+    "receptionReason": "Febre alta, dores no corpo e manchas vermelhas há 3 dias"
+  },
+  {
+    "slug": "celulite-erisipela-01",
+    "title": "Perna vermelha, quente e inchada",
+    "specialty": "Infectologia",
+    "difficulty": "facil",
+    "openingLine": "Doutor, minha perna ficou vermelha, quente e inchada, e estou com febre.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Osvaldo",
+        "age": 63,
+        "sex": "masculino",
+        "tone": "desconfortável, mancando"
+      },
+      "diagnosis": "Celulite/erisipela de membro inferior",
+      "differentials": [
+        "Trombose venosa profunda",
+        "Dermatite de estase",
+        "Gota",
+        "Fasciite necrosante"
+      ],
+      "history": {
+        "inicio": "Vermelhidão e inchaço há 2 dias, febre desde ontem",
+        "porta_entrada": "Teve uma unha encravada infeccionada nesse pé há alguns dias",
+        "dor": "Dor e calor local intensos",
+        "antecedentes": "Diabético, com histórico de inchaço crônico nas pernas",
+        "progressao": "A vermelhidão está se espalhando",
+        "alergias": "Não tem alergia a remédio que ele saiba.",
+        "medicamentos_em_uso": "Toma metformina para o diabetes.",
+        "internacoes_cirurgias": "Nunca foi operado.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Fumou muitos anos, parou faz tempo; bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Febril, desconfortável ao andar",
+        "sinais_vitais": "Temperatura 38.3°C, FC 96",
+        "membros_inferiores": "Eritema quente, bem delimitado, edema e dor à palpação em perna direita, sem crepitação ou bolhas",
+        "linfonodos": "Linfonodos inguinais direitos discretamente aumentados"
+      },
+      "exams": [
+        {
+          "name": "Hemograma",
+          "result": "Leucocitose com desvio à esquerda",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
+        },
+        {
+          "name": "PCR",
+          "result": "Elevada",
+          "type": "lab",
+          "examIds": [
+            "pcr"
+          ]
+        },
+        {
+          "name": "Glicemia",
+          "result": "220 mg/dL, descompensada",
+          "type": "lab",
+          "examIds": [
+            "glicemia_capilar"
+          ]
+        },
+        {
+          "name": "Doppler venoso de membro inferior",
+          "result": "Sem sinais de trombose venosa profunda",
+          "type": "imaging",
+          "examIds": [
+            "doppler_venoso_mmii"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Antibioticoterapia cobrindo estreptococo/estafilococo",
+        "Elevação do membro",
+        "Controle glicêmico",
+        "Marcar limite do eritema para acompanhar evolução"
+      ],
+      "keyQuestions": [
+        "Porta de entrada (ferida, unha encravada)",
+        "Delimitação e progressão do eritema",
+        "Diabetes e controle glicêmico",
+        "Sinais de gravidade (bolhas, crepitação, necrose)"
+      ]
+    },
+    "receptionReason": "Perna vermelha, quente e inchada, com febre"
+  },
+  {
+    "slug": "artrite-reumatoide-01",
+    "title": "Dor e inchaço nas mãos há semanas",
+    "specialty": "Reumatologia",
+    "difficulty": "moderado",
+    "openingLine": "Doutor, minhas mãos estão doendo e inchando há semanas, principalmente de manhã.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Helena",
+        "age": 47,
+        "sex": "feminino",
+        "tone": "cansada, movimentos cuidadosos com as mãos"
+      },
+      "diagnosis": "Artrite reumatoide",
+      "differentials": [
+        "Lúpus eritematoso sistêmico",
+        "Osteoartrite",
+        "Artrite psoriásica",
+        "Fibromialgia"
+      ],
+      "history": {
+        "inicio": "Sintomas há cerca de 2 meses, progressivos",
+        "articulacoes": "Dor e inchaço em punhos e articulações dos dedos, dos dois lados",
+        "rigidez_matinal": "Rigidez pela manhã que dura mais de uma hora",
+        "simetria": "Os sintomas são simétricos, dos dois lados do corpo",
+        "sintomas_gerais": "Cansaço geral, febre baixa ocasional",
+        "antecedentes": "Sem outras doenças conhecidas, tia tem doença autoimune",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Toma só um anti-inflamatório de vez em quando para a dor.",
+        "internacoes_cirurgias": "Nunca foi internada nem operada.",
+        "historia_familiar": "A tia também tem uma doença autoimune.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Movimentos cautelosos das mãos, sem sinais de toxemia",
+        "sinais_vitais": "Normais, afebril no momento",
+        "articular": "Sinovite (edema, calor, dor) em punhos e articulações metacarpofalângicas bilateralmente",
+        "pele": "Sem lesões cutâneas visíveis"
+      },
+      "exams": [
+        {
+          "name": "Fator reumatoide",
+          "result": "Positivo em título alto",
+          "type": "lab",
+          "examIds": [
+            "fator_reumatoide"
+          ]
+        },
+        {
+          "name": "Anti-CCP",
+          "result": "Positivo",
+          "type": "lab",
+          "examIds": [
+            "anti_ccp"
+          ]
+        },
+        {
+          "name": "PCR e VHS",
+          "result": "Ambos elevados, indicando atividade inflamatória",
+          "type": "lab",
+          "examIds": [
+            "pcr_vhs"
+          ]
+        },
+        {
+          "name": "Radiografia de mãos",
+          "result": "Discretas erosões periarticulares iniciais",
+          "type": "imaging",
+          "examIds": [
+            "rx_maos"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Encaminhar para reumatologia",
+        "Considerar anti-inflamatório para controle sintomático inicial",
+        "Iniciar terapia modificadora de doença (ex.: metotrexato) conforme avaliação especializada",
+        "Orientar sobre a cronicidade e adesão ao tratamento"
+      ],
+      "keyQuestions": [
+        "Simetria do acometimento articular",
+        "Duração da rigidez matinal",
+        "Articulações envolvidas (pequenas articulações das mãos)",
+        "Sintomas sistêmicos associados"
+      ]
+    },
+    "receptionReason": "Dor e inchaço nas mãos há semanas"
+  },
+  {
+    "slug": "anemia-ferropriva-01",
+    "title": "Cansaço e palidez há meses",
+    "specialty": "Hematologia",
+    "difficulty": "facil",
+    "openingLine": "Doutor, estou muito cansada ultimamente, e minha vizinha disse que estou muito pálida.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Adriana",
+        "age": 34,
+        "sex": "feminino",
+        "tone": "fala devagar, parece exausta"
+      },
+      "diagnosis": "Anemia ferropriva",
+      "differentials": [
+        "Anemia de doença crônica",
+        "Hipotireoidismo",
+        "Talassemia",
+        "Sangramento gastrointestinal oculto"
+      ],
+      "history": {
+        "inicio": "Cansaço progressivo há uns 3 meses",
+        "sintomas": "Cansaço fácil, falta de ar aos esforços, tontura ocasional",
+        "menstruacao": "Menstruação muito intensa e prolongada há alguns meses",
+        "dieta": "Come pouca carne vermelha",
+        "outros": "Vontade estranha de comer gelo às vezes",
+        "sangramento_digestivo": "Nega sangue nas fezes ou fezes escurecidas",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma e não bebe."
+      },
+      "physicalExam": {
+        "geral": "Palidez cutâneo-mucosa importante",
+        "sinais_vitais": "FC 98, PA 108/70",
+        "cardiovascular": "Sopro sistólico leve, provavelmente funcional pela anemia",
+        "unhas": "Unhas quebradiças, levemente côncavas"
+      },
+      "exams": [
+        {
+          "name": "Hemograma",
+          "result": "Hemoglobina 8.2, VCM baixo (microcítica), HCM baixo (hipocrômica)",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
+        },
+        {
+          "name": "Ferritina",
+          "result": "Muito baixa",
+          "type": "lab",
+          "examIds": [
+            "ferritina"
+          ]
+        },
+        {
+          "name": "Ferro sérico e saturação de transferrina",
+          "result": "Ambos baixos",
+          "type": "lab",
+          "examIds": [
+            "ferro_serico_transferrina"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Reposição de ferro oral (ou endovenoso se necessário)",
+        "Investigar e tratar a causa do sangramento (avaliação ginecológica pelo sangramento menstrual intenso)",
+        "Orientação dietética",
+        "Reavaliar hemograma em 4-6 semanas"
+      ],
+      "keyQuestions": [
+        "Sangramento menstrual intenso",
+        "Sintomas de anemia (cansaço, tontura, falta de ar)",
+        "Hábitos alimentares",
+        "Pica (vontade de comer gelo/terra)"
+      ]
+    },
+    "receptionReason": "Cansaço e palidez há meses"
+  },
+  {
+    "slug": "drge-01",
+    "title": "Azia e queimação que piora deitado",
+    "specialty": "Gastrointestinal",
+    "difficulty": "facil",
+    "openingLine": "Doutor, tenho uma queimação forte no peito e na garganta, principalmente depois de comer e quando deito.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Ricardo",
+        "age": 39,
+        "sex": "masculino",
+        "tone": "tranquilo, mas incomodado"
+      },
+      "diagnosis": "Doença do refluxo gastroesofágico",
+      "differentials": [
+        "Angina/doença coronariana",
+        "Úlcera péptica",
+        "Gastrite",
+        "Esofagite eosinofílica"
+      ],
+      "history": {
+        "inicio": "Sintomas há vários meses, piorando",
+        "caracteristica": "Queimação retroesternal e azia, gosto amargo na boca",
+        "relacao_posicional": "Piora deitado e à noite, melhora sentado",
+        "relacao_alimentar": "Piora após refeições gordurosas e café",
+        "sintomas_alarme": "Nega dificuldade para engolir, perda de peso ou sangramento",
+        "habitos": "Fumante leve, bebe café em excesso",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado nem operado.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Fuma um pouco, uns 5 cigarros por dia, e bebe socialmente."
+      },
+      "physicalExam": {
+        "geral": "Bom estado geral",
+        "sinais_vitais": "Normais",
+        "abdominal": "Discreto desconforto em epigástrio à palpação profunda, sem sinais de alarme"
+      },
+      "exams": [
+        {
+          "name": "Endoscopia digestiva alta",
+          "result": "Esofagite leve (grau A de Los Angeles), sem sinais de Barrett",
+          "type": "imaging",
+          "examIds": [
+            "endoscopia_digestiva_alta"
+          ]
+        },
+        {
+          "name": "Hemograma",
+          "result": "Normal, sem anemia",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Inibidor de bomba de prótons",
+        "Orientações posturais e dietéticas (elevar cabeceira, evitar deitar após comer)",
+        "Redução de café e álcool",
+        "Investigar sinais de alarme se surgirem (disfagia, emagrecimento, sangramento)"
+      ],
+      "keyQuestions": [
+        "Relação com posição (piora deitado)",
+        "Relação com alimentação",
+        "Sinais de alarme (disfagia, emagrecimento, sangramento)",
+        "Duração e frequência dos sintomas"
+      ]
+    },
+    "receptionReason": "Queimação no peito que piora ao deitar"
+  },
+  {
+    "slug": "dpoc-exacerbado-01",
+    "title": "Piora da falta de ar crônica e mais catarro",
+    "specialty": "Respiratório",
+    "difficulty": "moderado",
+    "openingLine": "Doutor, minha falta de ar de sempre piorou muito nos últimos dias e estou com mais catarro, mais escuro.",
+    "hiddenCase": {
+      "persona": {
+        "name": "Geraldo",
+        "age": 66,
+        "sex": "masculino",
+        "tone": "fala entrecortada por falta de ar"
+      },
+      "diagnosis": "Exacerbação de DPOC",
+      "differentials": [
+        "Pneumonia",
+        "Insuficiência cardíaca",
+        "Tromboembolismo pulmonar",
+        "Pneumotórax"
+      ],
+      "history": {
+        "inicio": "Piora progressiva há 4 dias",
+        "basal": "Tem DPOC diagnosticado há 5 anos, usa bombinha diariamente",
+        "catarro": "Aumento da quantidade de catarro, agora amarelo-esverdeado",
+        "falta_de_ar": "Piora importante da falta de ar, mesmo em repouso agora",
+        "tabagismo": "Fumou 40 anos, parou há 2 anos",
+        "febre": "Sem febre alta, só um mal-estar geral",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Usa a bombinha todos os dias por causa da DPOC.",
+        "internacoes_cirurgias": "Já foi internado duas vezes por piora da DPOC.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Fumou 40 anos, parou há 2; bebe uma cerveja de vez em quando."
+      },
+      "physicalExam": {
+        "geral": "Uso de musculatura acessória, fala frases curtas",
+        "sinais_vitais": "FC 104, FR 26, SatO2 90% em ar ambiente",
+        "pulmonar": "Sibilos difusos, murmúrio vesicular diminuído globalmente, tempo expiratório prolongado",
+        "cardiovascular": "Sem edema, bulhas normais"
+      },
+      "exams": [
+        {
+          "name": "Radiografia de tórax",
+          "result": "Hiperinsuflação pulmonar crônica, sem consolidação ou derrame",
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ]
+        },
+        {
+          "name": "Gasometria arterial",
+          "result": "Hipoxemia com retenção leve de CO2, compensada",
+          "type": "lab",
+          "examIds": [
+            "gasometria_arterial"
+          ]
+        },
+        {
+          "name": "Hemograma",
+          "result": "Sem leucocitose significativa",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ]
+        }
+      ],
+      "idealConduct": [
+        "Broncodilatadores de curta ação otimizados",
+        "Corticoide sistêmico",
+        "Considerar antibiótico se critérios de Anthonisen presentes (mudança do catarro)",
+        "Oxigenoterapia controlada"
+      ],
+      "keyQuestions": [
+        "Diagnóstico prévio de DPOC",
+        "Mudança na cor/quantidade do catarro",
+        "Carga tabágica",
+        "Gravidade da dispneia basal versus atual"
+      ]
+    },
+    "receptionReason": "Piora da falta de ar crônica e mais catarro"
+  },
+  {
+    "slug": "hipertensao-nao-controlada-01",
+    "title": "Pressão alta persistente",
+    "specialty": "Clínica Médica",
+    "difficulty": "facil",
+    "isActive": true,
+    "receptionReason": "Pressão alta persistente e dor de cabeça leve há 1 semana",
+    "openingLine": "Doutor, minha pressão não baixa faz uma semana e minha cabeça dói direto.",
+    "patientName": "Fernanda",
+    "patientAge": 52,
+    "hiddenCase": {
+      "persona": {
+        "name": "Fernanda",
+        "age": 52,
+        "sex": "feminino",
+        "tone": "um pouco ansiosa"
+      },
+      "diagnosis": "Hipertensão arterial não controlada",
+      "differentials": [
+        "Hipertensão do jaleco branco",
+        "Hipertensão secundária renal",
+        "Ansiedade",
+        "Apneia obstrutiva do sono"
+      ],
+      "history": {
+        "inicio": "Pressão alta detectada há 1 semana em aferições de casa",
+        "evolucao": "Vem se mantendo alta todos os dias, sem melhora",
+        "melhora_piora": "Piora quando está estressada no trabalho, melhora um pouco em repouso",
+        "cefaleia": "Dor de cabeça leve, na nuca, mais pela manhã",
+        "doencas_previas": "Hipertensão diagnosticada há 3 anos",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Toma losartana 50mg, mas admite que esquece 2-3 vezes por semana.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Pai e mãe hipertensos.",
+        "tabagismo_alcool": "Não fuma; bebe uma taça de vinho aos finais de semana."
+      },
+      "physicalExam": {
+        "geral": "Bom estado geral, ansiosa",
+        "sinais_vitais": "PA 172/104 (repetida: 168/100), FC 88, afebril",
+        "cardiovascular": "Ritmo regular, bulhas normofonéticas, sem sopros",
+        "pulmonar": "Murmúrio vesicular presente, sem ruídos adventícios"
+      },
+      "exams": [
+        {
+          "name": "Função renal e eletrólitos",
+          "type": "lab",
+          "examIds": [
+            "funcao_renal_eletrolitos"
+          ],
+          "result": "Creatinina 0.9, sódio 140, potássio 4.0 — normais, sem sinais de causa renal secundária."
+        },
+        {
+          "name": "ECG",
+          "type": "lab",
+          "examIds": [
+            "ecg"
+          ],
+          "result": "Ritmo sinusal, sobrecarga ventricular esquerda leve, sem sinais de isquemia."
+        }
+      ],
+      "idealConduct": [
+        "Reforçar adesão à losartana e orientar sobre horário fixo",
+        "Considerar associar segunda droga anti-hipertensiva se não controlar",
+        "Investigar causas secundárias se refratária",
+        "Orientação sobre dieta hipossódica e atividade física"
+      ],
+      "keyQuestions": [
+        "Adesão à medicação anti-hipertensiva",
+        "Sintomas associados (cefaleia, tontura)",
+        "Fatores de estresse",
+        "Antecedente familiar de hipertensão"
+      ]
+    }
+  },
+  {
+    "slug": "obesidade-sindrome-metabolica-01",
+    "title": "Ganho de peso e cansaço",
+    "specialty": "Clínica Médica",
+    "difficulty": "facil",
+    "isActive": true,
+    "receptionReason": "Ganho de peso progressivo e cansaço há meses, veio para check-up",
+    "openingLine": "Doutor, vim fazer um check-up. Tenho ganhado peso e ando muito cansado.",
+    "patientName": "Cláudio",
+    "patientAge": 45,
+    "hiddenCase": {
+      "persona": {
+        "name": "Cláudio",
+        "age": 45,
+        "sex": "masculino",
+        "tone": "tranquilo"
+      },
+      "diagnosis": "Síndrome metabólica",
+      "differentials": [
+        "Hipotireoidismo",
+        "Síndrome de Cushing",
+        "Diabetes tipo 2 isolado",
+        "Apneia do sono"
+      ],
+      "history": {
+        "inicio": "Ganho de peso progressivo nos últimos 2 anos",
+        "evolucao": "Vem piorando gradualmente, mais peso na barriga",
+        "melhora_piora": "Nada melhora especificamente; piora com sedentarismo",
+        "sintomas": "Cansaço, sede um pouco aumentada, ronco à noite conforme a esposa relata",
+        "doencas_previas": "Nenhuma doença diagnosticada antes",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado.",
+        "historia_familiar": "Pai tinha diabetes tipo 2.",
+        "tabagismo_alcool": "Não fuma; bebe cerveja quase todo fim de semana, umas 4-5 latas."
+      },
+      "physicalExam": {
+        "geral": "Obeso, IMC estimado 33",
+        "sinais_vitais": "PA 148/92, FC 80, circunferência abdominal aumentada",
+        "cardiovascular": "Normal",
+        "pulmonar": "Normal"
+      },
+      "exams": [
+        {
+          "name": "Glicemia capilar",
+          "type": "lab",
+          "examIds": [
+            "glicemia_capilar"
+          ],
+          "result": "126 mg/dL em jejum (levemente elevada)."
+        },
+        {
+          "name": "Perfil lipídico",
+          "type": "lab",
+          "examIds": [
+            "perfil_lipidico"
+          ],
+          "result": "Triglicerídeos 220 mg/dL elevados, HDL baixo (38 mg/dL), LDL 150 mg/dL."
+        },
+        {
+          "name": "TSH",
+          "type": "lab",
+          "examIds": [
+            "tsh"
+          ],
+          "result": "Normal, afastando hipotireoidismo como causa."
+        }
+      ],
+      "idealConduct": [
+        "Orientação sobre mudança de estilo de vida (dieta e exercício)",
+        "Investigar apneia do sono",
+        "Reavaliar glicemia e perfil lipídico em 3 meses",
+        "Considerar encaminhamento para nutricionista"
+      ],
+      "keyQuestions": [
+        "Padrão alimentar e atividade física",
+        "Sintomas de apneia do sono (ronco, sonolência)",
+        "Histórico familiar de diabetes",
+        "Uso de álcool"
+      ]
+    }
+  },
+  {
+    "slug": "lombalgia-mecanica-01",
+    "title": "Dor nas costas após esforço",
+    "specialty": "Clínica Médica",
+    "difficulty": "facil",
+    "isActive": true,
+    "receptionReason": "Dor nas costas há 2 dias após esforço físico",
+    "openingLine": "Doutor, machuquei minhas costas ao levantar uma caixa pesada, tá doendo muito.",
+    "patientName": "Íris",
+    "patientAge": 38,
+    "hiddenCase": {
+      "persona": {
+        "name": "Íris",
+        "age": 38,
+        "sex": "feminino",
+        "tone": "incomodada com a dor"
+      },
+      "diagnosis": "Lombalgia mecânica aguda",
+      "differentials": [
+        "Hérnia de disco lombar",
+        "Infecção urinária com dor referida",
+        "Cólica renal",
+        "Espondilite"
+      ],
+      "history": {
+        "inicio": "Dor começou há 2 dias, logo após levantar peso em casa",
+        "evolucao": "Dor constante, piora com movimento",
+        "melhora_piora": "Melhora deitada e com analgésico, piora ao se curvar ou ficar muito tempo em pé",
+        "irradiacao": "Não irradia para as pernas, sem formigamento",
+        "doencas_previas": "Já teve episódios parecidos antes, sempre passavam em poucos dias",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Tomou um anti-inflamatório de venda livre, aliviou um pouco.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Bom estado geral, com dor a movimentos",
+        "sinais_vitais": "Normais, afebril",
+        "musculoesqueletico": "Dor à palpação da musculatura paravertebral lombar, sem dor à punho-percussão renal, Lasègue negativo, sem déficit motor ou sensitivo"
+      },
+      "exams": [
+        {
+          "name": "Hemograma",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ],
+          "result": "Normal, sem sinais de infecção."
+        }
+      ],
+      "idealConduct": [
+        "Analgesia e anti-inflamatório",
+        "Orientação para manter atividade leve, evitar repouso prolongado",
+        "Não solicitar imagem de rotina sem sinais de alarme",
+        "Reavaliar se não melhorar em 4-6 semanas ou surgir sinal de alarme"
+      ],
+      "keyQuestions": [
+        "Relação com esforço físico",
+        "Irradiação para membros inferiores e sinais de alarme",
+        "Episódios prévios semelhantes",
+        "Ausência de febre ou sintomas urinários"
+      ]
+    }
+  },
+  {
+    "slug": "angina-estavel-01",
+    "title": "Dor no peito ao esforço",
+    "specialty": "Cardiovascular",
+    "difficulty": "moderado",
+    "isActive": true,
+    "receptionReason": "Dor no peito ao esforço há 1 mês, aliviada com repouso",
+    "openingLine": "Doutor, quando subo escada sinto um aperto no peito que passa quando eu paro.",
+    "patientName": "Rogério",
+    "patientAge": 61,
+    "hiddenCase": {
+      "persona": {
+        "name": "Rogério",
+        "age": 61,
+        "sex": "masculino",
+        "tone": "calmo, preocupado"
+      },
+      "diagnosis": "Angina estável",
+      "differentials": [
+        "Síndrome coronariana aguda",
+        "Refluxo gastroesofágico",
+        "Dor osteomuscular",
+        "Ansiedade"
+      ],
+      "history": {
+        "inicio": "Começou há 1 mês, sempre relacionado a esforço",
+        "evolucao": "Episódios semelhantes, sem piora progressiva",
+        "melhora_piora": "Piora ao subir escadas ou caminhar rápido, melhora completamente em poucos minutos de repouso",
+        "caracteristica": "Aperto no meio do peito, sem irradiação importante",
+        "doencas_previas": "Hipertenso e diabético tipo 2 há 8 anos",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Toma losartana e metformina regularmente.",
+        "internacoes_cirurgias": "Nunca foi internado.",
+        "historia_familiar": "Irmão fez uma angioplastia aos 60 anos.",
+        "tabagismo_alcool": "Fumou 20 anos, parou há 5; bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Bom estado geral, sem dor no momento",
+        "sinais_vitais": "PA 138/86, FC 76, afebril",
+        "cardiovascular": "Ritmo regular, bulhas normofonéticas, sem sopros",
+        "pulmonar": "Normal"
+      },
+      "exams": [
+        {
+          "name": "ECG",
+          "type": "lab",
+          "examIds": [
+            "ecg"
+          ],
+          "result": "Ritmo sinusal, sem alterações agudas no momento do exame (assintomático)."
+        },
+        {
+          "name": "Troponina",
+          "type": "lab",
+          "examIds": [
+            "troponina"
+          ],
+          "result": "Normal, negativa."
+        },
+        {
+          "name": "Teste ergométrico",
+          "type": "lab",
+          "examIds": [
+            "teste_ergometrico"
+          ],
+          "result": "Positivo para isquemia miocárdica induzida por esforço, com infradesnivelamento de ST em estágio 2 do protocolo de Bruce, sintomas reproduzidos."
+        }
+      ],
+      "idealConduct": [
+        "Iniciar/otimizar antiagregante e estatina",
+        "Betabloqueador ou outro antianginoso para controle sintomático",
+        "Encaminhar para cateterismo/avaliação de revascularização conforme risco",
+        "Controle rigoroso de fatores de risco (diabetes, tabagismo, dislipidemia)"
+      ],
+      "keyQuestions": [
+        "Relação da dor com esforço e alívio com repouso",
+        "Fatores de risco cardiovascular",
+        "Características da dor torácica",
+        "Episódios prévios semelhantes"
+      ]
+    }
+  },
+  {
+    "slug": "miocardite-01",
+    "title": "Dor no peito após quadro gripal",
+    "specialty": "Cardiovascular",
+    "difficulty": "dificil",
+    "isActive": true,
+    "receptionReason": "Dor no peito e falta de ar há 3 dias, após quadro gripal recente",
+    "openingLine": "Doutor, tive uma gripe forte semana passada e agora estou com dor no peito e cansaço.",
+    "patientName": "Simone",
+    "patientAge": 27,
+    "hiddenCase": {
+      "persona": {
+        "name": "Simone",
+        "age": 27,
+        "sex": "feminino",
+        "tone": "desconfortável, um pouco ansiosa"
+      },
+      "diagnosis": "Miocardite aguda",
+      "differentials": [
+        "Síndrome coronariana aguda",
+        "Pericardite",
+        "Embolia pulmonar",
+        "Síndrome do pânico"
+      ],
+      "history": {
+        "inicio": "Sintomas começaram há 3 dias, cerca de 10 dias após um quadro gripal com febre e dor no corpo",
+        "evolucao": "Vem piorando, hoje sente falta de ar mesmo em repouso leve",
+        "melhora_piora": "Nada específico melhora; piora com esforço",
+        "dor": "Dor no peito em aperto leve, piora ao deitar",
+        "palpitacoes": "Sente o coração acelerado às vezes",
+        "doencas_previas": "Nunca teve problema de coração antes, jovem saudável",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de doença cardíaca na família.",
+        "tabagismo_alcool": "Não fuma e bebe socialmente."
+      },
+      "physicalExam": {
+        "geral": "Levemente taquipneica, desconfortável",
+        "sinais_vitais": "PA 100/65, FC 110, FR 22, Temperatura 37.4°C, SatO2 95%",
+        "cardiovascular": "Taquicárdica, bulhas hipofonéticas, sem sopros nítidos",
+        "pulmonar": "Estertores finos em bases"
+      },
+      "exams": [
+        {
+          "name": "Troponina",
+          "type": "lab",
+          "examIds": [
+            "troponina"
+          ],
+          "result": "Elevada, 4x o limite superior."
+        },
+        {
+          "name": "ECG",
+          "type": "lab",
+          "examIds": [
+            "ecg"
+          ],
+          "result": "Taquicardia sinusal, alterações difusas do segmento ST, sem padrão de supra localizado."
+        },
+        {
+          "name": "Ecocardiograma",
+          "type": "imaging",
+          "examIds": [
+            "ecocardiograma"
+          ],
+          "result": "Disfunção sistólica global do ventrículo esquerdo, FEVE 35%, sem alteração segmentar focal típica de território coronariano único, discreto derrame pericárdico."
+        },
+        {
+          "name": "PCR",
+          "type": "lab",
+          "examIds": [
+            "pcr"
+          ],
+          "result": "Elevada, 45 mg/L."
+        }
+      ],
+      "idealConduct": [
+        "Internação para monitorização cardíaca contínua",
+        "Suporte hemodinâmico conforme necessidade, evitar AINEs",
+        "Investigação etiológica (viral mais provável pelo contexto)",
+        "Repouso e reavaliação seriada da função ventricular"
+      ],
+      "keyQuestions": [
+        "Quadro infeccioso/gripal recente",
+        "Características da dor torácica e relação postural",
+        "Sinais de insuficiência cardíaca (dispneia, taquicardia)",
+        "Ausência de fatores de risco coronariano clássicos"
+      ]
+    }
+  },
+  {
+    "slug": "choque-cardiogenico-01",
+    "title": "Dor no peito com pressão muito baixa",
+    "specialty": "Cardiovascular",
+    "difficulty": "dificil",
+    "isActive": true,
+    "receptionReason": "Dor no peito há 6 horas, agora com pressão muito baixa e confusão",
+    "openingLine": "Doutor... a dor no peito não passa... me sinto muito mal, fraco...",
+    "patientName": "Alexandre",
+    "patientAge": 68,
+    "hiddenCase": {
+      "persona": {
+        "name": "Alexandre",
+        "age": 68,
+        "sex": "masculino",
+        "tone": "confuso, muito debilitado"
+      },
+      "diagnosis": "Choque cardiogênico por infarto extenso",
+      "differentials": [
+        "Choque séptico",
+        "Choque hipovolêmico",
+        "Tamponamento cardíaco",
+        "Embolia pulmonar maciça"
+      ],
+      "history": {
+        "inicio": "Dor no peito começou há 6 horas, muito forte",
+        "evolucao": "Piorou muito nas últimas 2 horas, ficou confuso e suado",
+        "melhora_piora": "Nada melhora",
+        "sintomas": "Suor frio intenso, quase desmaiando",
+        "doencas_previas": "Hipertenso, nunca fez acompanhamento regular",
+        "alergias": "Não tem alergia a remédio que se saiba.",
+        "medicamentos_em_uso": "Não toma remédio contínuo (não adere ao tratamento).",
+        "internacoes_cirurgias": "Nunca foi internado antes.",
+        "historia_familiar": "Pai morreu de infarto aos 60 anos.",
+        "tabagismo_alcool": "Fuma 2 maços por dia há 40 anos; bebe socialmente."
+      },
+      "physicalExam": {
+        "geral": "Confuso, pálido, extremidades frias e sudoreicas",
+        "sinais_vitais": "PA 78/50, FC 118, FR 26, SatO2 88%, pele fria e mosqueada",
+        "cardiovascular": "Bulhas hipofonéticas, terceira bulha presente, sem sopros nítidos",
+        "pulmonar": "Estertores crepitantes bilaterais até terços médios"
+      },
+      "exams": [
+        {
+          "name": "ECG",
+          "type": "lab",
+          "examIds": [
+            "ecg"
+          ],
+          "result": "Supradesnivelamento de ST extenso em parede anterior e lateral (V1-V6, DI, aVL)."
+        },
+        {
+          "name": "Troponina",
+          "type": "lab",
+          "examIds": [
+            "troponina"
+          ],
+          "result": "Muito elevada, mais de 10x o limite superior."
+        },
+        {
+          "name": "Lactato sérico",
+          "type": "lab",
+          "examIds": [
+            "lactato"
+          ],
+          "result": "Elevado, 5.8 mmol/L, compatível com hipoperfusão tecidual."
+        },
+        {
+          "name": "Ecocardiograma",
+          "type": "imaging",
+          "examIds": [
+            "ecocardiograma"
+          ],
+          "result": "FEVE gravemente reduzida (20%), acinesia extensa de parede anterior, sem derrame pericárdico significativo."
+        }
+      ],
+      "idealConduct": [
+        "Suporte hemodinâmico imediato (drogas vasoativas/inotrópicos)",
+        "Revascularização de urgência (angioplastia primária)",
+        "Considerar suporte circulatório mecânico se refratário",
+        "Monitorização em UTI"
+      ],
+      "keyQuestions": [
+        "Tempo de início dos sintomas",
+        "Sinais de choque (hipotensão, confusão, extremidades frias)",
+        "Fatores de risco cardiovascular",
+        "Histórico de adesão ao tratamento prévio"
+      ]
+    }
+  },
+  {
+    "slug": "enxaqueca-01",
+    "title": "Dor de cabeça com aura visual",
+    "specialty": "Neurologia",
+    "difficulty": "facil",
+    "isActive": true,
+    "receptionReason": "Dor de cabeça pulsátil recorrente com alterações visuais antes da dor",
+    "openingLine": "Doutor, tenho dores de cabeça fortes desde ontem, e antes de começar eu vejo umas luzes estranhas.",
+    "patientName": "Débora",
+    "patientAge": 29,
+    "hiddenCase": {
+      "persona": {
+        "name": "Débora",
+        "age": 29,
+        "sex": "feminino",
+        "tone": "incomodada com luz e barulho"
+      },
+      "diagnosis": "Enxaqueca com aura",
+      "differentials": [
+        "Cefaleia tensional",
+        "Hemorragia subaracnóidea",
+        "AVC isquêmico",
+        "Cefaleia em salvas"
+      ],
+      "history": {
+        "inicio": "Episódios recorrentes há anos, esse começou ontem",
+        "evolucao": "Padrão igual aos episódios anteriores, sem mudança",
+        "melhora_piora": "Piora com luz e barulho, melhora em ambiente escuro e silencioso",
+        "aura": "Vê pontos luminosos piscando antes da dor começar, dura uns 20 minutos",
+        "nausea": "Náusea associada, sem vômitos hoje",
+        "doencas_previas": "Enxaqueca diagnosticada há 5 anos",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Usa analgésico comum quando tem crise.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Mãe também tem enxaqueca.",
+        "tabagismo_alcool": "Não fuma; bebe socialmente, percebe que vinho tinto pode desencadear crise."
+      },
+      "physicalExam": {
+        "geral": "Bom estado geral, incomodada com a luz do consultório",
+        "sinais_vitais": "Normais, afebril",
+        "neurologico": "Exame neurológico normal, sem déficit focal, sem rigidez de nuca"
+      },
+      "exams": [
+        {
+          "name": "TC de crânio sem contraste",
+          "type": "imaging",
+          "examIds": [
+            "ct_head_noncontrast"
+          ],
+          "result": "Normal, sem lesões agudas (solicitada por ser a primeira crise com aura documentada pelo médico, embora o padrão seja típico de enxaqueca)."
+        }
+      ],
+      "idealConduct": [
+        "Tratamento sintomático da crise (analgésico/anti-inflamatório, antiemético se necessário)",
+        "Orientação sobre gatilhos (sono, álcool, estresse)",
+        "Considerar profilaxia se crises frequentes",
+        "Reconhecer sinais de alarme que indicariam investigação adicional"
+      ],
+      "keyQuestions": [
+        "Características da aura e da dor",
+        "Padrão recorrente e histórico de enxaqueca prévia",
+        "Fatores desencadeantes",
+        "Ausência de sinais de alarme (febre, rigidez de nuca, déficit focal novo)"
+      ]
+    }
+  },
+  {
+    "slug": "parkinson-inicial-01",
+    "title": "Tremor e lentidão para se mover",
+    "specialty": "Neurologia",
+    "difficulty": "moderado",
+    "isActive": true,
+    "receptionReason": "Tremor na mão direita e lentidão para se mover há alguns meses",
+    "openingLine": "Doutor, minha mão direita começou a tremer, e minha esposa diz que ando mais devagar.",
+    "patientName": "Gustavo",
+    "patientAge": 64,
+    "hiddenCase": {
+      "persona": {
+        "name": "Gustavo",
+        "age": 64,
+        "sex": "masculino",
+        "tone": "fala baixa, pouca expressão facial"
+      },
+      "diagnosis": "Doença de Parkinson inicial",
+      "differentials": [
+        "Tremor essencial",
+        "Parkinsonismo induzido por medicamento",
+        "Hipotireoidismo",
+        "Depressão"
+      ],
+      "history": {
+        "inicio": "Tremor começou há uns 6 meses, foi piorando devagar",
+        "evolucao": "Progressão lenta e gradual",
+        "melhora_piora": "Tremor piora em repouso, melhora quando está usando a mão para algo",
+        "outros_sintomas": "Sente-se mais lento para se vestir, letra ficou menor",
+        "doencas_previas": "Nenhuma doença prévia conhecida",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Fácies pouco expressiva (hipomimia)",
+        "sinais_vitais": "Normais",
+        "neurologico": "Tremor de repouso em mão direita, rigidez em roda denteada no membro superior direito, bradicinesia, marcha com passos curtos e diminuição do balanço do braço direito"
+      },
+      "exams": [
+        {
+          "name": "TSH",
+          "type": "lab",
+          "examIds": [
+            "tsh"
+          ],
+          "result": "Normal, afastando causa tireoidiana para os sintomas."
+        }
+      ],
+      "idealConduct": [
+        "Encaminhar para neurologista especializado em distúrbios do movimento",
+        "Considerar início de levodopa ou outro agente dopaminérgico conforme impacto funcional",
+        "Orientação sobre fisioterapia e atividade física",
+        "Acompanhamento evolutivo dos sintomas motores e não motores"
+      ],
+      "keyQuestions": [
+        "Características do tremor (repouso vs ação)",
+        "Progressão da lentidão e rigidez",
+        "Uso de medicamentos que possam causar parkinsonismo",
+        "Sintomas associados (marcha, expressão facial)"
+      ]
+    }
+  },
+  {
+    "slug": "guillain-barre-01",
+    "title": "Fraqueza progressiva nas pernas",
+    "specialty": "Neurologia",
+    "difficulty": "dificil",
+    "isActive": true,
+    "receptionReason": "Fraqueza progressiva nas pernas há 3 dias, começando a subir para os braços",
+    "openingLine": "Doutor, minhas pernas foram ficando fracas há uns 3 dias e agora sinto os braços também fracos.",
+    "patientName": "Vanessa",
+    "patientAge": 33,
+    "hiddenCase": {
+      "persona": {
+        "name": "Vanessa",
+        "age": 33,
+        "sex": "feminino",
+        "tone": "ansiosa, assustada"
+      },
+      "diagnosis": "Síndrome de Guillain-Barré",
+      "differentials": [
+        "Mielite transversa",
+        "Miastenia gravis",
+        "Botulismo",
+        "Hipocalemia grave"
+      ],
+      "history": {
+        "inicio": "Fraqueza começou nos pés há 3 dias e vem subindo",
+        "evolucao": "Progressiva, ascendente, piorando a cada dia",
+        "melhora_piora": "Nada melhora, só piora",
+        "infeccao_previa": "Teve diarreia forte há 2 semanas, já melhorou",
+        "sensibilidade": "Sente formigamento leve nos pés, sem dor importante",
+        "doencas_previas": "Nenhuma doença prévia conhecida",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma e não bebe."
+      },
+      "physicalExam": {
+        "geral": "Ansiosa, alerta, sem sinais de desconforto respiratório no momento",
+        "sinais_vitais": "PA 118/76, FC 92, FR 18, SatO2 97%",
+        "neurologico": "Fraqueza simétrica grau 3/5 em membros inferiores e grau 4/5 em membros superiores, reflexos tendinosos profundos abolidos globalmente, sensibilidade pouco alterada, sem nível sensitivo definido"
+      },
+      "exams": [
+        {
+          "name": "Líquor (punção lombar)",
+          "type": "lab",
+          "examIds": [
+            "liquor_puncao_lombar"
+          ],
+          "result": "Dissociação albumino-citológica: proteína elevada (95 mg/dL) com celularidade normal (2 células/mm³) — padrão clássico."
+        },
+        {
+          "name": "Eletroneuromiografia",
+          "type": "lab",
+          "examIds": [
+            "eletroneuromiografia"
+          ],
+          "result": "Padrão desmielinizante: redução da velocidade de condução nervosa e bloqueios de condução em múltiplos nervos, compatível com polirradiculoneuropatia desmielinizante aguda."
+        }
+      ],
+      "idealConduct": [
+        "Internação com monitorização da função respiratória (capacidade vital)",
+        "Iniciar imunoglobulina endovenosa ou plasmaférese",
+        "Fisioterapia motora e respiratória precoce",
+        "Vigilância para progressão e necessidade de suporte ventilatório"
+      ],
+      "keyQuestions": [
+        "Padrão ascendente e simétrico da fraqueza",
+        "Infecção recente (gastrointestinal ou respiratória)",
+        "Reflexos tendinosos",
+        "Sinais de comprometimento respiratório"
+      ]
+    }
+  },
+  {
+    "slug": "derrame-pleural-01",
+    "title": "Falta de ar e dor no peito com febre",
+    "specialty": "Respiratório",
+    "difficulty": "moderado",
+    "isActive": true,
+    "receptionReason": "Falta de ar progressiva e dor no lado direito do peito há 5 dias, com febre",
+    "openingLine": "Doutor, estou com falta de ar que só piora e uma dor do lado direito do peito.",
+    "patientName": "Renato",
+    "patientAge": 58,
+    "hiddenCase": {
+      "persona": {
+        "name": "Renato",
+        "age": 58,
+        "sex": "masculino",
+        "tone": "desconfortável, taquipneico"
+      },
+      "diagnosis": "Derrame pleural parapneumônico",
+      "differentials": [
+        "Insuficiência cardíaca",
+        "Embolia pulmonar",
+        "Tuberculose pleural",
+        "Neoplasia pulmonar"
+      ],
+      "history": {
+        "inicio": "Começou com febre e tosse há 5 dias, a falta de ar apareceu depois",
+        "evolucao": "Vem piorando progressivamente",
+        "melhora_piora": "Piora deitado do lado esquerdo, melhora sentado",
+        "dor": "Dor em pontada no lado direito, piora ao respirar fundo",
+        "doencas_previas": "Nenhuma doença prévia conhecida",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Fuma cerca de meio maço por dia há 20 anos; bebe socialmente."
+      },
+      "physicalExam": {
+        "geral": "Febril, desconfortável, taquipneico leve",
+        "sinais_vitais": "Temperatura 38.5°C, FC 100, FR 24, SatO2 92%",
+        "pulmonar": "Macicez à percussão em base direita, murmúrio vesicular abolido no terço inferior direito, frêmito toracovocal diminuído"
+      },
+      "exams": [
+        {
+          "name": "Radiografia de tórax",
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ],
+          "result": "Velamento de seio costofrênico direito com opacidade homogênea sugestiva de derrame pleural, associado a infiltrado em base direita."
+        },
+        {
+          "name": "Hemograma",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ],
+          "result": "Leucocitose com desvio à esquerda (16.500, 82% neutrófilos)."
+        },
+        {
+          "name": "Toracocentese (análise do líquido pleural)",
+          "type": "lab",
+          "examIds": [
+            "toracocentese"
+          ],
+          "result": "Líquido pleural turvo, pH 7.1, glicose baixa, LDH elevado, predomínio de neutrófilos — critérios de Light positivos para exsudato, compatível com derrame parapneumônico complicado."
+        }
+      ],
+      "idealConduct": [
+        "Antibioticoterapia de amplo espectro",
+        "Drenagem torácica pelo caráter complicado do derrame",
+        "Internação e reavaliação radiológica seriada",
+        "Investigar necessidade de drenagem adicional se não houver melhora"
+      ],
+      "keyQuestions": [
+        "Febre e sintomas respiratórios associados",
+        "Características da dor pleurítica",
+        "Achados de macicez e abolição do murmúrio vesicular",
+        "Tabagismo como fator de risco"
+      ]
+    }
+  },
+  {
+    "slug": "pneumotorax-espontaneo-01",
+    "title": "Dor súbita no peito e falta de ar",
+    "specialty": "Respiratório",
+    "difficulty": "moderado",
+    "isActive": true,
+    "receptionReason": "Dor súbita no peito e falta de ar há 1 hora, sem trauma",
+    "openingLine": "Doutor, do nada senti uma dor forte do lado do peito e agora não consigo respirar direito.",
+    "patientName": "Juliana",
+    "patientAge": 22,
+    "hiddenCase": {
+      "persona": {
+        "name": "Juliana",
+        "age": 22,
+        "sex": "feminino",
+        "tone": "desconfortável, taquipneica"
+      },
+      "diagnosis": "Pneumotórax espontâneo primário",
+      "differentials": [
+        "Embolia pulmonar",
+        "Crise de asma",
+        "Pericardite",
+        "Ansiedade"
+      ],
+      "history": {
+        "inicio": "Começou de repente há 1 hora, sem esforço ou trauma",
+        "evolucao": "Constante desde o início, sem piora adicional",
+        "melhora_piora": "Nada melhora",
+        "caracteristica": "Dor em pontada do lado direito, piora ao respirar fundo",
+        "doencas_previas": "Nenhuma doença prévia conhecida, magra e alta (biotipo longilíneo)",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Fuma cigarro eletrônico ocasionalmente; bebe socialmente."
+      },
+      "physicalExam": {
+        "geral": "Desconfortável, taquipneica leve",
+        "sinais_vitais": "FC 102, FR 24, SatO2 94%, PA 118/74",
+        "pulmonar": "Murmúrio vesicular abolido no hemitórax direito, hipertimpanismo à percussão à direita, expansibilidade reduzida"
+      },
+      "exams": [
+        {
+          "name": "Radiografia de tórax",
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ],
+          "result": "Linha pleural visceral visível com ausência de trama pulmonar periférica no hemitórax direito, colapso pulmonar de aproximadamente 25%, sem desvio de mediastino."
+        }
+      ],
+      "idealConduct": [
+        "Oxigenoterapia suplementar",
+        "Considerar drenagem torácica ou aspiração conforme tamanho e sintomas",
+        "Observação com radiografia seriada se pequeno e estável",
+        "Orientação sobre risco de recorrência e cessação do tabagismo"
+      ],
+      "keyQuestions": [
+        "Início súbito sem trauma",
+        "Biotipo (longilíneo, magro) como fator de risco",
+        "Ausência de murmúrio vesicular e hipertimpanismo",
+        "Tabagismo, incluindo cigarro eletrônico"
+      ]
+    }
+  },
+  {
+    "slug": "tuberculose-pulmonar-01",
+    "title": "Tosse prolongada com sangue e emagrecimento",
+    "specialty": "Respiratório",
+    "difficulty": "moderado",
+    "isActive": true,
+    "receptionReason": "Tosse há mais de 3 semanas, com escarro às vezes com sangue, febre à noite e emagrecimento",
+    "openingLine": "Doutor, tô tossindo há mais de um mês, emagreci, e às vezes vejo um pouco de sangue no que eu tusso.",
+    "patientName": "Márcio",
+    "patientAge": 40,
+    "hiddenCase": {
+      "persona": {
+        "name": "Márcio",
+        "age": 40,
+        "sex": "masculino",
+        "tone": "abatido, emagrecido"
+      },
+      "diagnosis": "Tuberculose pulmonar",
+      "differentials": [
+        "Pneumonia bacteriana atípica",
+        "Neoplasia pulmonar",
+        "Sarcoidose",
+        "Micose pulmonar"
+      ],
+      "history": {
+        "inicio": "Tosse começou há mais de 3 semanas, foi piorando aos poucos",
+        "evolucao": "Progressiva, com surgimento de sangue no escarro na última semana",
+        "melhora_piora": "Nada melhora especificamente",
+        "sintomas_gerais": "Febre baixa que piora à noite, com suor noturno importante, perdeu uns 6 kg em 1 mês",
+        "doencas_previas": "Nenhuma doença prévia conhecida",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Fuma um maço por dia há 15 anos; bebe com frequência.",
+        "contexto": "Mora em local com pouca ventilação, teve contato com um colega de trabalho tratado para tuberculose no ano passado."
+      },
+      "physicalExam": {
+        "geral": "Emagrecido, pálido",
+        "sinais_vitais": "Temperatura 37.8°C, FC 92, FR 18, SatO2 96%",
+        "pulmonar": "Estertores em ápice pulmonar direito, sem outras alterações relevantes"
+      },
+      "exams": [
+        {
+          "name": "Radiografia de tórax",
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ],
+          "result": "Infiltrado nodular e cavitação em ápice do pulmão direito, compatível com padrão pós-primário."
+        },
+        {
+          "name": "Baciloscopia de escarro (BAAR)",
+          "type": "lab",
+          "examIds": [
+            "baciloscopia_escarro"
+          ],
+          "result": "Positiva (2+), confirmando bacilos álcool-ácido resistentes no escarro."
+        }
+      ],
+      "idealConduct": [
+        "Iniciar esquema antituberculose padrão (RIPE)",
+        "Notificação compulsória e investigação de contatos",
+        "Orientação sobre isolamento respiratório no início do tratamento",
+        "Acompanhamento com baciloscopias de controle"
+      ],
+      "keyQuestions": [
+        "Duração da tosse (mais de 3 semanas)",
+        "Sintomas sistêmicos (febre noturna, sudorese, emagrecimento)",
+        "Hemoptise",
+        "Contato com caso conhecido de tuberculose"
+      ]
+    }
+  },
+  {
+    "slug": "hemorragia-digestiva-alta-01",
+    "title": "Vômito com sangue e fezes escurecidas",
+    "specialty": "Gastroenterologia",
+    "difficulty": "dificil",
+    "isActive": true,
+    "receptionReason": "Vômito com sangue e fezes escurecidas há algumas horas",
+    "openingLine": "Doutor, vomitei um negócio parecido com borra de café e minhas fezes ficaram bem escuras.",
+    "patientName": "Tatiana",
+    "patientAge": 55,
+    "hiddenCase": {
+      "persona": {
+        "name": "Tatiana",
+        "age": 55,
+        "sex": "feminino",
+        "tone": "pálida, um pouco sonolenta"
+      },
+      "diagnosis": "Hemorragia digestiva alta por úlcera péptica",
+      "differentials": [
+        "Varizes esofágicas sangrantes",
+        "Gastrite erosiva",
+        "Síndrome de Mallory-Weiss",
+        "Neoplasia gástrica sangrante"
+      ],
+      "history": {
+        "inicio": "Começou há algumas horas, com vômito escuro seguido de fezes pretas",
+        "evolucao": "Um episódio de vômito com sangue, sente-se fraca desde então",
+        "melhora_piora": "Piora ao ficar em pé, sente tontura",
+        "dor": "Tinha dor no estômago há alguns dias antes de começar o sangramento",
+        "doencas_previas": "Tem dor de estômago recorrente há meses, nunca investigou",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Toma anti-inflamatório por conta própria para dor nas articulações, quase todo dia.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Pálida, um pouco sonolenta",
+        "sinais_vitais": "PA 90/60, FC 118, FR 20, palidez cutâneo-mucosa importante",
+        "abdominal": "Dor leve em epigástrio à palpação, sem sinais de irritação peritoneal, toque retal com fezes enegrecidas (melena)"
+      },
+      "exams": [
+        {
+          "name": "Hemograma",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ],
+          "result": "Hemoglobina 7.1 g/dL (queda importante), sugerindo sangramento significativo."
+        },
+        {
+          "name": "Endoscopia digestiva alta",
+          "type": "imaging",
+          "examIds": [
+            "endoscopia_digestiva_alta"
+          ],
+          "result": "Úlcera duodenal com vaso visível não sangrante no momento do exame (Forrest IIa), sem sinais de sangramento ativo à visualização."
+        }
+      ],
+      "idealConduct": [
+        "Estabilização hemodinâmica com reposição volêmica",
+        "Transfusão sanguínea conforme necessidade",
+        "Inibidor de bomba de prótons endovenoso em dose plena",
+        "Terapia endoscópica hemostática e suspensão do anti-inflamatório"
+      ],
+      "keyQuestions": [
+        "Uso de anti-inflamatórios sem orientação médica",
+        "Características do sangramento (hematêmese, melena)",
+        "Sinais de instabilidade hemodinâmica",
+        "Dor epigástrica prévia"
+      ]
+    }
+  },
+  {
+    "slug": "doenca-de-crohn-01",
+    "title": "Dor abdominal e diarreia recorrente",
+    "specialty": "Gastroenterologia",
+    "difficulty": "moderado",
+    "isActive": true,
+    "receptionReason": "Dor abdominal e diarreia recorrente há 2 meses, com perda de peso",
+    "openingLine": "Doutor, tenho dor de barriga e diarreia há uns 2 meses, e tô emagrecendo sem querer.",
+    "patientName": "Fábio",
+    "patientAge": 24,
+    "hiddenCase": {
+      "persona": {
+        "name": "Fábio",
+        "age": 24,
+        "sex": "masculino",
+        "tone": "cansado, emagrecido"
+      },
+      "diagnosis": "Doença de Crohn",
+      "differentials": [
+        "Retocolite ulcerativa",
+        "Tuberculose intestinal",
+        "Síndrome do intestino irritável",
+        "Gastroenterite infecciosa prolongada"
+      ],
+      "history": {
+        "inicio": "Sintomas começaram há 2 meses, de forma gradual",
+        "evolucao": "Vem e volta, com períodos um pouco melhores e piores",
+        "melhora_piora": "Piora após comer, principalmente alimentos gordurosos",
+        "sintomas": "Diarreia várias vezes ao dia, às vezes com muco, dor tipo cólica no lado direito do abdome, febre baixa ocasional",
+        "doencas_previas": "Nenhuma doença prévia conhecida",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado.",
+        "historia_familiar": "Tio tem doença inflamatória intestinal.",
+        "tabagismo_alcool": "Fuma cerca de 10 cigarros por dia; bebe socialmente."
+      },
+      "physicalExam": {
+        "geral": "Emagrecido",
+        "sinais_vitais": "Temperatura 37.6°C, FC 90, afebril na maior parte do tempo",
+        "abdominal": "Dor à palpação em fossa ilíaca direita, sem massa palpável definida, sem sinais de irritação peritoneal"
+      },
+      "exams": [
+        {
+          "name": "Hemograma",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ],
+          "result": "Anemia leve normocítica, leucocitose discreta."
+        },
+        {
+          "name": "PCR",
+          "type": "lab",
+          "examIds": [
+            "pcr"
+          ],
+          "result": "Elevada, 38 mg/L, indicando atividade inflamatória."
+        },
+        {
+          "name": "Colonoscopia",
+          "type": "imaging",
+          "examIds": [
+            "colonoscopia"
+          ],
+          "result": "Úlceras aftoides e lineares intercaladas com mucosa normal (padrão salteado), acometendo íleo terminal e cólon ascendente, compatível com doença de Crohn."
+        }
+      ],
+      "idealConduct": [
+        "Iniciar corticoide para indução de remissão",
+        "Considerar terapia imunossupressora ou biológica de manutenção",
+        "Orientação nutricional e cessação do tabagismo (fator de piora)",
+        "Acompanhamento gastroenterológico seriado"
+      ],
+      "keyQuestions": [
+        "Padrão da diarreia e dor abdominal",
+        "Perda de peso e sintomas sistêmicos",
+        "Localização da dor (fossa ilíaca direita)",
+        "Histórico familiar de doença inflamatória intestinal"
+      ]
+    }
+  },
+  {
+    "slug": "hepatite-viral-aguda-01",
+    "title": "Olhos amarelados e urina escura",
+    "specialty": "Gastroenterologia",
+    "difficulty": "facil",
+    "isActive": true,
+    "receptionReason": "Olhos amarelados, urina escura e mal-estar há 5 dias",
+    "openingLine": "Doutor, minha pele e meus olhos ficaram amarelos, e minha urina tá bem escura.",
+    "patientName": "Cristina",
+    "patientAge": 30,
+    "hiddenCase": {
+      "persona": {
+        "name": "Cristina",
+        "age": 30,
+        "sex": "feminino",
+        "tone": "cansada, um pouco enjoada"
+      },
+      "diagnosis": "Hepatite viral aguda (Hepatite A)",
+      "differentials": [
+        "Hepatite induzida por medicamento",
+        "Colecistite",
+        "Hepatites B ou C agudas",
+        "Leptospirose"
+      ],
+      "history": {
+        "inicio": "Começou com mal-estar e falta de apetite há 5 dias, a icterícia apareceu ontem",
+        "evolucao": "Vem piorando um pouco, mas sente-se um pouco melhor do mal-estar geral",
+        "melhora_piora": "Piora com comida gordurosa",
+        "sintomas": "Náusea, dor leve no lado direito da barriga, fezes mais claras que o normal",
+        "contexto": "Comeu em uma feira de rua há cerca de 3 semanas",
+        "doencas_previas": "Nenhuma doença prévia conhecida",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma e não bebe."
+      },
+      "physicalExam": {
+        "geral": "Ictérica (pele e escleras)",
+        "sinais_vitais": "Temperatura 37.3°C, FC 82, afebril na maior parte do tempo",
+        "abdominal": "Dor leve à palpação em hipocôndrio direito, fígado palpável a 2cm do rebordo costal, discretamente doloroso"
+      },
+      "exams": [
+        {
+          "name": "Função hepática",
+          "type": "lab",
+          "examIds": [
+            "funcao_hepatica"
+          ],
+          "result": "Transaminases muito elevadas (AST 850, ALT 920), bilirrubinas elevadas às custas de direta."
+        },
+        {
+          "name": "Sorologias virais para hepatite",
+          "type": "lab",
+          "examIds": [
+            "sorologia_hepatites"
+          ],
+          "result": "Anti-HAV IgM reagente, demais sorologias (HBsAg, anti-HCV) não reagentes — confirma hepatite A aguda."
+        }
+      ],
+      "idealConduct": [
+        "Tratamento de suporte (hidratação, repouso relativo, evitar hepatotóxicos)",
+        "Orientação sobre transmissão fecal-oral e higiene alimentar",
+        "Notificação compulsória",
+        "Acompanhamento com exames seriados até normalização"
+      ],
+      "keyQuestions": [
+        "Icterícia e colúria",
+        "Contexto alimentar/exposição de risco",
+        "Uso de medicamentos ou substâncias hepatotóxicas",
+        "Sintomas associados (náusea, dor abdominal)"
+      ]
+    }
+  },
+  {
+    "slug": "sepse-urinaria-01",
+    "title": "Confusão mental e febre, trazido pela família",
+    "specialty": "Infectologia",
+    "difficulty": "dificil",
+    "isActive": true,
+    "receptionReason": "Confusão mental, febre e queda do estado geral há 1 dia, trazido pela família",
+    "openingLine": "Doutor... não sei bem o que tá acontecendo... me sinto muito fraco...",
+    "patientName": "Leonardo",
+    "patientAge": 72,
+    "hiddenCase": {
+      "persona": {
+        "name": "Leonardo",
+        "age": 72,
+        "sex": "masculino",
+        "tone": "confuso, sonolento"
+      },
+      "diagnosis": "Sepse de foco urinário",
+      "differentials": [
+        "Sepse de outro foco (pulmonar, abdominal)",
+        "Desidratação isolada",
+        "Delirium por outras causas",
+        "Choque cardiogênico"
+      ],
+      "history": {
+        "inicio": "Família notou confusão e febre há 1 dia",
+        "evolucao": "Piorou nas últimas horas, ficou mais sonolento",
+        "melhora_piora": "Nada melhora",
+        "sintomas_urinarios": "Familiares relatam que ele reclamava de ardência para urinar há 2 dias antes de piorar",
+        "doencas_previas": "Hiperplasia prostática benigna conhecida, diabético tipo 2",
+        "alergias": "Não tem alergia a remédio que a família saiba.",
+        "medicamentos_em_uso": "Toma metformina e um remédio para próstata.",
+        "internacoes_cirurgias": "Já foi internado uma vez por infecção urinária há 2 anos.",
+        "historia_familiar": "Não é relevante para o quadro atual.",
+        "tabagismo_alcool": "Não fuma e não bebe."
+      },
+      "physicalExam": {
+        "geral": "Confuso, sonolento, responde perguntas simples com atraso",
+        "sinais_vitais": "PA 88/56, FC 112, FR 24, Temperatura 38.9°C, SatO2 93%",
+        "abdominal": "Punho-percussão lombar bilateral duvidosa pela confusão, bexiga não distendida"
+      },
+      "exams": [
+        {
+          "name": "Exame de urina",
+          "type": "lab",
+          "examIds": [
+            "urina_eas"
+          ],
+          "result": "Piúria intensa, nitrito positivo, bacteriúria."
+        },
+        {
+          "name": "Urocultura",
+          "type": "lab",
+          "examIds": [
+            "urocultura"
+          ],
+          "result": "Em andamento, coletada antes do antibiótico."
+        },
+        {
+          "name": "Hemocultura",
+          "type": "lab",
+          "examIds": [
+            "hemocultura"
+          ],
+          "result": "2 amostras coletadas antes do antibiótico, positivas para Escherichia coli, sensível a ceftriaxona."
+        },
+        {
+          "name": "Lactato sérico",
+          "type": "lab",
+          "examIds": [
+            "lactato"
+          ],
+          "result": "Elevado, 4.2 mmol/L, compatível com hipoperfusão."
+        },
+        {
+          "name": "Função renal",
+          "type": "lab",
+          "examIds": [
+            "funcao_renal"
+          ],
+          "result": "Creatinina elevada (2.1), compatível com lesão renal aguda associada à sepse."
+        }
+      ],
+      "idealConduct": [
+        "Reposição volêmica agressiva e antibioticoterapia de amplo espectro na primeira hora",
+        "Coletar culturas antes do antibiótico",
+        "Monitorização em UTI, considerar drogas vasoativas se refratário",
+        "Reavaliar função renal e ajustar a antibioticoterapia conforme cultura"
+      ],
+      "keyQuestions": [
+        "Sintomas urinários prévios à confusão",
+        "Sinais vitais de sepse (hipotensão, taquicardia, febre)",
+        "Comorbidades predisponentes (próstata, diabetes)",
+        "Nível de consciência e confusão aguda"
+      ]
+    }
+  },
+  {
+    "slug": "leptospirose-01",
+    "title": "Febre alta e dor nas panturrilhas após enchente",
+    "specialty": "Infectologia",
+    "difficulty": "moderado",
+    "isActive": true,
+    "receptionReason": "Febre alta, dor muscular intensa nas panturrilhas e olhos avermelhados há 4 dias",
+    "openingLine": "Doutor, tô com febre alta, uma dor forte nas panturrilhas e meus olhos ficaram vermelhos.",
+    "patientName": "Priscila",
+    "patientAge": 35,
+    "hiddenCase": {
+      "persona": {
+        "name": "Priscila",
+        "age": 35,
+        "sex": "feminino",
+        "tone": "febril, incomodada"
+      },
+      "diagnosis": "Leptospirose",
+      "differentials": [
+        "Dengue",
+        "Hepatite viral aguda",
+        "Malária",
+        "Febre tifoide"
+      ],
+      "history": {
+        "inicio": "Sintomas começaram há 4 dias",
+        "evolucao": "Febre persistente, hoje notou urina mais escura",
+        "melhora_piora": "Nada melhora muito",
+        "contexto": "A casa dela alagou na semana passada após uma chuva forte",
+        "sintomas": "Dor muscular importante em panturrilhas, dor de cabeça, olhos vermelhos sem secreção",
+        "doencas_previas": "Nenhuma doença prévia conhecida",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Febril, ictérica leve",
+        "sinais_vitais": "Temperatura 39.2°C, FC 100, PA 110/70",
+        "olhos": "Hiperemia conjuntival bilateral sem secreção (sufusão conjuntival)",
+        "musculoesqueletico": "Dor importante à palpação de panturrilhas bilateralmente",
+        "abdominal": "Discreta dor em hipocôndrio direito"
+      },
+      "exams": [
+        {
+          "name": "Função renal",
+          "type": "lab",
+          "examIds": [
+            "funcao_renal"
+          ],
+          "result": "Creatinina elevada (1.8), sugerindo comprometimento renal."
+        },
+        {
+          "name": "Função hepática",
+          "type": "lab",
+          "examIds": [
+            "funcao_hepatica"
+          ],
+          "result": "Bilirrubina elevada às custas de direta, transaminases discretamente elevadas (padrão diferente de hepatite viral clássica)."
+        },
+        {
+          "name": "Hemograma",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ],
+          "result": "Leucocitose com desvio à esquerda, plaquetas discretamente baixas."
+        }
+      ],
+      "idealConduct": [
+        "Iniciar antibioticoterapia (doxiciclina ou penicilina conforme gravidade)",
+        "Hidratação e monitorização da função renal",
+        "Vigilância para forma grave (síndrome de Weil)",
+        "Notificação compulsória e investigação epidemiológica (exposição à enchente)"
+      ],
+      "keyQuestions": [
+        "Exposição a enchente ou água contaminada",
+        "Mialgia intensa em panturrilhas",
+        "Sufusão conjuntival",
+        "Icterícia associada à disfunção renal (padrão diferente de hepatite isolada)"
+      ]
+    }
+  },
+  {
+    "slug": "covid-grave-01",
+    "title": "Falta de ar progressiva após quadro gripal",
+    "specialty": "Infectologia",
+    "difficulty": "moderado",
+    "isActive": true,
+    "receptionReason": "Febre, tosse seca e falta de ar progressiva há 6 dias",
+    "openingLine": "Doutor, tô com falta de ar que só piora, começou com uma gripe há quase uma semana.",
+    "patientName": "Anderson",
+    "patientAge": 59,
+    "hiddenCase": {
+      "persona": {
+        "name": "Anderson",
+        "age": 59,
+        "sex": "masculino",
+        "tone": "taquipneico, desconfortável"
+      },
+      "diagnosis": "COVID-19 grave com pneumonia",
+      "differentials": [
+        "Pneumonia bacteriana",
+        "Influenza grave",
+        "Insuficiência cardíaca descompensada",
+        "Tromboembolismo pulmonar"
+      ],
+      "history": {
+        "inicio": "Sintomas gripais começaram há 6 dias, a falta de ar apareceu nos últimos 2 dias",
+        "evolucao": "Piora progressiva da falta de ar",
+        "melhora_piora": "Piora com esforço mínimo, como andar até o banheiro",
+        "sintomas": "Tosse seca persistente, perda do olfato notada no início do quadro",
+        "doencas_previas": "Obeso, diabético tipo 2, sem vacinação para COVID em dia",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Toma metformina.",
+        "internacoes_cirurgias": "Nunca foi internado.",
+        "historia_familiar": "Não é relevante para o quadro atual.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Taquipneico, desconfortável para falar frases longas",
+        "sinais_vitais": "Temperatura 38.3°C, FC 106, FR 28, SatO2 88% em ar ambiente",
+        "pulmonar": "Estertores crepitantes bilaterais difusos, mais evidentes em bases"
+      },
+      "exams": [
+        {
+          "name": "Radiografia de tórax",
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ],
+          "result": "Opacidades bilaterais em vidro fosco, predomínio periférico e em bases, padrão compatível com pneumonia viral."
+        },
+        {
+          "name": "PCR",
+          "type": "lab",
+          "examIds": [
+            "pcr"
+          ],
+          "result": "Elevada, 90 mg/L."
+        },
+        {
+          "name": "Gasometria arterial",
+          "type": "lab",
+          "examIds": [
+            "gasometria_arterial"
+          ],
+          "result": "Hipoxemia importante, PaO2 55 mmHg em ar ambiente, relação PaO2/FiO2 reduzida, compatível com insuficiência respiratória."
+        }
+      ],
+      "idealConduct": [
+        "Oxigenoterapia suplementar, considerar suporte ventilatório não invasivo conforme evolução",
+        "Corticoide sistêmico (dexametasona) pela gravidade/necessidade de oxigênio",
+        "Internação hospitalar com monitorização contínua",
+        "Considerar antiviral específico conforme tempo de sintomas e protocolo vigente"
+      ],
+      "keyQuestions": [
+        "Tempo de evolução dos sintomas respiratórios",
+        "Comorbidades de risco (obesidade, diabetes)",
+        "Situação vacinal",
+        "Sinais de gravidade (SatO2, taquipneia)"
+      ]
+    }
+  },
+  {
+    "slug": "sindrome-cushing-01",
+    "title": "Ganho de peso central e roxos na pele",
+    "specialty": "Endocrinologia",
+    "difficulty": "dificil",
+    "isActive": true,
+    "receptionReason": "Ganho de peso central, roxos na pele com facilidade e pressão alta nova, há vários meses",
+    "openingLine": "Doutor, ganhei peso só na barriga, minha pele fica roxa fácil e descobriram que minha pressão subiu.",
+    "patientName": "Carla",
+    "patientAge": 42,
+    "hiddenCase": {
+      "persona": {
+        "name": "Carla",
+        "age": 42,
+        "sex": "feminino",
+        "tone": "cansada, incomodada com a aparência"
+      },
+      "diagnosis": "Síndrome de Cushing",
+      "differentials": [
+        "Obesidade simples/síndrome metabólica",
+        "Depressão",
+        "Diabetes tipo 2 isolado",
+        "Hipotireoidismo"
+      ],
+      "history": {
+        "inicio": "Sintomas vêm surgindo e piorando nos últimos 6-8 meses",
+        "evolucao": "Progressivo",
+        "melhora_piora": "Nada melhora especificamente",
+        "sintomas": "Ganho de peso centralizado (rosto e tronco), pele fina que faz hematomas com facilidade, estrias arroxeadas no abdome, fraqueza muscular proximal, menstruação irregular",
+        "doencas_previas": "Hipertensão descoberta há 4 meses, diabetes descoberta há 2 meses",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Toma losartana e metformina, iniciadas recentemente. Não usa corticoide.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Fácies em lua cheia, obesidade centrípeta",
+        "sinais_vitais": "PA 152/96, FC 84",
+        "pele": "Estrias violáceas largas no abdome, equimoses em antebraços, pele fina",
+        "musculoesqueletico": "Fraqueza proximal em membros (dificuldade para levantar de cadeira baixa)"
+      },
+      "exams": [
+        {
+          "name": "Glicemia capilar",
+          "type": "lab",
+          "examIds": [
+            "glicemia_capilar"
+          ],
+          "result": "142 mg/dL, elevada."
+        },
+        {
+          "name": "Cortisol sérico",
+          "type": "lab",
+          "examIds": [
+            "cortisol_serico"
+          ],
+          "result": "Cortisol matinal elevado e não suprimido após teste com dexametasona 1mg overnight — achado compatível com hipercortisolismo endógeno."
+        }
+      ],
+      "idealConduct": [
+        "Investigar a origem do hipercortisolismo (hipofisária, adrenal ou ectópica) com exames de imagem direcionados",
+        "Encaminhar para endocrinologista especializado",
+        "Controle da pressão arterial e glicemia enquanto investiga",
+        "Orientação sobre risco de fraturas e infecções"
+      ],
+      "keyQuestions": [
+        "Padrão de ganho de peso (central vs generalizado)",
+        "Fragilidade capilar e estrias violáceas",
+        "Fraqueza muscular proximal",
+        "Início recente de hipertensão e diabetes juntos"
+      ]
+    }
+  },
+  {
+    "slug": "crise-addisoniana-01",
+    "title": "Fraqueza extrema, vômitos e pressão muito baixa",
+    "specialty": "Endocrinologia",
+    "difficulty": "dificil",
+    "isActive": true,
+    "receptionReason": "Fraqueza extrema, vômitos, dor abdominal e pressão muito baixa há 1 dia",
+    "openingLine": "Doutor, tô muito fraco, vomitando, com dor de barriga, e disseram que minha pressão tá baixíssima.",
+    "patientName": "Rodrigo",
+    "patientAge": 46,
+    "hiddenCase": {
+      "persona": {
+        "name": "Rodrigo",
+        "age": 46,
+        "sex": "masculino",
+        "tone": "muito debilitado, fraco"
+      },
+      "diagnosis": "Crise addisoniana (insuficiência adrenal aguda)",
+      "differentials": [
+        "Sepse",
+        "Hipoglicemia isolada",
+        "Gastroenterite aguda com desidratação",
+        "Choque hipovolêmico"
+      ],
+      "history": {
+        "inicio": "Piora súbita há 1 dia, mas vem se sentindo mal e cansado há semanas",
+        "evolucao": "Piorou muito nas últimas horas",
+        "melhora_piora": "Nada melhora",
+        "sintomas": "Vômitos repetidos, dor abdominal difusa, tontura ao levantar, escurecimento da pele que notou nos últimos meses",
+        "doencas_previas": "Tem uma doença autoimune da tireoide (hipotireoidismo) e vem perdendo peso e se sentindo fraco há meses, nunca investigou direito",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Toma levotiroxina.",
+        "internacoes_cirurgias": "Nunca foi internado.",
+        "historia_familiar": "Mãe tem doença autoimune da tireoide também.",
+        "tabagismo_alcool": "Não fuma e não bebe."
+      },
+      "physicalExam": {
+        "geral": "Muito debilitado, hiperpigmentação da pele notada principalmente em dobras e cicatrizes",
+        "sinais_vitais": "PA 78/50 (piora ao sentar), FC 116, Temperatura 36.2°C",
+        "abdominal": "Dor difusa à palpação, sem sinais de irritação peritoneal"
+      },
+      "exams": [
+        {
+          "name": "Eletrólitos",
+          "type": "lab",
+          "examIds": [
+            "eletrolitos"
+          ],
+          "result": "Sódio baixo (128), potássio elevado (5.8) — padrão característico de insuficiência adrenal."
+        },
+        {
+          "name": "Glicemia capilar",
+          "type": "lab",
+          "examIds": [
+            "glicemia_capilar"
+          ],
+          "result": "58 mg/dL, hipoglicemia."
+        },
+        {
+          "name": "Cortisol sérico",
+          "type": "lab",
+          "examIds": [
+            "cortisol_serico"
+          ],
+          "result": "Muito baixo para o contexto de estresse agudo, confirmando insuficiência adrenal."
+        }
+      ],
+      "idealConduct": [
+        "Reposição imediata de hidrocortisona endovenosa em dose de estresse",
+        "Reposição volêmica agressiva com soro fisiológico e correção da hipoglicemia",
+        "Corrigir distúrbios hidroeletrolíticos",
+        "Investigar a causa da insuficiência adrenal após estabilização"
+      ],
+      "keyQuestions": [
+        "Hiperpigmentação da pele e fadiga crônica prévia",
+        "Hipotensão que piora ao levantar",
+        "Vômitos e dor abdominal associados",
+        "Outra doença autoimune conhecida (tireoide)"
+      ]
+    }
+  },
+  {
+    "slug": "hipoglicemia-diabetico-01",
+    "title": "Confusão súbita em paciente diabética",
+    "specialty": "Endocrinologia",
+    "difficulty": "facil",
+    "isActive": true,
+    "receptionReason": "Confusão súbita e suor frio, é diabética em uso de insulina",
+    "openingLine": "Doutor... eu... acho que apliquei a insulina errado hoje... tô me sentindo estranha...",
+    "patientName": "Elisa",
+    "patientAge": 68,
+    "hiddenCase": {
+      "persona": {
+        "name": "Elisa",
+        "age": 68,
+        "sex": "feminino",
+        "tone": "confusa leve, suando frio"
+      },
+      "diagnosis": "Hipoglicemia induzida por insulina",
+      "differentials": [
+        "AVC isquêmico",
+        "Crise convulsiva",
+        "Arritmia cardíaca",
+        "Intoxicação"
+      ],
+      "history": {
+        "inicio": "Começou de repente, há cerca de 30 minutos",
+        "evolucao": "Piorando rapidamente até chegar ao pronto-socorro",
+        "melhora_piora": "Comeu um pouco de açúcar no caminho, sentiu leve melhora",
+        "sintomas": "Suor frio, tremores, confusão leve, fome intensa antes de começar",
+        "doencas_previas": "Diabética tipo 2 há 10 anos, em uso de insulina há 2 anos",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Usa insulina NPH; hoje aplicou a dose mas comeu menos que o normal porque não teve muito apetite.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Mãe também era diabética.",
+        "tabagismo_alcool": "Não fuma e não bebe."
+      },
+      "physicalExam": {
+        "geral": "Confusa leve, sudoreica, pele fria e úmida",
+        "sinais_vitais": "PA 128/80, FC 104, Temperatura 36.5°C",
+        "neurologico": "Leve confusão, orientada parcialmente, sem déficit focal"
+      },
+      "exams": [
+        {
+          "name": "Glicemia capilar",
+          "type": "lab",
+          "examIds": [
+            "glicemia_capilar"
+          ],
+          "result": "42 mg/dL, hipoglicemia confirmada."
+        }
+      ],
+      "idealConduct": [
+        "Correção imediata da glicemia (glicose oral se consciente, endovenosa se necessário)",
+        "Reavaliar glicemia após correção e manter observação",
+        "Revisar dose de insulina e orientação alimentar",
+        "Orientar sobre reconhecimento precoce de sintomas de hipoglicemia"
+      ],
+      "keyQuestions": [
+        "Uso de insulina e horário da última dose/alimentação",
+        "Sintomas característicos de hipoglicemia (sudorese, tremor, confusão)",
+        "Melhora com ingestão de açúcar",
+        "Histórico de diabetes e adesão ao tratamento"
+      ]
+    }
+  },
+  {
+    "slug": "sindrome-nefrotica-01",
+    "title": "Inchaço progressivo e urina espumosa",
+    "specialty": "Nefrologia",
+    "difficulty": "moderado",
+    "isActive": true,
+    "receptionReason": "Inchaço progressivo nas pernas e ao redor dos olhos há 2 semanas, com urina espumosa",
+    "openingLine": "Doutor, meus pés e minhas pálpebras estão inchando, e minha urina anda toda espumosa.",
+    "patientName": "Otávio",
+    "patientAge": 35,
+    "hiddenCase": {
+      "persona": {
+        "name": "Otávio",
+        "age": 35,
+        "sex": "masculino",
+        "tone": "preocupado com o inchaço"
+      },
+      "diagnosis": "Síndrome nefrótica",
+      "differentials": [
+        "Síndrome nefrítica",
+        "Insuficiência cardíaca",
+        "Cirrose hepática",
+        "Desnutrição proteica"
+      ],
+      "history": {
+        "inicio": "Inchaço começou há 2 semanas, primeiro ao redor dos olhos pela manhã",
+        "evolucao": "Foi piorando e desceu para as pernas",
+        "melhora_piora": "Piora ao longo do dia em pé, um pouco melhor deitado à noite",
+        "sintomas": "Ganho de peso rápido, urina com espuma persistente",
+        "doencas_previas": "Nenhuma doença prévia conhecida",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado.",
+        "historia_familiar": "Não sabe de doença renal na família.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Edema periorbitário e de membros inferiores",
+        "sinais_vitais": "PA 130/84, FC 78",
+        "extremidades": "Edema bilateral de membros inferiores, depressível (cacifo positivo 3+/4+)",
+        "abdominal": "Discreta distensão, sem dor"
+      },
+      "exams": [
+        {
+          "name": "Exame de urina",
+          "type": "lab",
+          "examIds": [
+            "urina_eas"
+          ],
+          "result": "Proteinúria maciça, sem hematúria significativa."
+        },
+        {
+          "name": "Proteinúria de 24 horas",
+          "type": "lab",
+          "examIds": [
+            "proteinuria_24h"
+          ],
+          "result": "6.2g/24h — na faixa nefrótica (>3.5g/24h)."
+        },
+        {
+          "name": "Albumina sérica",
+          "type": "lab",
+          "examIds": [
+            "albumina_serica"
+          ],
+          "result": "Baixa, 2.1 g/dL, compatível com perda proteica importante."
+        },
+        {
+          "name": "Perfil lipídico",
+          "type": "lab",
+          "examIds": [
+            "perfil_lipidico"
+          ],
+          "result": "Colesterol total e LDL muito elevados (padrão hiperlipidêmico associado à síndrome nefrótica)."
+        }
+      ],
+      "idealConduct": [
+        "Encaminhar para nefrologia para investigação da causa (biópsia renal se indicada)",
+        "Iniciar diurético para controle do edema",
+        "Considerar corticoide empírico conforme causa suspeitada e faixa etária",
+        "Orientação sobre dieta hipossódica e risco de trombose/infecção"
+      ],
+      "keyQuestions": [
+        "Padrão do edema (periorbitário matinal, depois generalizado)",
+        "Urina espumosa (proteinúria)",
+        "Ganho de peso rápido",
+        "Ausência de hematúria ou sinais de síndrome nefrítica"
+      ]
+    }
+  },
+  {
+    "slug": "lesao-renal-aguda-01",
+    "title": "Diminuição da urina após gastroenterite",
+    "specialty": "Nefrologia",
+    "difficulty": "moderado",
+    "isActive": true,
+    "receptionReason": "Vômitos e diarreia há 3 dias, hoje notou diminuição importante da urina",
+    "openingLine": "Doutor, tô com vômito e diarreia há uns 3 dias, e hoje quase não fiz xixi.",
+    "patientName": "Bianca",
+    "patientAge": 50,
+    "hiddenCase": {
+      "persona": {
+        "name": "Bianca",
+        "age": 50,
+        "sex": "feminino",
+        "tone": "desidratada, cansada"
+      },
+      "diagnosis": "Lesão renal aguda pré-renal por desidratação",
+      "differentials": [
+        "Necrose tubular aguda",
+        "Obstrução urinária",
+        "Glomerulonefrite aguda",
+        "Síndrome hepatorrenal"
+      ],
+      "history": {
+        "inicio": "Gastroenterite há 3 dias, diminuição da urina notada hoje",
+        "evolucao": "Vômitos e diarreia melhorando um pouco, mas a urina continua pouca",
+        "melhora_piora": "Piora com a desidratação, sente muita sede",
+        "sintomas": "Boca seca, tontura ao levantar",
+        "doencas_previas": "Hipertensa, em uso de diurético",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Toma losartana e hidroclorotiazida — não parou de tomar durante a gastroenterite.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de doença renal na família.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Desidratada, mucosas secas",
+        "sinais_vitais": "PA 96/62 (queda em relação ao basal), FC 108, turgor cutâneo diminuído",
+        "abdominal": "Ruídos hidroaéreos aumentados, sem dor importante"
+      },
+      "exams": [
+        {
+          "name": "Função renal",
+          "type": "lab",
+          "examIds": [
+            "funcao_renal"
+          ],
+          "result": "Creatinina elevada (2.4, basal desconhecido mas provavelmente normal), ureia elevada desproporcionalmente (padrão sugestivo de causa pré-renal)."
+        },
+        {
+          "name": "Eletrólitos",
+          "type": "lab",
+          "examIds": [
+            "eletrolitos"
+          ],
+          "result": "Sódio e potássio nos limites, discretamente alterados pela desidratação."
+        },
+        {
+          "name": "Ultrassonografia de rins e vias urinárias",
+          "type": "imaging",
+          "examIds": [
+            "us_rins_vias_urinarias"
+          ],
+          "result": "Rins de tamanho normal, sem sinais de obstrução ou dilatação do sistema coletor."
+        }
+      ],
+      "idealConduct": [
+        "Suspender temporariamente diurético e outros nefrotóxicos",
+        "Reposição volêmica cuidadosa com soro fisiológico",
+        "Monitorar débito urinário e função renal seriada",
+        "Reintroduzir medicações anti-hipertensivas gradualmente após melhora"
+      ],
+      "keyQuestions": [
+        "Perdas de líquido recentes (vômitos, diarreia)",
+        "Uso de diurético mantido durante a desidratação",
+        "Sinais de desidratação ao exame físico",
+        "Diminuição do volume urinário (oligúria)"
+      ]
+    }
+  },
+  {
+    "slug": "leucemia-aguda-01",
+    "title": "Cansaço extremo e manchas roxas pelo corpo",
+    "specialty": "Hematologia",
+    "difficulty": "dificil",
+    "isActive": true,
+    "receptionReason": "Cansaço extremo, manchas roxas pelo corpo e febre há 2 semanas",
+    "openingLine": "Doutor, tô muito cansado, apareceram uns roxos pelo corpo do nada, e tenho tido febre.",
+    "patientName": "Nelson",
+    "patientAge": 19,
+    "hiddenCase": {
+      "persona": {
+        "name": "Nelson",
+        "age": 19,
+        "sex": "masculino",
+        "tone": "pálido, cansado"
+      },
+      "diagnosis": "Leucemia aguda",
+      "differentials": [
+        "Anemia aplásica",
+        "Mononucleose infecciosa",
+        "Púrpura trombocitopênica idiopática",
+        "Infecção viral com pancitopenia transitória"
+      ],
+      "history": {
+        "inicio": "Sintomas começaram gradualmente há 2 semanas",
+        "evolucao": "Piorando progressivamente, cansaço cada vez maior",
+        "melhora_piora": "Nada melhora",
+        "sintomas": "Sangramento gengival ao escovar os dentes, manchas roxas espontâneas, febre intermitente, dor óssea leve",
+        "doencas_previas": "Nenhuma doença prévia conhecida, jovem previamente saudável",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Pálido, com petéquias e equimoses espalhadas",
+        "sinais_vitais": "Temperatura 38.1°C, FC 100, PA 110/70",
+        "linfonodos": "Linfonodos cervicais discretamente aumentados, indolores",
+        "abdominal": "Baço palpável a 3cm do rebordo costal esquerdo"
+      },
+      "exams": [
+        {
+          "name": "Hemograma",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ],
+          "result": "Pancitopenia (hemoglobina 7.8, plaquetas 22.000, leucócitos 2.100 com presença de células blásticas atípicas no diferencial)."
+        },
+        {
+          "name": "Coagulograma",
+          "type": "lab",
+          "examIds": [
+            "coagulograma"
+          ],
+          "result": "Discretamente alterado, sem coagulopatia de consumo evidente no momento."
+        }
+      ],
+      "idealConduct": [
+        "Encaminhamento urgente para hematologia/oncologia",
+        "Isolamento protetor pelo risco infeccioso (neutropenia)",
+        "Suporte transfusional conforme necessidade (hemácias, plaquetas)",
+        "Biópsia de medula óssea para confirmação diagnóstica e classificação"
+      ],
+      "keyQuestions": [
+        "Sangramentos espontâneos (gengival, petéquias, equimoses)",
+        "Febre persistente sem foco claro",
+        "Palidez e cansaço progressivos",
+        "Presença de hepatoesplenomegalia ou linfonodomegalia"
+      ]
+    }
+  },
+  {
+    "slug": "pti-01",
+    "title": "Manchas roxas na pele sem outros sintomas",
+    "specialty": "Hematologia",
+    "difficulty": "moderado",
+    "isActive": true,
+    "receptionReason": "Manchas roxas na pele e sangramento gengival há 1 semana, sem outros sintomas",
+    "openingLine": "Doutor, apareceram várias manchas roxas na minha pele e minha gengiva sangra fácil, mas fora isso me sinto bem.",
+    "patientName": "Renata",
+    "patientAge": 26,
+    "hiddenCase": {
+      "persona": {
+        "name": "Renata",
+        "age": 26,
+        "sex": "feminino",
+        "tone": "tranquila, preocupada com as manchas"
+      },
+      "diagnosis": "Púrpura trombocitopênica imune (PTI)",
+      "differentials": [
+        "Leucemia aguda",
+        "Púrpura trombocitopênica trombótica",
+        "Lúpus eritematoso sistêmico",
+        "Trombocitopenia induzida por medicamento"
+      ],
+      "history": {
+        "inicio": "Notou as primeiras manchas há 1 semana",
+        "evolucao": "Foram aumentando em número",
+        "melhora_piora": "Nada específico piora ou melhora",
+        "sintomas": "Sangramento gengival leve, menstruação mais intensa que o normal neste ciclo, sem febre, sem dor óssea, sem perda de peso",
+        "doencas_previas": "Teve uma infecção viral (resfriado) há 3 semanas",
+        "alergias": "Não tem alergia a remédio.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Não sabe de doença parecida na família.",
+        "tabagismo_alcool": "Não fuma e bebe raramente."
+      },
+      "physicalExam": {
+        "geral": "Bom estado geral, sem palidez importante",
+        "sinais_vitais": "Normais, afebril",
+        "pele": "Petéquias em membros inferiores e equimoses esparsas, sem outras lesões",
+        "abdominal": "Sem hepatoesplenomegalia palpável"
+      },
+      "exams": [
+        {
+          "name": "Hemograma",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ],
+          "result": "Trombocitopenia isolada (plaquetas 18.000), demais séries (hemoglobina e leucócitos) normais, sem células atípicas."
+        },
+        {
+          "name": "Coagulograma",
+          "type": "lab",
+          "examIds": [
+            "coagulograma"
+          ],
+          "result": "Normal, afastando coagulopatia associada."
+        }
+      ],
+      "idealConduct": [
+        "Considerar corticoide se sangramento significativo ou plaquetas muito baixas",
+        "Orientar evitar atividades de risco de trauma e medicamentos que afetem a coagulação (AAS/AINEs)",
+        "Investigar causas secundárias se sinais atípicos",
+        "Acompanhamento hematológico com hemogramas seriados"
+      ],
+      "keyQuestions": [
+        "Trombocitopenia isolada sem outras citopenias",
+        "Infecção viral recente",
+        "Ausência de febre, perda de peso ou hepatoesplenomegalia (afastando leucemia)",
+        "Padrão do sangramento (mucocutâneo)"
+      ]
+    }
+  },
+  {
+    "slug": "intoxicacao-exogena-01",
+    "title": "Encontrado rebaixado em casa",
+    "specialty": "Urgência",
+    "difficulty": "moderado",
+    "isActive": true,
+    "receptionReason": "Encontrado rebaixado em casa, familiares acharam uma cartela de remédio vazia ao lado",
+    "openingLine": "Doutor... eu só queria dormir... tomei uns comprimidos...",
+    "patientName": "Caio",
+    "patientAge": 20,
+    "hiddenCase": {
+      "persona": {
+        "name": "Caio",
+        "age": 20,
+        "sex": "masculino",
+        "tone": "sonolento, fala arrastada"
+      },
+      "diagnosis": "Intoxicação exógena por benzodiazepínicos (tentativa de suicídio)",
+      "differentials": [
+        "Intoxicação por álcool isolada",
+        "AVC",
+        "Hipoglicemia",
+        "Overdose por opioides"
+      ],
+      "history": {
+        "inicio": "Familiares encontraram há cerca de 1 hora, cartela vazia de um ansiolítico ao lado da cama",
+        "evolucao": "Nível de consciência flutuante desde então",
+        "melhora_piora": "Não soube informar",
+        "sintomas": "Sonolência importante, fala arrastada",
+        "contexto": "Familiares relatam que ele vinha muito triste e isolado nas últimas semanas",
+        "doencas_previas": "Em acompanhamento para depressão há alguns meses (segundo a família)",
+        "alergias": "Não tem alergia a remédio que a família saiba.",
+        "medicamentos_em_uso": "Usa um antidepressivo prescrito e tinha recebido receita de um ansiolítico recentemente.",
+        "internacoes_cirurgias": "Nunca foi internado antes.",
+        "historia_familiar": "Não é o foco principal do atendimento agora.",
+        "tabagismo_alcool": "A família não soube confirmar se bebeu álcool junto com o remédio."
+      },
+      "physicalExam": {
+        "geral": "Sonolento, desperta com estímulo verbal mas volta a dormir, fala arrastada",
+        "sinais_vitais": "PA 100/64, FC 68, FR 12 (levemente reduzida), SatO2 95%, glicemia capilar normal",
+        "neurologico": "Rebaixamento leve do nível de consciência (Glasgow 13), sem déficit focal, pupilas mióticas mas reativas"
+      },
+      "exams": [
+        {
+          "name": "Glicemia capilar",
+          "type": "lab",
+          "examIds": [
+            "glicemia_capilar"
+          ],
+          "result": "94 mg/dL, normal, afastando hipoglicemia como causa."
+        },
+        {
+          "name": "Triagem toxicológica de urina",
+          "type": "lab",
+          "examIds": [
+            "toxicologico_urina"
+          ],
+          "result": "Positiva para benzodiazepínicos, negativa para opioides e outras substâncias testadas."
+        }
+      ],
+      "idealConduct": [
+        "Monitorização de sinais vitais e nível de consciência, especialmente função respiratória",
+        "Considerar antídoto (flumazenil) apenas com cautela e critério, pelo risco de convulsão em uso crônico",
+        "Avaliação psiquiátrica assim que estabilizado, obrigatória em caso de tentativa de suicídio",
+        "Garantir ambiente seguro e observação contínua até avaliação especializada"
+      ],
+      "keyQuestions": [
+        "O que e quanto foi ingerido, e quando",
+        "Contexto psiquiátrico e intencionalidade",
+        "Nível de consciência e sinais vitais (especialmente respiração)",
+        "Uso concomitante de álcool ou outras substâncias"
+      ]
+    }
+  },
+  {
+    "slug": "anafilaxia-01",
+    "title": "Inchaço no rosto e falta de ar após comer camarão",
+    "specialty": "Urgência",
+    "difficulty": "facil",
+    "isActive": true,
+    "receptionReason": "Inchaço no rosto, falta de ar e vermelhidão pelo corpo, minutos após comer camarão",
+    "openingLine": "Doutor, comi camarão há uns 10 minutos e agora meu rosto tá inchando e não consigo respirar direito!",
+    "patientName": "Valéria",
+    "patientAge": 31,
+    "hiddenCase": {
+      "persona": {
+        "name": "Valéria",
+        "age": 31,
+        "sex": "feminino",
+        "tone": "angustiada, com dificuldade para falar"
+      },
+      "diagnosis": "Anafilaxia",
+      "differentials": [
+        "Crise de asma isolada",
+        "Angioedema hereditário",
+        "Ataque de pânico",
+        "Urticária aguda isolada sem anafilaxia"
+      ],
+      "history": {
+        "inicio": "Começou minutos depois de comer camarão em um restaurante",
+        "evolucao": "Piorando rapidamente desde o início",
+        "melhora_piora": "Nada melhora, só piora",
+        "sintomas": "Inchaço nos lábios e pálpebras, vermelhidão e coceira pelo corpo todo, sensação de garganta fechando, falta de ar",
+        "doencas_previas": "Já teve uma reação alérgica leve a camarão antes, mas nunca assim",
+        "alergias": "Alergia confirmada a camarão e frutos do mar em geral.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internada.",
+        "historia_familiar": "Mãe também tem alergia alimentar.",
+        "tabagismo_alcool": "Não fuma e bebe socialmente."
+      },
+      "physicalExam": {
+        "geral": "Ansiosa, angustiada, com dificuldade para falar frases longas",
+        "sinais_vitais": "PA 88/56, FC 118, FR 26, SatO2 91%",
+        "pele": "Urticária generalizada, angioedema de lábios e pálpebras",
+        "pulmonar": "Sibilos difusos bilaterais, estridor leve audível"
+      },
+      "exams": [],
+      "idealConduct": [
+        "Adrenalina intramuscular imediata (primeira linha, sem atraso)",
+        "Manter vias aéreas pérvias e oxigênio suplementar",
+        "Anti-histamínico e corticoide como terapia adjuvante (nunca substituindo a adrenalina)",
+        "Observação por período prolongado pelo risco de reação bifásica, e prescrição de autoinjetor de adrenalina na alta"
+      ],
+      "keyQuestions": [
+        "Relação temporal com exposição a alimento/substância conhecida como alérgeno",
+        "Sintomas de via aérea (estridor, edema de língua/lábios) e respiratórios",
+        "Sinais de instabilidade hemodinâmica",
+        "Histórico alérgico prévio"
+      ]
+    }
+  },
+  {
+    "slug": "trauma-abdominal-01",
+    "title": "Acidente de moto com dor abdominal",
+    "specialty": "Urgência",
+    "difficulty": "dificil",
+    "isActive": true,
+    "receptionReason": "Acidente de moto há 40 minutos, dor abdominal e no lado esquerdo do tórax",
+    "openingLine": "Doutor, caí de moto, bati o lado esquerdo do corpo, e essa dor na barriga não passa.",
+    "patientName": "Thiago",
+    "patientAge": 27,
+    "hiddenCase": {
+      "persona": {
+        "name": "Thiago",
+        "age": 27,
+        "sex": "masculino",
+        "tone": "pálido, ansioso"
+      },
+      "diagnosis": "Trauma abdominal fechado com lesão esplênica",
+      "differentials": [
+        "Lesão hepática isolada",
+        "Fratura de arcos costais isolada",
+        "Hemorragia retroperitoneal",
+        "Contusão abdominal simples sem lesão de órgão sólido"
+      ],
+      "history": {
+        "inicio": "Acidente de moto há 40 minutos, impacto no lado esquerdo do corpo contra o guidão",
+        "evolucao": "Dor abdominal vem piorando desde o acidente",
+        "melhora_piora": "Piora ao respirar fundo e ao se mexer",
+        "sintomas": "Dor no lado esquerdo do abdome que irradia para o ombro esquerdo, tontura",
+        "doencas_previas": "Nenhuma doença prévia conhecida",
+        "alergias": "Não tem alergia a remédio que se saiba.",
+        "medicamentos_em_uso": "Não toma nenhum remédio contínuo.",
+        "internacoes_cirurgias": "Nunca foi internado antes.",
+        "historia_familiar": "Não é relevante para o quadro atual.",
+        "tabagismo_alcool": "Bebeu 2 cervejas antes do acidente, segundo relato."
+      },
+      "physicalExam": {
+        "geral": "Pálido, ansioso, taquicárdico",
+        "sinais_vitais": "PA 92/60, FC 116, FR 22, SatO2 96%",
+        "abdominal": "Dor à palpação em hipocôndrio e flanco esquerdos, discreta defesa muscular localizada, sinal de Kehr positivo (dor irradiada para ombro esquerdo)",
+        "torax": "Dor à palpação de arcos costais esquerdos baixos, sem crepitação evidente"
+      },
+      "exams": [
+        {
+          "name": "Hemograma",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ],
+          "result": "Hemoglobina 9.8 (queda em relação ao esperado), sugerindo sangramento em curso."
+        },
+        {
+          "name": "Ultrassonografia de abdome",
+          "type": "imaging",
+          "examIds": [
+            "us_abdome"
+          ],
+          "result": "Líquido livre em espaço perisplênico e goteira parietocólica esquerda (FAST positivo), sugestivo de sangramento intra-abdominal."
+        },
+        {
+          "name": "TC de abdome",
+          "type": "imaging",
+          "examIds": [
+            "ct_abdome_noncontrast"
+          ],
+          "result": "Laceração esplênica grau III, com hematoma perisplênico, sem sinais de sangramento ativo evidente no momento do exame."
+        }
+      ],
+      "idealConduct": [
+        "Estabilização hemodinâmica com reposição volêmica",
+        "Monitorização rigorosa e reavaliação seriada (conduta não operatória se estável)",
+        "Reserva de sangue e disponibilidade cirúrgica caso haja instabilidade",
+        "Repouso e reavaliação por imagem se necessário"
+      ],
+      "keyQuestions": [
+        "Mecanismo e local exato do trauma",
+        "Sinal de Kehr (dor irradiada para o ombro) sugestivo de lesão esplênica",
+        "Sinais de instabilidade hemodinâmica",
+        "Uso de álcool antes do acidente"
+      ]
+    }
+  }
+]

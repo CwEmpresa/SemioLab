@@ -2,7 +2,7 @@
  * Importa casos clínicos para a simulação de paciente-IA, em lote.
  *
  * Uso:
- *   npx tsx scripts/import-patient-cases.ts data/patient-cases/pilot-20.json
+ *   npx tsx scripts/import-patient-cases.ts data/patient-cases/pilot-50.json
  *   npx tsx scripts/import-patient-cases.ts data/patient-cases/lote-02.json data/patient-cases/lote-03.json
  *
  * Cada arquivo deve ser um JSON array de casos no formato de

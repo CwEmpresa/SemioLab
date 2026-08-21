@@ -100,6 +100,18 @@ export const EXAM_CATALOG: ExamCatalogEntry[] = [
     label: "Triglicerídeos e cálcio",
     aliases: ["trigliceridios e calcio", "triglicerideos e calcio", "dosagem de trigliceridios e calcio", "trigliceridios", "triglicerideos", "calcio total", "calcemia"],
   },
+  { id: "teste_ergometrico", label: "Teste ergométrico", aliases: ["teste ergometrico", "teste de esforco", "ergometria"] },
+  { id: "lactato", label: "Lactato sérico", aliases: ["lactato serico", "lactato arterial", "lactato"] },
+  { id: "eletroneuromiografia", label: "Eletroneuromiografia", aliases: ["eletroneuromiografia", "eneuromiografia", "estudo de conducao nervosa"] },
+  { id: "toracocentese", label: "Toracocentese (análise do líquido pleural)", aliases: ["toracocentese", "analise do liquido pleural", "punção pleural", "puncao pleural"] },
+  { id: "baciloscopia_escarro", label: "Baciloscopia de escarro (BAAR)", aliases: ["baciloscopia de escarro", "baciloscopia", "pesquisa de baar", "escarro baar"] },
+  { id: "colonoscopia", label: "Colonoscopia", aliases: ["colonoscopia", "ileocolonoscopia"] },
+  { id: "sorologia_hepatites", label: "Sorologias virais para hepatite", aliases: ["sorologia para hepatite", "sorologias para hepatite", "sorologia hepatite a b c", "marcadores de hepatite"] },
+  { id: "cortisol_serico", label: "Cortisol sérico", aliases: ["cortisol serico", "dosagem de cortisol", "cortisol"] },
+  { id: "proteinuria_24h", label: "Proteinúria de 24 horas", aliases: ["proteinuria de 24 horas", "proteinuria 24h", "urina de 24 horas"] },
+  { id: "albumina_serica", label: "Albumina sérica", aliases: ["albumina serica", "dosagem de albumina", "albumina"] },
+  { id: "coagulograma", label: "Coagulograma", aliases: ["coagulograma", "tempo de protrombina e ttpa", "tp e ttpa"] },
+  { id: "toxicologico_urina", label: "Triagem toxicológica de urina", aliases: ["triagem toxicologica", "exame toxicologico de urina", "toxicologico de urina", "pesquisa de drogas na urina"] },
 ];
 
 const CATALOG_IDS = new Set(EXAM_CATALOG.map((e) => e.id));
