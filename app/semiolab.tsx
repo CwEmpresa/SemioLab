@@ -911,6 +911,7 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
         <div className="profile-settings-list">
           <button onClick={() => openPanel("preferences")}><SlidersHorizontal /><span><b>Preferências de estudo</b><small>{preferences.dailyGoal} min por dia · lembretes {preferences.reminders ? "ativos" : "desativados"}</small></span><ChevronRight /></button>
           <button onClick={() => openPanel("support")}><HelpCircle /><span><b>Ajuda e suporte</b><small>Dúvidas, problemas e contato</small></span><ChevronRight /></button>
+          <button onClick={() => window.open("/termos-de-uso", "_blank", "noopener,noreferrer")}><ShieldCheck /><span><b>Termos, privacidade e LGPD</b><small>Termos de uso, reembolso e aviso educacional</small></span><ChevronRight /></button>
           <button onClick={() => { window.location.href="mailto:suporte.mapasmentaistcc@gmail.com?subject=Feedback%20SemioLab"; }}><MessageCircle /><span><b>Enviar feedback</b><small>Conte o que podemos melhorar</small></span><ChevronRight /></button>
           <button className="profile-logout" onClick={logout}><LogOut /><span><b>Sair da conta</b><small>Encerrar sessão neste dispositivo</small></span><ChevronRight /></button>
         </div>
