@@ -12,7 +12,7 @@ export default function TermosDeUsoPage() {
           O SemioLab é uma plataforma educacional voltada ao ensino e à prática de semiologia médica,
           oferecendo simulados, um atlas de conteúdo clínico e um &quot;Paciente Virtual&quot; — uma
           simulação de atendimento gerada por inteligência artificial para fins exclusivamente
-          didáticos. O SemioLab é operado por Carlos Wendel, com sede em São Luís, Maranhão, Brasil
+          didáticos. O SemioLab é operado a partir de São Luís, Maranhão, Brasil
           (&quot;SemioLab&quot;, &quot;nós&quot;).
         </p>
       </section>
@@ -78,7 +78,7 @@ export default function TermosDeUsoPage() {
         <h2 className="text-base font-bold text-white">7. Propriedade intelectual</h2>
         <p>
           Todo o conteúdo do SemioLab — incluindo textos, casos clínicos, design, marca e software — é
-          de propriedade de Carlos Wendel ou de seus licenciadores, e é protegido pela legislação de
+          de propriedade do SemioLab ou de seus licenciadores, e é protegido pela legislação de
           direitos autorais e propriedade intelectual aplicável. O uso da plataforma não transfere
           nenhum direito de propriedade intelectual ao usuário.
         </p>

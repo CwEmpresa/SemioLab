@@ -34,7 +34,7 @@ export default function ContatoPage() {
             <MapPin className="h-4 w-4 text-[#65e5d0]" /> Responsável
           </div>
           <p className="mt-2 text-sm">
-            Carlos Wendel
+            SemioLab
             <br />
             São Luís, Maranhão, Brasil
           </p>

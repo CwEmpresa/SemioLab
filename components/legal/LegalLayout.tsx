@@ -50,7 +50,7 @@ export function LegalLayout({
           ))}
         </div>
         <p className="mx-auto mt-4 max-w-3xl text-[11px] text-[#5c7176]">
-          © {new Date().getFullYear()} SemioLab — Carlos Wendel. Todos os direitos reservados.
+          © {new Date().getFullYear()} SemioLab. Todos os direitos reservados.
         </p>
       </footer>
     </main>

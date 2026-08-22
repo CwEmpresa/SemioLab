@@ -8,10 +8,10 @@ export default function PrivacidadePage() {
     <LegalLayout title="Política de Privacidade e LGPD" updatedNote="Última atualização: 22 de agosto de 2026">
       <section>
         <p>
-          Esta Política de Privacidade explica como Carlos Wendel (&quot;SemioLab&quot;,
-          &quot;nós&quot;), com sede em São Luís, Maranhão, Brasil, coleta, usa, armazena e protege os
-          dados pessoais dos usuários da plataforma, em conformidade com a Lei Geral de Proteção de
-          Dados (Lei nº 13.709/2018 — LGPD).
+          Esta Política de Privacidade explica como o SemioLab (&quot;nós&quot;), com sede em São
+          Luís, Maranhão, Brasil, coleta, usa, armazena e protege os dados pessoais dos usuários da
+          plataforma, em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 —
+          LGPD).
         </p>
       </section>
 
@@ -104,7 +104,7 @@ export default function PrivacidadePage() {
       <section>
         <h2 className="text-base font-bold text-white">8. Encarregado de Proteção de Dados (DPO)</h2>
         <p>
-          Nosso Encarregado de Proteção de Dados é Carlos Wendel, que pode ser contatado pelo e-mail{" "}
+          Você pode entrar em contato com nosso Encarregado de Proteção de Dados pelo e-mail{" "}
           <a href="mailto:suporte.semiolab@gmail.com" className="underline hover:text-white">suporte.semiolab@gmail.com</a>{" "}
           para quaisquer questões relacionadas ao tratamento de dados pessoais nos termos da LGPD.
         </p>
