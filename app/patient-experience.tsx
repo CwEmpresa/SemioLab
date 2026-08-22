@@ -916,7 +916,6 @@ export default function PatientExperience({
         <em>
           <Clock3 /> {clock}
         </em>
-        <button onClick={() => setPhase("finish")}>Finalizar</button>
       </header>
       <main ref={chatRef}>
         <section className="patient-chat-profile">
@@ -1076,6 +1075,9 @@ export default function PatientExperience({
           </button>
           <button className={notes.trim() ? "completed" : ""} onClick={() => setNotesOpen(true)}>
             <NotebookPen /> {notes.trim() ? "Anotações salvas" : "Anotações"}
+          </button>
+          <button className="consult-finish-btn" onClick={() => setPhase("finish")}>
+            <Check /> Finalizar
           </button>
           <span>Consulta educacional</span>
         </div>

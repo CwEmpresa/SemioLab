@@ -2197,14 +2197,6 @@ em {
 .consult > header em svg {
   width: 15px;
 }
-.consult > header > button:last-child {
-  background: #472b2e;
-  color: #f09b9b;
-  padding: 10px 14px;
-  border-radius: 11px;
-  font-size: 11px;
-  font-weight: 800;
-}
 .consult > main {
   height: calc(100vh - 225px);
   overflow: auto;
@@ -5311,14 +5303,6 @@ em {
   color: #789095;
   font-size: 9px;
 }
-.consult > header > button:last-child {
-  padding: 10px 15px;
-  color: #a7505a;
-  background: #fff0f1;
-  border: 1px solid #f4d7da;
-  border-radius: 12px;
-  font-size: 9px;
-}
 .consult > main {
   height: calc(100dvh - 190px);
   padding: 22px max(24px, calc((100% - 920px) / 2)) 34px;
@@ -5567,10 +5551,6 @@ em {
   }
   .header-clinical-actions button:first-child {
     display: none;
-  }
-  .consult > header > button:last-child {
-    padding: 8px 9px;
-    font-size: 8px;
   }
   .consult > main {
     height: calc(100dvh - 190px);
@@ -6953,7 +6933,6 @@ button.avatar:hover {
   .patient-chat-identity > span small { font-size: 7px; }
   .consult > header .header-clinical-actions,
   .consult > header em { display: none; }
-  .consult > header > button:last-child { padding: 8px; font-size: 7px; }
   .consult > main {
     height: calc(100dvh - 262px);
     padding: 16px 12px 25px;
@@ -7046,16 +7025,6 @@ button.avatar:hover {
 .consult > header em {
   color: #8e8e93;
   font-size: 9px;
-}
-.consult > header > button:last-child {
-  min-height: 34px;
-  padding: 0 13px;
-  color: #0a84ff;
-  background: #eaf4ff;
-  border: 0;
-  border-radius: 999px;
-  font-size: 9px;
-  font-weight: 750;
 }
 .consult > main {
   height: calc(100dvh - 211px);
@@ -7169,6 +7138,16 @@ button.avatar:hover {
   border-color: #9ddbd0;
 }
 .consult-tools > span { color: #8e8e93; font-size: 7px; white-space: nowrap; }
+.consult > footer > .consult-tools button.consult-finish-btn {
+  color: #fff;
+  background: linear-gradient(145deg, #2dc4ae, #078071);
+  border-color: transparent;
+}
+.consult > footer > .consult-tools button.consult-finish-btn:hover {
+  color: #fff;
+  background: linear-gradient(145deg, #2dc4ae, #078071);
+  border-color: transparent;
+}
 .consult > footer label {
   min-height: 48px;
   padding: 4px;
@@ -7245,7 +7224,6 @@ button.avatar:hover {
   .consult > header .header-clinical-actions { display: flex; }
   .consult > header .header-clinical-actions button { width: 34px; height: 34px; }
   .consult > header em { display: none; }
-  .consult > header > button:last-child { padding: 0 9px; font-size: 7px; }
   .consult > main {
     height: calc(100dvh - 250px);
     padding: 13px 11px 28px;
