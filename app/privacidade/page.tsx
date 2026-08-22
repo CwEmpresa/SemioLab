@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
-import { LegalLayout, FillIn } from "@/components/legal/LegalLayout";
+import { LegalLayout } from "@/components/legal/LegalLayout";
 
 export const metadata: Metadata = { title: "Privacidade e LGPD — SemioLab" };
 
 export default function PrivacidadePage() {
   return (
-    <LegalLayout title="Política de Privacidade e LGPD" updatedNote="Última atualização: [preencher com a data de publicação]">
+    <LegalLayout title="Política de Privacidade e LGPD" updatedNote="Última atualização: 22 de agosto de 2026">
       <section>
         <p>
-          Esta Política de Privacidade explica como{" "}
-          <FillIn>[preencher: razão social]</FillIn> (&quot;SemioLab&quot;, &quot;nós&quot;), inscrita
-          no <FillIn>[preencher: CNPJ ou CPF]</FillIn>, coleta, usa, armazena e protege os dados
-          pessoais dos usuários da plataforma, em conformidade com a Lei Geral de Proteção de Dados
-          (Lei nº 13.709/2018 — LGPD).
+          Esta Política de Privacidade explica como Carlos Wendel (&quot;SemioLab&quot;,
+          &quot;nós&quot;), com sede em São Luís, Maranhão, Brasil, coleta, usa, armazena e protege os
+          dados pessoais dos usuários da plataforma, em conformidade com a Lei Geral de Proteção de
+          Dados (Lei nº 13.709/2018 — LGPD).
         </p>
       </section>
 
@@ -78,7 +77,8 @@ export default function PrivacidadePage() {
         </ul>
         <p>
           Para exercer qualquer desses direitos, entre em contato pelo e-mail{" "}
-          <FillIn>[preencher: e-mail de contato/DPO]</FillIn>.
+          <a href="mailto:suporte.semiolab@gmail.com" className="underline hover:text-white">suporte.semiolab@gmail.com</a>{" "}
+          — respondemos em até 3 dias úteis.
         </p>
       </section>
 
@@ -95,18 +95,18 @@ export default function PrivacidadePage() {
       <section>
         <h2 className="text-base font-bold text-white">7. Cookies e tecnologias similares</h2>
         <p>
-          O SemioLab utiliza apenas os cookies/tecnologias estritamente necessários ao funcionamento da
-          plataforma, como manutenção da sua sessão autenticada. <FillIn>[preencher: caso a plataforma
-          passe a usar cookies de analytics/marketing, detalhar aqui quais e sua finalidade]</FillIn>.
+          O SemioLab utiliza apenas cookies estritamente necessários ao funcionamento da plataforma,
+          como manutenção da sua sessão autenticada. Nenhum cookie de rastreamento ou publicidade é
+          utilizado.
         </p>
       </section>
 
       <section>
         <h2 className="text-base font-bold text-white">8. Encarregado de Proteção de Dados (DPO)</h2>
         <p>
-          Nosso Encarregado de Proteção de Dados pode ser contatado em{" "}
-          <FillIn>[preencher: nome do encarregado e e-mail de contato]</FillIn> para quaisquer questões
-          relacionadas ao tratamento de dados pessoais nos termos da LGPD.
+          Nosso Encarregado de Proteção de Dados é Carlos Wendel, que pode ser contatado pelo e-mail{" "}
+          <a href="mailto:suporte.semiolab@gmail.com" className="underline hover:text-white">suporte.semiolab@gmail.com</a>{" "}
+          para quaisquer questões relacionadas ao tratamento de dados pessoais nos termos da LGPD.
         </p>
       </section>
 

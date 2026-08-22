@@ -1,21 +1,19 @@
 import type { Metadata } from "next";
-import { LegalLayout, FillIn } from "@/components/legal/LegalLayout";
+import { LegalLayout } from "@/components/legal/LegalLayout";
 
 export const metadata: Metadata = { title: "Termos de Uso — SemioLab" };
 
 export default function TermosDeUsoPage() {
   return (
-    <LegalLayout title="Termos de Uso" updatedNote="Última atualização: [preencher com a data de publicação]">
+    <LegalLayout title="Termos de Uso" updatedNote="Última atualização: 22 de agosto de 2026">
       <section>
         <h2 className="text-base font-bold text-white">1. Sobre o SemioLab</h2>
         <p>
           O SemioLab é uma plataforma educacional voltada ao ensino e à prática de semiologia médica,
           oferecendo simulados, um atlas de conteúdo clínico e um &quot;Paciente Virtual&quot; — uma
           simulação de atendimento gerada por inteligência artificial para fins exclusivamente
-          didáticos. O SemioLab é operado por{" "}
-          <FillIn>[preencher: razão social]</FillIn>, inscrita no{" "}
-          <FillIn>[preencher: CNPJ ou CPF]</FillIn>, com sede em{" "}
-          <FillIn>[preencher: endereço completo]</FillIn> (&quot;SemioLab&quot;, &quot;nós&quot;).
+          didáticos. O SemioLab é operado por Carlos Wendel, com sede em São Luís, Maranhão, Brasil
+          (&quot;SemioLab&quot;, &quot;nós&quot;).
         </p>
       </section>
 
@@ -80,9 +78,9 @@ export default function TermosDeUsoPage() {
         <h2 className="text-base font-bold text-white">7. Propriedade intelectual</h2>
         <p>
           Todo o conteúdo do SemioLab — incluindo textos, casos clínicos, design, marca e software — é
-          de propriedade de <FillIn>[preencher: razão social]</FillIn> ou de seus licenciadores, e é
-          protegido pela legislação de direitos autorais e propriedade intelectual aplicável. O uso da
-          plataforma não transfere nenhum direito de propriedade intelectual ao usuário.
+          de propriedade de Carlos Wendel ou de seus licenciadores, e é protegido pela legislação de
+          direitos autorais e propriedade intelectual aplicável. O uso da plataforma não transfere
+          nenhum direito de propriedade intelectual ao usuário.
         </p>
       </section>
 
@@ -117,8 +115,8 @@ export default function TermosDeUsoPage() {
         <h2 className="text-base font-bold text-white">11. Lei aplicável e foro</h2>
         <p>
           Estes Termos são regidos pelas leis da República Federativa do Brasil. Fica eleito o foro da
-          comarca de <FillIn>[preencher: cidade/comarca]</FillIn> para dirimir eventuais controvérsias,
-          ressalvado o foro do domicílio do consumidor quando aplicável por lei.
+          comarca de São Luís, Maranhão, para dirimir eventuais controvérsias, ressalvado o foro do
+          domicílio do consumidor quando aplicável por lei.
         </p>
       </section>
 
@@ -126,7 +124,8 @@ export default function TermosDeUsoPage() {
         <h2 className="text-base font-bold text-white">12. Contato</h2>
         <p>
           Dúvidas sobre estes Termos podem ser enviadas para{" "}
-          <FillIn>[preencher: e-mail de suporte]</FillIn>. Veja também nossa{" "}
+          <a href="mailto:suporte.semiolab@gmail.com" className="underline hover:text-white">suporte.semiolab@gmail.com</a>{" "}
+          — respondemos em até 3 dias úteis. Veja também nossa{" "}
           <a href="/contato" className="underline hover:text-white">página de Contato e Suporte</a>.
         </p>
       </section>

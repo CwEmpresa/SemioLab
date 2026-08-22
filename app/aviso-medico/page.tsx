@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Aviso Educacional — SemioLab" };
 
 export default function AvisoMedicoPage() {
   return (
-    <LegalLayout title="Aviso de Conteúdo Exclusivamente Educacional" updatedNote="Última atualização: [preencher com a data de publicação]">
+    <LegalLayout title="Aviso de Conteúdo Exclusivamente Educacional" updatedNote="Última atualização: 22 de agosto de 2026">
       <div className="flex items-start gap-3 rounded-xl border border-[#ff9a9a]/40 bg-[#ff9a9a]/10 px-4 py-4 text-sm text-[#ffd4d4]">
         <CircleAlert className="mt-0.5 h-5 w-5 flex-shrink-0" />
         <p>

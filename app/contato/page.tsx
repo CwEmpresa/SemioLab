@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { LegalLayout, FillIn } from "@/components/legal/LegalLayout";
-import { Mail, Building2, Clock, MessageCircle } from "lucide-react";
+import { LegalLayout } from "@/components/legal/LegalLayout";
+import { Mail, MapPin, Clock, MessageCircle } from "lucide-react";
 
 export const metadata: Metadata = { title: "Contato e Suporte — SemioLab" };
 
 export default function ContatoPage() {
   return (
-    <LegalLayout title="Contato e Suporte">
+    <LegalLayout title="Contato e Suporte" updatedNote="Última atualização: 22 de agosto de 2026">
       <p>
         Estamos por aqui para ajudar com dúvidas sobre sua conta, assinatura, ou qualquer questão sobre
         o uso do SemioLab.
@@ -18,29 +18,25 @@ export default function ContatoPage() {
             <Mail className="h-4 w-4 text-[#65e5d0]" /> E-mail de suporte
           </div>
           <p className="mt-2 text-sm">
-            <FillIn>[preencher: e-mail de suporte]</FillIn>
+            <a href="mailto:suporte.semiolab@gmail.com" className="underline hover:text-white">suporte.semiolab@gmail.com</a>
           </p>
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
           <div className="flex items-center gap-2 text-sm font-bold text-white">
-            <Clock className="h-4 w-4 text-[#65e5d0]" /> Horário de atendimento
+            <Clock className="h-4 w-4 text-[#65e5d0]" /> Prazo de atendimento
           </div>
-          <p className="mt-2 text-sm">
-            <FillIn>[preencher: horário/dias de atendimento e prazo médio de resposta]</FillIn>
-          </p>
+          <p className="mt-2 text-sm">Respondemos em até 3 dias úteis.</p>
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
           <div className="flex items-center gap-2 text-sm font-bold text-white">
-            <Building2 className="h-4 w-4 text-[#65e5d0]" /> Dados da empresa
+            <MapPin className="h-4 w-4 text-[#65e5d0]" /> Responsável
           </div>
           <p className="mt-2 text-sm">
-            <FillIn>[preencher: razão social]</FillIn>
+            Carlos Wendel
             <br />
-            <FillIn>[preencher: CNPJ ou CPF]</FillIn>
-            <br />
-            <FillIn>[preencher: endereço completo]</FillIn>
+            São Luís, Maranhão, Brasil
           </p>
         </div>
 

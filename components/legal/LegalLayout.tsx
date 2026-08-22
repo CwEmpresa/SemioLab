@@ -9,16 +9,6 @@ const LEGAL_LINKS = [
   { href: "/contato", label: "Contato e suporte" },
 ];
 
-/** Bloco visualmente destacado para marcar um dado jurídico que ainda
- * precisa ser preenchido — nunca um valor inventado. */
-export function FillIn({ children }: { children: ReactNode }) {
-  return (
-    <span className="inline-block rounded-md border border-dashed border-[#ffb454]/60 bg-[#ffb454]/10 px-2 py-0.5 font-mono text-[13px] text-[#ffcf8a]">
-      {children}
-    </span>
-  );
-}
-
 export function LegalLayout({
   title,
   updatedNote,
@@ -46,12 +36,6 @@ export function LegalLayout({
         <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{title}</h1>
         {updatedNote && <p className="mt-2 text-xs text-[#8da1a6]">{updatedNote}</p>}
 
-        <div className="mt-4 rounded-xl border border-[#ffb454]/40 bg-[#ffb454]/10 px-4 py-3 text-xs leading-relaxed text-[#ffe0b0]">
-          Este documento contém campos marcados como <FillIn>[preencher]</FillIn> que representam
-          dados jurídicos reais (razão social, CNPJ/CPF, endereço, e-mail de suporte etc.) e
-          precisam ser preenchidos por você antes da publicação — nenhum desses dados foi inventado.
-        </div>
-
         <div className="prose-legal mt-8 space-y-6 text-sm leading-relaxed text-[#c4d3d5]">
           {children}
         </div>
@@ -66,7 +50,7 @@ export function LegalLayout({
           ))}
         </div>
         <p className="mx-auto mt-4 max-w-3xl text-[11px] text-[#5c7176]">
-          © {new Date().getFullYear()} SemioLab — <FillIn>[preencher: razão social]</FillIn>. Todos os direitos reservados.
+          © {new Date().getFullYear()} SemioLab — Carlos Wendel. Todos os direitos reservados.
         </p>
       </footer>
     </main>
