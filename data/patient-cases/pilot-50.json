@@ -2335,6 +2335,38 @@
             "ecocardiograma"
           ],
           "result": "FEVE gravemente reduzida (20%), acinesia extensa de parede anterior, sem derrame pericárdico significativo."
+        },
+        {
+          "name": "Radiografia de tórax",
+          "type": "imaging",
+          "examIds": [
+            "rx_torax"
+          ],
+          "result": "Achados: cardiomegalia, congestão vascular pulmonar difusa bilateral, infiltrado alveolar em padrão de \"asas de borboleta\" sugestivo de edema pulmonar agudo, sem derrame pleural volumoso. Conclusão: padrão radiográfico compatível com edema pulmonar cardiogênico agudo, coerente com o quadro de choque cardiogênico e os estertores bilaterais encontrados no exame físico."
+        },
+        {
+          "name": "Hemograma completo",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ],
+          "result": "Leucócitos 13.200/mm³ com discreto desvio à esquerda (resposta ao estresse agudo), hemoglobina 14.2 g/dL, hematócrito 42%, plaquetas 210.000/mm³. Conclusão: sem anemia ou sinais de sangramento agudo — achado que ajuda a afastar choque hipovolêmico hemorrágico como causa primária do quadro."
+        },
+        {
+          "name": "Função renal e eletrólitos",
+          "type": "lab",
+          "examIds": [
+            "funcao_renal_eletrolitos"
+          ],
+          "result": "Creatinina 2.1 mg/dL (elevada), ureia 68 mg/dL, sódio 133 mEq/L (leve hiponatremia dilucional), potássio 5.3 mEq/L (levemente elevado). Conclusão: lesão renal aguda de padrão pré-renal por hipoperfusão (síndrome cardiorrenal tipo 1), compatível com o baixo débito cardíaco do choque cardiogênico."
+        },
+        {
+          "name": "Gasometria arterial",
+          "type": "lab",
+          "examIds": [
+            "gasometria_arterial"
+          ],
+          "result": "Em ar ambiente: pH 7.28, PaCO2 30 mmHg, PaO2 52 mmHg, HCO3 16 mEq/L, SatO2 89%. Conclusão: acidose metabólica (láctica) com compensação respiratória parcial e hipoxemia importante, padrão compatível com edema pulmonar associado a hipoperfusão tecidual no choque cardiogênico."
         }
       ],
       "idealConduct": [
@@ -3085,6 +3117,14 @@
             "funcao_renal"
           ],
           "result": "Creatinina elevada (2.1), compatível com lesão renal aguda associada à sepse."
+        },
+        {
+          "name": "Hemograma",
+          "type": "lab",
+          "examIds": [
+            "hemograma"
+          ],
+          "result": "Leucocitose importante com desvio à esquerda (22.400 leucócitos/mm³, 88% neutrófilos, bastonetes presentes), hemoglobina 12.8 g/dL, plaquetas 165.000/mm³. Conclusão: padrão infeccioso/inflamatório agudo compatível com sepse de foco urinário, reforçando os critérios de resposta inflamatória sistêmica já sugeridos pelo quadro clínico."
         }
       ],
       "idealConduct": [
