@@ -45,12 +45,15 @@ export async function POST(request: Request) {
       .eq("role", "exam")
       .neq("content", "Exame físico realizado");
     if ((examsUsed ?? 0) >= access.limits.examsPerConsultation) {
+      const limit = access.limits.examsPerConsultation;
       return Response.json(
         {
           error:
-            access.tier === "free"
-              ? "Você atingiu o limite de 1 exame por atendimento do plano básico. Assine o Pro para exames ilimitados."
-              : "Você atingiu o limite de exames deste atendimento no período de teste.",
+            limit === 0
+              ? "O Paciente Virtual é um recurso exclusivo do plano Pro (ou do período de teste)."
+              : access.tier === "free"
+                ? `Você atingiu o limite de ${limit} exame${limit > 1 ? "s" : ""} por atendimento do plano básico. Assine o Pro para exames ilimitados.`
+                : "Você atingiu o limite de exames deste atendimento no período de teste.",
           limitReached: true,
           tier: access.tier,
         },

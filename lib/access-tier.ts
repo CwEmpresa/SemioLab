@@ -2,10 +2,10 @@ export const TRIAL_DAYS = 7;
 
 export type AccessTier = "trial" | "free" | "pro";
 
-export const TIER_LIMITS: Record<AccessTier, { consultationsPerDay: number; examsPerConsultation: number; auscultationAllowed: boolean }> = {
-  trial: { consultationsPerDay: 3, examsPerConsultation: 5, auscultationAllowed: true },
-  free: { consultationsPerDay: 1, examsPerConsultation: 1, auscultationAllowed: false },
-  pro: { consultationsPerDay: Infinity, examsPerConsultation: Infinity, auscultationAllowed: true },
+export const TIER_LIMITS: Record<AccessTier, { consultationsPerDay: number; examsPerConsultation: number; auscultationAllowed: boolean; simuladosPerDay: number }> = {
+  trial: { consultationsPerDay: 2, examsPerConsultation: 5, auscultationAllowed: true, simuladosPerDay: 1 },
+  free: { consultationsPerDay: 0, examsPerConsultation: 0, auscultationAllowed: false, simuladosPerDay: 0 },
+  pro: { consultationsPerDay: 3, examsPerConsultation: Infinity, auscultationAllowed: true, simuladosPerDay: 3 },
 };
 
 export function daysSince(dateIso: string | null | undefined): number | null {

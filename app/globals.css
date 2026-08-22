@@ -9339,6 +9339,27 @@ button.avatar:hover {
 .quiz-ui .amount-control button:hover { background: #dff4ef; }
 .quiz-ui .amount-control button:active { transform: scale(.94); }
 .quiz-ui .amount-control b { color: var(--quiz-ink); }
+.amount-choices {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+}
+.amount-choices button {
+  flex: 1;
+  height: 40px;
+  border-radius: 11px;
+  font-weight: 800;
+  font-size: 14px;
+}
+.quiz-ui .amount-choices button.active {
+  background: var(--quiz-mint-deep);
+  color: #fff;
+}
+.quiz-ui .amount-choices button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+  background: #eef8f6;
+}
 .quiz-ui .quiz-config label > small { color: var(--quiz-muted); }
 .quiz-ui .config-summary,
 .quiz-ui .clinical-case-list > span {

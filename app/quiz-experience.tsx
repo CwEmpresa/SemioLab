@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLearningSummary } from "./use-learning-summary";
 import {
   ArrowLeft,
   BarChart3,
@@ -321,6 +322,14 @@ const clinicalCases: ClinicalCase[] = [
 
 const topics = ["Todos", ...Array.from(new Set(bank.map((q) => q.topic)))];
 const shuffle = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5);
+/** Embaralha as alternativas de uma questão, recalculando o índice da
+ * resposta correta para continuar apontando para o mesmo texto. */
+function shuffleQuestionOptions(q: Question): Question {
+  const correctText = q.options[q.correct];
+  const options = shuffle(q.options);
+  return { ...q, options, correct: options.indexOf(correctText) };
+}
+const QUIZ_AMOUNT_CHOICES = [5, 10, 20] as const;
 const normalized = (value: string) =>
   value
     .toLowerCase()
@@ -334,14 +343,24 @@ export default function QuizExperience({
 }) {
   const [mode, setMode] = useState<Mode>("home");
   const [topic, setTopic] = useState("Todos");
-  const [amount, setAmount] = useState(5);
+  const [amount, setAmount] = useState(10);
   const [active, setActive] = useState<Question[]>([]);
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [answers, setAnswers] = useState<number[]>([]);
   const [seconds, setSeconds] = useState(30);
+  const { summary: learning } = useLearningSummary();
   const [savedErrors, setSavedErrors] = useState<SavedError[]>([]);
   const [attempts, setAttempts] = useState(0);
+  const [simuladoMode, setSimuladoMode] = useState<"config" | "play" | "result" | "blocked" | "insufficient">("config");
+  const [simuladoAttemptId, setSimuladoAttemptId] = useState<string | null>(null);
+  const [simuladoQuestions, setSimuladoQuestions] = useState<{ id: string; topic: string; text: string; options: string[] }[]>([]);
+  const [simuladoIndex, setSimuladoIndex] = useState(0);
+  const [simuladoSelected, setSimuladoSelected] = useState<number | null>(null);
+  const [simuladoFeedback, setSimuladoFeedback] = useState<{ correct: boolean; correctIndex: number; explanation: string } | null>(null);
+  const [simuladoResult, setSimuladoResult] = useState<{ total: number; correct: number; score: number } | null>(null);
+  const [simuladoBlocked, setSimuladoBlocked] = useState<{ message: string; usedToday?: number; limitToday?: number; available?: number } | null>(null);
+  const [simuladoLoading, setSimuladoLoading] = useState(false);
   const [caseIndex, setCaseIndex] = useState(0);
   const [caseAnswers, setCaseAnswers] = useState<string[]>([]);
   const [caseText, setCaseText] = useState("");
@@ -360,7 +379,7 @@ export default function QuizExperience({
   }, []);
   const available =
     topic === "Todos" ? bank : bank.filter((q) => q.topic === topic);
-  const maxAmount = Math.min(15, available.length);
+  const maxAmount = Math.min(20, available.length);
   const score = useMemo(
     () => answers.filter((a, i) => a === active[i]?.correct).length,
     [answers, active],
@@ -413,10 +432,76 @@ export default function QuizExperience({
     return () => window.clearInterval(id);
   }, [mode]);
 
+  async function startSimulado() {
+    setSimuladoLoading(true);
+    setSimuladoFeedback(null);
+    try {
+      const response = await fetch("/api/simulados/start", { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 403 && data.limitReached) {
+        setSimuladoBlocked({ message: data.error, usedToday: data.simuladosUsedToday, limitToday: data.simuladosLimitToday });
+        setSimuladoMode("blocked");
+        return;
+      }
+      if (response.status === 409 && data.code === "INSUFFICIENT_QUESTION_BANK") {
+        setSimuladoBlocked({ message: data.error, available: data.availableQuestions });
+        setSimuladoMode("insufficient");
+        return;
+      }
+      if (!response.ok) {
+        setSimuladoBlocked({ message: data.error || "Não foi possível iniciar o simulado." });
+        setSimuladoMode("blocked");
+        return;
+      }
+      setSimuladoAttemptId(data.attemptId);
+      setSimuladoQuestions(data.questions || []);
+      const firstUnanswered = (data.questions || []).findIndex((q: { answered?: boolean }) => !q.answered);
+      setSimuladoIndex(firstUnanswered === -1 ? 0 : firstUnanswered);
+      setSimuladoSelected(null);
+      setSimuladoResult(null);
+      setSimuladoMode("play");
+    } finally {
+      setSimuladoLoading(false);
+    }
+  }
+
+  async function answerSimulado() {
+    if (simuladoSelected === null || !simuladoAttemptId) return;
+    const question = simuladoQuestions[simuladoIndex];
+    const response = await fetch("/api/simulados/answer", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ attemptId: simuladoAttemptId, questionId: question.id, selectedIndex: simuladoSelected }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) setSimuladoFeedback({ correct: data.correct, correctIndex: data.correctIndex, explanation: data.explanation });
+  }
+
+  async function nextSimuladoQuestion() {
+    if (simuladoIndex + 1 < simuladoQuestions.length) {
+      setSimuladoIndex((i) => i + 1);
+      setSimuladoSelected(null);
+      setSimuladoFeedback(null);
+      return;
+    }
+    if (!simuladoAttemptId) return;
+    const response = await fetch("/api/simulados/finish", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ attemptId: simuladoAttemptId }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) setSimuladoResult({ total: data.total, correct: data.correct, score: data.score });
+    setSimuladoMode("result");
+  }
+
   function startQuiz() {
     const pool =
       topic === "Todos" ? bank : bank.filter((q) => q.topic === topic);
-    setActive(shuffle(pool).slice(0, Math.min(amount, pool.length)));
+    // Nunca reduz a quantidade silenciosamente: o botão de uma quantidade
+    // maior que o banco disponível já vem desabilitado na configuração.
+    const size = Math.min(amount, pool.length);
+    setActive(shuffle(pool).slice(0, size).map(shuffleQuestionOptions));
     setCurrent(0);
     setAnswers([]);
     setSelected(null);
@@ -523,6 +608,105 @@ export default function QuizExperience({
     saveExamResult(completed);
   }
 
+  if (simuladoMode === "blocked" && simuladoBlocked) {
+    return (
+      <div className="page auscultation-lab-page patient-wait">
+        <div className="patient-wait-shade" />
+        <main className="patient-wait-content">
+          <section className="patient-wait-intro">
+            <small><i /> RECURSO POR PLANO</small>
+            <h1>{simuladoBlocked.message}</h1>
+            {typeof simuladoBlocked.usedToday === "number" && (
+              <p>{simuladoBlocked.usedToday} de {simuladoBlocked.limitToday} simulados usados hoje.</p>
+            )}
+          </section>
+          <section className="patient-call-panel">
+            {learning?.pro?.checkoutUrls && <a className="primary" href={learning.pro.checkoutUrls.monthly} target="_blank" rel="noopener noreferrer"><span>Assinar mensal</span></a>}
+            {learning?.pro?.checkoutUrls && <a className="primary" href={learning.pro.checkoutUrls.annual} target="_blank" rel="noopener noreferrer"><span>Assinar anual</span></a>}
+            <button onClick={() => { setMode("home"); setSimuladoMode("config"); }}>Voltar</button>
+          </section>
+        </main>
+      </div>
+    );
+  }
+  if (simuladoMode === "insufficient" && simuladoBlocked) {
+    return (
+      <div className="page quiz-ui">
+        <header className="simple-back">
+          <button onClick={() => { setMode("home"); setSimuladoMode("config"); }}><ArrowLeft /></button>
+          <span><small>SIMULADO</small><b>Banco insuficiente</b></span>
+        </header>
+        <div className="quiz-config">
+          <h1>Ainda não há questões novas suficientes.</h1>
+          <p>{simuladoBlocked.available ?? 0} de 10 questões inéditas disponíveis para você no momento. Volte em breve, quando o banco for ampliado.</p>
+        </div>
+      </div>
+    );
+  }
+  if (simuladoMode === "play" && simuladoAttemptId && simuladoQuestions[simuladoIndex]) {
+    const q = simuladoQuestions[simuladoIndex];
+    return (
+      <div className="quiz-ui quiz-play">
+        <header>
+          <button onClick={() => { setMode("home"); setSimuladoMode("config"); }}><X /></button>
+          <span>
+            Questão {simuladoIndex + 1} de {simuladoQuestions.length}
+            <i><b style={{ width: `${((simuladoIndex + 1) / simuladoQuestions.length) * 100}%` }} /></i>
+          </span>
+        </header>
+        <main>
+          <small>{q.topic.toUpperCase()} · SIMULADO</small>
+          <h1>{q.text}</h1>
+          <div>
+            {q.options.map((option, i) => (
+              <button
+                key={option}
+                className={`${simuladoSelected === i ? "selected" : ""} ${simuladoFeedback ? (i === simuladoFeedback.correctIndex ? "correct" : simuladoSelected === i ? "wrong" : "") : ""}`}
+                disabled={!!simuladoFeedback}
+                onClick={() => setSimuladoSelected(i)}
+              >
+                <i>{String.fromCharCode(65 + i)}</i>
+                {option}
+              </button>
+            ))}
+          </div>
+          {simuladoFeedback && (
+            <p className="quiz-answer-explanation">
+              {simuladoFeedback.correct ? "Correto! " : "Não foi dessa vez. "}
+              {simuladoFeedback.explanation}
+            </p>
+          )}
+          <footer>
+            <button onClick={() => { setMode("home"); setSimuladoMode("config"); }}>Encerrar</button>
+            {!simuladoFeedback ? (
+              <button className="primary" disabled={simuladoSelected === null} onClick={answerSimulado}>
+                Responder <ChevronRight />
+              </button>
+            ) : (
+              <button className="primary" onClick={nextSimuladoQuestion}>
+                {simuladoIndex + 1 === simuladoQuestions.length ? "Finalizar" : "Próxima"} <ChevronRight />
+              </button>
+            )}
+          </footer>
+        </main>
+      </div>
+    );
+  }
+  if (simuladoMode === "result" && simuladoResult) {
+    return (
+      <div className="page quiz-ui">
+        <header className="simple-back">
+          <button onClick={() => setMode("home")}><ArrowLeft /></button>
+          <span><small>RESULTADO</small><b>Simulado concluído</b></span>
+        </header>
+        <div className="quiz-config">
+          <h1>{simuladoResult.correct} de {simuladoResult.total} corretas</h1>
+          <p>Aproveitamento de {simuladoResult.score}%.</p>
+          <button className="primary" onClick={() => { setMode("home"); setSimuladoMode("config"); }}>Voltar ao início <ChevronRight /></button>
+        </div>
+      </div>
+    );
+  }
   if (mode === "quiz") {
     const question = active[current];
     return (
@@ -819,7 +1003,7 @@ export default function QuizExperience({
               value={topic}
               onChange={(e) => {
                 setTopic(e.target.value);
-                setAmount(5);
+                setAmount(10);
               }}
             >
               {topics.map((t) => (
@@ -829,18 +1013,24 @@ export default function QuizExperience({
           </label>
           <label>
             Quantidade
-            <div className="amount-control">
-              <button onClick={() => setAmount((v) => Math.max(3, v - 1))}>
-                −
-              </button>
-              <b>{Math.min(amount, maxAmount)}</b>
-              <button
-                onClick={() => setAmount((v) => Math.min(maxAmount, v + 1))}
-              >
-                +
-              </button>
+            <div className="amount-control amount-choices">
+              {QUIZ_AMOUNT_CHOICES.map((choice) => (
+                <button
+                  key={choice}
+                  type="button"
+                  className={amount === choice ? "active" : ""}
+                  disabled={choice > maxAmount}
+                  onClick={() => setAmount(choice)}
+                >
+                  {choice}
+                </button>
+              ))}
             </div>
-            <small>Entre 3 e {maxAmount} questões disponíveis</small>
+            <small>
+              {maxAmount >= 20
+                ? "20 questões disponíveis neste tema"
+                : `Apenas ${maxAmount} questão${maxAmount === 1 ? "" : "ões"} disponível${maxAmount === 1 ? "" : "eis"} neste tema até o banco ser ampliado`}
+            </small>
           </label>
           <div className="config-summary">
             <Zap />
@@ -851,7 +1041,7 @@ export default function QuizExperience({
               </small>
             </span>
           </div>
-          <button className="primary" onClick={startQuiz}>
+          <button className="primary" onClick={startQuiz} disabled={maxAmount === 0}>
             Começar quiz <ChevronRight />
           </button>
         </div>
@@ -982,14 +1172,36 @@ export default function QuizExperience({
             Configurar simulado <ChevronRight />
           </button>
         </article>
+
+        <article className="quiz-format-card">
+          <header>
+            <span><Target /> SIMULADO (10 QUESTÕES)</span>
+          </header>
+          <div className="quiz-format-copy">
+            <h2>Simulado objetivo</h2>
+            <p>10 questões fixas, sem repetição, com contador diário por plano.</p>
+          </div>
+          <div className="quiz-format-facts">
+            <span><FileText /><b>10</b><small>questões</small></span>
+            <span><Check /><b>Nunca repete</b><small>por usuário</small></span>
+            <span><Clock3 /><b>Retomável</b><small>se sair no meio</small></span>
+          </div>
+          <button
+            className="quiz-format-cta"
+            disabled={simuladoLoading}
+            onClick={() => { setSimuladoMode("config"); startSimulado(); }}
+          >
+            {simuladoLoading ? "Carregando..." : "Iniciar simulado"} <ChevronRight />
+          </button>
+        </article>
       </section>
 
       <button
         className="quiz-resume-strip"
         onClick={() => {
           setTopic("Todos");
-          setAmount(5);
-          setActive(shuffle(bank).slice(0, 5));
+          setAmount(10);
+          setActive(shuffle(bank).slice(0, Math.min(10, bank.length)).map(shuffleQuestionOptions));
           setCurrent(0);
           setAnswers([]);
           setSelected(null);

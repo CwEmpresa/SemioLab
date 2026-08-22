@@ -33,9 +33,11 @@ export async function POST() {
     return Response.json(
       {
         error:
-          access.tier === "free"
-            ? `Você atingiu o limite diário de ${dailyLimit} atendimento${dailyLimit > 1 ? "s" : ""} do plano básico. Volte amanhã ou assine o Pro.`
-            : `Você atingiu o limite diário de ${dailyLimit} atendimentos. O limite reinicia à meia-noite (horário de Brasília).`,
+          dailyLimit === 0
+            ? "O Paciente Virtual é um recurso exclusivo do plano Pro (ou do período de teste). Assine o Pro para começar a atender."
+            : access.tier === "free"
+              ? `Você atingiu o limite diário de ${dailyLimit} atendimento${dailyLimit > 1 ? "s" : ""} do plano básico. Volte amanhã ou assine o Pro.`
+              : `Você atingiu o limite diário de ${dailyLimit} atendimentos. O limite reinicia à meia-noite (horário de Brasília).`,
         limitReached: true,
         code: "DAILY_LIMIT_REACHED",
         tier: access.tier,
