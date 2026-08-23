@@ -10108,3 +10108,11 @@ button.avatar:hover {
 .public-profile-xp { display: block; font-size: 22px; color: var(--mint); margin: 4px 0 10px; }
 .public-profile-stats { display: flex; justify-content: space-around; padding: 0 16px; }
 .public-profile-stats span { display: flex; flex-direction: column; }
+
+/* ── PWA onboarding / notificações (Etapa 5) ───────────────────── */
+.pwa-onboarding-modal { max-width: 360px; text-align: center; }
+.pwa-onboarding-modal h2 { margin-bottom: 8px; }
+.pwa-onboarding-modal p { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+.pwa-onboarding-modal button { display: block; width: 100%; margin-bottom: 8px; }
+.pwa-settings-panel h3 { font-size: 13px; margin: 0 0 6px; }
+.pwa-settings-panel p { color: var(--muted); font-size: 12px; margin-bottom: 10px; }

@@ -5,8 +5,10 @@ export const metadata: Metadata = {
   title: "SemioLab",
   description: "Estude, pratique e evolua em Semiologia Médica.",
   other: { "codex-preview": "development" },
-  icons: { icon: "/semiolab-fox.png" },
+  icons: { icon: "/semiolab-fox.png", apple: "/icon-192.png" },
+  manifest: "/manifest.json",
 };
+export const viewport = { themeColor: "#061217" };
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (

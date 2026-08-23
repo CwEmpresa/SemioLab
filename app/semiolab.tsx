@@ -11,6 +11,7 @@ import {
 import PatientExperience from "./patient-experience";
 import QuizExperience from "./quiz-experience";
 import RankingExperience, { HomeRankCard } from "./ranking-experience";
+import PwaOnboarding, { NotificationSettingsPanel } from "./pwa-onboarding";
 import { HeartDashboardHero } from "@/components/ui/heart-dashboard-hero";
 import { useUser } from "./user-context";
 import { createClient } from "@/lib/supabase/client";
@@ -776,7 +777,7 @@ function Achievements({ go }: { go:(s:Screen)=>void }) {
 }
 
 /* ─── Profile ───────────────────────────────────────────────────── */
-type ProfilePanel = "account"|"preferences"|"support"|null;
+type ProfilePanel = "account"|"preferences"|"support"|"notifications"|null;
 type AppTheme = "light"|"dark";
 
 const defaultRole = "Estudante de Medicina · Ciclo clínico";
@@ -945,6 +946,7 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
         <h3>Preferências e suporte</h3>
         <div className="profile-settings-list">
           <button onClick={() => openPanel("preferences")}><SlidersHorizontal /><span><b>Preferências de estudo</b><small>{preferences.dailyGoal} min por dia · lembretes {preferences.reminders ? "ativos" : "desativados"}</small></span><ChevronRight /></button>
+          <button onClick={() => openPanel("notifications")}><Bell /><span><b>Notificações e instalação</b><small>Ative avisos e instale o app</small></span><ChevronRight /></button>
           <button onClick={() => openPanel("support")}><HelpCircle /><span><b>Ajuda e suporte</b><small>Dúvidas, problemas e contato</small></span><ChevronRight /></button>
           <button onClick={() => window.open("/termos-de-uso", "_blank", "noopener,noreferrer")}><ShieldCheck /><span><b>Termos, privacidade e LGPD</b><small>Termos de uso, reembolso e aviso educacional</small></span><ChevronRight /></button>
           <button onClick={() => { window.location.href="mailto:suporte.semiolab@gmail.com?subject=Feedback%20SemioLab"; }}><MessageCircle /><span><b>Enviar feedback</b><small>Conte o que podemos melhorar</small></span><ChevronRight /></button>
@@ -971,10 +973,11 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
               <div className="profile-dialog-toggle"><span><b>Sons de recompensa</b><small>Feedback sonoro ao concluir atividades</small></span><button className={preferenceDraft.sound ? "active" : ""} onClick={() => setPreferenceDraft({...preferenceDraft, sound:!preferenceDraft.sound})}><i /></button></div>
               <button className="profile-dialog-primary" onClick={savePreferences}>Salvar preferências</button>
             </>}
+            {panel === "notifications" && <NotificationSettingsPanel />}
             {panel === "support" && <>
               <small>SUPORTE</small><h2>Como podemos ajudar?</h2><p>Consulte as respostas rápidas ou fale diretamente com a equipe.</p>
               <details><summary>Meu progresso não atualizou</summary><p>Conclua a atividade até a tela final. O XP é registrado somente após a conclusão.</p></details>
-              <details><summary>Minha foto não aparece</summary><p>Escolha JPG, PNG ou HEIC. A imagem é otimizada e salva neste dispositivo.</p></details>
+              <details><summary>Minha foto não aparece</summary><p>Escolha JPG, PNG ou WebP, com até 2 MB. A imagem fica salva na sua conta, não no dispositivo.</p></details>
               <a className="profile-dialog-primary" href="https://mail.google.com/mail/?view=cm&fs=1&to=suporte.semiolab@gmail.com&su=Suporte%20SemioLab" target="_blank" rel="noopener noreferrer"><Mail /> Falar com o suporte</a>
             </>}
           </section>
@@ -1126,10 +1129,18 @@ export function QuizLegacy({ go }: { go:(s:Screen)=>void }) {
 
 /* ─── Root ──────────────────────────────────────────────────────── */
 export default function SemioLab() {
-  const [screen, setScreen]   = useState<Screen>("home");
+  const [screen, setScreen]   = useState<Screen>(() => {
+    // Deep link de notificação (?screen=patient etc.) — preservado através
+    // do login, já que é a mesma URL antes e depois de autenticar.
+    if (typeof window === "undefined") return "home";
+    const requested = new URLSearchParams(window.location.search).get("screen");
+    const valid: Screen[] = ["home","study","auscultation","patient","quiz","profile","progress","ranking","achievements"];
+    return (valid as string[]).includes(requested || "") ? (requested as Screen) : "home";
+  });
   const [navOpen, setNavOpen] = useState(true);
   const [checkin, setCheckin] = useState(true);
   const [theme, setThemeState] = useState<AppTheme>("light");
+  const user = useUser();
 
   // A sidebar reserva 248px (aberta) de largura fixa no conteúdo. Em telas
   // médias (mesmo breakpoint já usado pelo grid do dashboard, <=1100px),
@@ -1201,6 +1212,7 @@ export default function SemioLab() {
         {view}
       </div>
       {checkin && <Checkin close={() => setCheckin(false)} />}
+      <PwaOnboarding userId={user.id} />
     </main>
   );
 }
