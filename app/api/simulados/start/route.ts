@@ -85,32 +85,57 @@ export async function POST() {
   // 3) Seleciona 10 questões nunca vistas por este usuário (nenhuma
   // tentativa, concluída ou não, já expôs essas questões a ele). Nunca
   // reatribui, mesmo após trial→pro, logout ou troca de dispositivo.
+  // Só questões `published` — nunca `draft`/`rejected`.
   const { data: seenRows } = await service
     .from("simulado_attempt_questions")
     .select("question_id, simulado_attempts!inner(user_id)")
     .eq("simulado_attempts.user_id", user.id);
   const seenIds = new Set((seenRows ?? []).map((r) => r.question_id));
 
-  const { data: allActive } = await service
+  const { data: pool } = await service
     .from("simulado_questions")
-    .select("id")
+    .select("id, topic, difficulty")
+    .eq("status", "published")
     .eq("is_active", true);
-  const availableIds = (allActive ?? []).map((q) => q.id).filter((id) => !seenIds.has(id));
+  const available = (pool ?? []).filter((q) => !seenIds.has(q.id));
 
-  if (availableIds.length < QUESTIONS_PER_SIMULADO) {
+  if (available.length < QUESTIONS_PER_SIMULADO) {
     // Nunca inventa nem repete questão em tempo real: estado explícito.
     return Response.json(
       {
         error: "Banco de questões insuficiente para um novo simulado no momento.",
         code: "INSUFFICIENT_QUESTION_BANK",
-        availableQuestions: availableIds.length,
+        availableQuestions: available.length,
         requiredQuestions: QUESTIONS_PER_SIMULADO,
       },
       { status: 409 },
     );
   }
 
-  const chosen = [...availableIds].sort(() => Math.random() - 0.5).slice(0, QUESTIONS_PER_SIMULADO);
+  // Balanceia por tema e, dentro do tema, por dificuldade: percorre os
+  // grupos em round-robin embaralhado até fechar 10, em vez de puro
+  // aleatório (que poderia concentrar tudo num só tema).
+  const byTopic = new Map<string, typeof available>();
+  for (const q of available) {
+    if (!byTopic.has(q.topic)) byTopic.set(q.topic, []);
+    byTopic.get(q.topic)!.push(q);
+  }
+  const topicGroups = [...byTopic.values()].map((group) => [...group].sort(() => Math.random() - 0.5));
+  const shuffledTopics = topicGroups.sort(() => Math.random() - 0.5);
+  const chosen: string[] = [];
+  let round = 0;
+  while (chosen.length < QUESTIONS_PER_SIMULADO) {
+    let addedThisRound = false;
+    for (const group of shuffledTopics) {
+      if (chosen.length >= QUESTIONS_PER_SIMULADO) break;
+      if (round < group.length) {
+        chosen.push(group[round].id);
+        addedThisRound = true;
+      }
+    }
+    if (!addedThisRound) break; // segurança: já esgotou todos os grupos
+    round += 1;
+  }
 
   // 4) Criação atômica: se duas requisições concorrentes tentarem iniciar
   // ao mesmo tempo, o índice único parcial (user_id) where status='in_progress'

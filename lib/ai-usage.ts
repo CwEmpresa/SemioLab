@@ -40,9 +40,9 @@ export async function logAiUsage(
 export async function logAudioUsage(
   service: ReturnType<typeof createServiceClient>,
   params: {
-    userId: string;
+    userId: string | null;
     sessionId: string | null;
-    operation: "transcription" | "tts";
+    operation: "transcription" | "tts" | "question_generation";
     model: string;
     inputTokens?: number;
     outputTokens?: number;

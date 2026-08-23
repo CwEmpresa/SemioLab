@@ -12,21 +12,11 @@ import {
   ClipboardCheck,
   Clock3,
   FileText,
-  ImageIcon,
   Target,
   X,
   Zap,
 } from "lucide-react";
 
-type Question = {
-  id: string;
-  topic: string;
-  text: string;
-  options: string[];
-  correct: number;
-  why: string;
-  image?: string;
-};
 type SavedError = {
   id?: number;
   questionId: string;
@@ -55,213 +45,6 @@ type Mode =
   | "exam-result"
   | "errors";
 
-const bank: Question[] = [
-  {
-    id: "cv1",
-    topic: "Cardiovascular",
-    text: "Na estenose mitral, qual achado é mais característico à ausculta?",
-    options: [
-      "Sopro sistólico ejetivo",
-      "Ruflar diastólico em foco mitral",
-      "Sopro contínuo",
-      "Atrito pericárdico",
-    ],
-    correct: 1,
-    why: "O fluxo turbulento através da valva mitral estreitada produz ruflar diastólico no foco mitral.",
-  },
-  {
-    id: "cv2",
-    topic: "Cardiovascular",
-    text: "Turgência jugular observada a 45° sugere:",
-    options: [
-      "Hipovolemia",
-      "Pressão venosa central elevada",
-      "Anemia",
-      "Vasodilatação periférica",
-    ],
-    correct: 1,
-    why: "A altura da coluna venosa jugular estima a pressão do átrio direito.",
-  },
-  {
-    id: "cv3",
-    topic: "Cardiovascular",
-    text: "Qual achado predomina nesta tomografia?",
-    options: [
-      "Derrame pleural maciço",
-      "Calcificação pericárdica",
-      "Pneumotórax bilateral",
-      "Aneurisma de aorta roto",
-    ],
-    correct: 1,
-    why: "Há calcificação extensa acompanhando o contorno pericárdico, achado que pode ocorrer na pericardite constritiva.",
-    image: "/exame-tc-pericardio.png",
-  },
-  {
-    id: "rp1",
-    topic: "Respiratório",
-    text: "Macicez à percussão e murmúrio vesicular reduzido sugerem:",
-    options: ["Pneumotórax", "Asma", "Derrame pleural", "Bronquite"],
-    correct: 2,
-    why: "O líquido pleural reduz a transmissão sonora e produz macicez.",
-  },
-  {
-    id: "rp2",
-    topic: "Respiratório",
-    text: "Frêmito toracovocal aumentado ocorre mais frequentemente em:",
-    options: [
-      "Derrame pleural",
-      "Pneumotórax",
-      "Consolidação pulmonar",
-      "Enfisema",
-    ],
-    correct: 2,
-    why: "A consolidação transmite melhor as vibrações da voz até a parede torácica.",
-  },
-  {
-    id: "rp3",
-    topic: "Respiratório",
-    text: "Sibilos são sons:",
-    options: [
-      "Musicais por estreitamento de vias aéreas",
-      "Graves por líquido pleural",
-      "Produzidos apenas na inspiração",
-      "Exclusivos de pneumonia",
-    ],
-    correct: 0,
-    why: "Sibilos são sons musicais, em geral expiratórios, associados ao estreitamento das vias aéreas.",
-  },
-  {
-    id: "ne1",
-    topic: "Neurológico",
-    text: "Qual sinal sugere lesão do trato corticoespinhal?",
-    options: ["Romberg", "Babinski", "Lasègue", "Murphy"],
-    correct: 1,
-    why: "A resposta plantar extensora sugere disfunção do neurônio motor superior.",
-  },
-  {
-    id: "ne2",
-    topic: "Neurológico",
-    text: "A prova dedo-nariz avalia principalmente:",
-    options: [
-      "Força proximal",
-      "Coordenação cerebelar",
-      "Sensibilidade térmica",
-      "Reflexos profundos",
-    ],
-    correct: 1,
-    why: "A manobra pesquisa dismetria e coordenação apendicular.",
-  },
-  {
-    id: "ne3",
-    topic: "Neurológico",
-    text: "A Escala de Glasgow reúne quais respostas?",
-    options: [
-      "Ocular, verbal e motora",
-      "Memória, linguagem e cálculo",
-      "Força, tônus e reflexos",
-      "Marcha, equilíbrio e coordenação",
-    ],
-    correct: 0,
-    why: "A pontuação é composta por abertura ocular, resposta verbal e resposta motora.",
-  },
-  {
-    id: "ab1",
-    topic: "Abdome",
-    text: "O sinal de Murphy positivo sugere:",
-    options: ["Apendicite", "Colecistite aguda", "Pancreatite", "Ascite"],
-    correct: 1,
-    why: "A interrupção inspiratória por dor à palpação do hipocôndrio direito sugere inflamação da vesícula.",
-  },
-  {
-    id: "ab2",
-    topic: "Abdome",
-    text: "Por que a ausculta abdominal precede a palpação?",
-    options: [
-      "A palpação altera os ruídos hidroaéreos",
-      "Reduz a dor referida",
-      "Evita falso Murphy",
-      "Mede melhor o fígado",
-    ],
-    correct: 0,
-    why: "A manipulação pode modificar a motilidade e os ruídos hidroaéreos.",
-  },
-  {
-    id: "ab3",
-    topic: "Abdome",
-    text: "Macicez móvel à percussão pesquisa:",
-    options: ["Pneumoperitônio", "Ascite", "Hepatomegalia", "Fecaloma"],
-    correct: 1,
-    why: "O líquido livre se desloca com a mudança de decúbito, alterando a zona de macicez.",
-  },
-  {
-    id: "an1",
-    topic: "Anamnese",
-    text: "Qual abordagem favorece a narrativa inicial do paciente?",
-    options: [
-      "Perguntas abertas",
-      "Perguntas múltiplas",
-      "Interrupções precoces",
-      "Perguntas indutivas",
-    ],
-    correct: 0,
-    why: "Perguntas abertas permitem que o paciente organize sua história antes do detalhamento focal.",
-  },
-  {
-    id: "an2",
-    topic: "Anamnese",
-    text: "Irradiação da dor descreve:",
-    options: [
-      "Sua intensidade",
-      "O local para onde se propaga",
-      "A duração total",
-      "O fator de alívio",
-    ],
-    correct: 1,
-    why: "Irradiação é a propagação da dor para outra região.",
-  },
-  {
-    id: "an3",
-    topic: "Anamnese",
-    text: "Um dado subjetivo relatado pelo paciente é:",
-    options: ["Sinal", "Sintoma", "Síndrome", "Marcador laboratorial"],
-    correct: 1,
-    why: "Sintoma é uma experiência subjetiva; sinal é um achado observável ou mensurável.",
-  },
-  {
-    id: "ef1",
-    topic: "Exame físico",
-    text: "A sequência geral mais usada é:",
-    options: [
-      "Palpação, inspeção, ausculta, percussão",
-      "Inspeção, palpação, percussão, ausculta",
-      "Ausculta, inspeção, palpação, percussão",
-      "Percussão, inspeção, ausculta, palpação",
-    ],
-    correct: 1,
-    why: "A sequência geral é inspeção, palpação, percussão e ausculta, lembrando a exceção do abdome.",
-  },
-  {
-    id: "ef2",
-    topic: "Exame físico",
-    text: "Cianose central deve ser pesquisada principalmente em:",
-    options: [
-      "Leito ungueal isolado",
-      "Língua e mucosa oral",
-      "Planta dos pés",
-      "Pavilhão auricular",
-    ],
-    correct: 1,
-    why: "A língua e a mucosa oral ajudam a diferenciar cianose central de alterações periféricas.",
-  },
-  {
-    id: "ef3",
-    topic: "Exame físico",
-    text: "Edema com depressão persistente após pressão é descrito como:",
-    options: ["Flutuante", "Com cacifo", "Crepitante", "Pulsátil"],
-    correct: 1,
-    why: "O sinal de cacifo indica deslocamento do líquido intersticial pela pressão digital.",
-  },
-];
 
 const clinicalCases: ClinicalCase[] = [
   {
@@ -320,15 +103,8 @@ const clinicalCases: ClinicalCase[] = [
   },
 ];
 
-const topics = ["Todos", ...Array.from(new Set(bank.map((q) => q.topic)))];
-const shuffle = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5);
-/** Embaralha as alternativas de uma questão, recalculando o índice da
- * resposta correta para continuar apontando para o mesmo texto. */
-function shuffleQuestionOptions(q: Question): Question {
-  const correctText = q.options[q.correct];
-  const options = shuffle(q.options);
-  return { ...q, options, correct: options.indexOf(correctText) };
-}
+const QUIZ_TOPICS = ["Cardiovascular", "Respiratório", "Neurológico", "Abdome", "Anamnese", "Exame físico"];
+const topics = ["Todos", ...QUIZ_TOPICS];
 const QUIZ_AMOUNT_CHOICES = [5, 10, 20] as const;
 const normalized = (value: string) =>
   value
@@ -344,10 +120,12 @@ export default function QuizExperience({
   const [mode, setMode] = useState<Mode>("home");
   const [topic, setTopic] = useState("Todos");
   const [amount, setAmount] = useState(10);
-  const [active, setActive] = useState<Question[]>([]);
+  const [active, setActive] = useState<{ id: string; topic: string; difficulty: string; text: string; options: string[] }[]>([]);
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [answers, setAnswers] = useState<number[]>([]);
+  const [quizResults, setQuizResults] = useState<{ questionId: string; correct: boolean; correctText: string; explanation: string }[]>([]);
+  const [quizStartLoading, setQuizStartLoading] = useState(false);
   const [seconds, setSeconds] = useState(30);
   const { summary: learning } = useLearningSummary();
   const [savedErrors, setSavedErrors] = useState<SavedError[]>([]);
@@ -365,6 +143,7 @@ export default function QuizExperience({
   const [caseAnswers, setCaseAnswers] = useState<string[]>([]);
   const [caseText, setCaseText] = useState("");
   const [examSeconds, setExamSeconds] = useState(900);
+  const [topicCounts, setTopicCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetch("/api/learning")
@@ -376,14 +155,15 @@ export default function QuizExperience({
         }
       })
       .catch(() => {});
+    // Quantidade real de questões publicadas por tema — nunca inventada,
+    // vem do banco global (Quiz + Simulados compartilham o mesmo estoque).
+    fetch("/api/quiz/topics")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data) setTopicCounts(data.byTopic || {}); })
+      .catch(() => {});
   }, []);
-  const available =
-    topic === "Todos" ? bank : bank.filter((q) => q.topic === topic);
-  const maxAmount = Math.min(20, available.length);
-  const score = useMemo(
-    () => answers.filter((a, i) => a === active[i]?.correct).length,
-    [answers, active],
-  );
+  const maxAmount = Math.min(20, topic === "Todos" ? Object.values(topicCounts).reduce((a, b) => a + b, 0) : topicCounts[topic] ?? 0);
+  const score = quizResults.filter((r) => r.correct).length;
   const caseScore = useMemo(
     () =>
       caseAnswers.reduce((total, answer, index) => {
@@ -495,59 +275,60 @@ export default function QuizExperience({
     setSimuladoMode("result");
   }
 
-  function startQuiz() {
-    const pool =
-      topic === "Todos" ? bank : bank.filter((q) => q.topic === topic);
-    // Nunca reduz a quantidade silenciosamente: o botão de uma quantidade
-    // maior que o banco disponível já vem desabilitado na configuração.
-    const size = Math.min(amount, pool.length);
-    setActive(shuffle(pool).slice(0, size).map(shuffleQuestionOptions));
-    setCurrent(0);
-    setAnswers([]);
-    setSelected(null);
-    setMode("quiz");
+  async function startQuiz(overrideTopic?: string, overrideAmount?: number) {
+    const effectiveTopic = overrideTopic ?? topic;
+    const effectiveAmount = overrideAmount ?? amount;
+    setQuizStartLoading(true);
+    try {
+      const response = await fetch("/api/quiz/questions", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ topic: effectiveTopic, amount: effectiveAmount }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.questions?.length) return;
+      setActive(data.questions);
+      setCurrent(0);
+      setAnswers([]);
+      setSelected(null);
+      setQuizResults([]);
+      setMode("quiz");
+    } finally {
+      setQuizStartLoading(false);
+    }
   }
   async function saveQuiz(finalAnswers: number[]) {
-    const wrong = active.flatMap((q, i) =>
-      finalAnswers[i] === q.correct
-        ? []
-        : [
-            {
-              questionId: q.id,
-              topic: q.topic,
-              question: q.text,
-              selectedAnswer:
-                q.options[finalAnswers[i]] || "Sem resposta — tempo esgotado",
-              correctAnswer: q.options[q.correct],
-              explanation: q.why,
-            },
-          ],
-    );
     setAnswers(finalAnswers);
-    setSavedErrors((old) => [...wrong, ...old]);
     setMode("quiz-result");
-    const byTopic = active.reduce<Record<string, { topic: string; total: number; correct: number }>>((result, question, index) => {
-      const item = result[question.topic] || { topic: question.topic, total: 0, correct: 0 };
-      item.total += 1;
-      if (finalAnswers[index] === question.correct) item.correct += 1;
-      result[question.topic] = item;
-      return result;
-    }, {});
     try {
-      const response = await fetch("/api/learning", {
+      const response = await fetch("/api/quiz/submit", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          action: "quiz_result",
           topic,
-          total: active.length,
-          correct: finalAnswers.filter((a, i) => a === active[i].correct)
-            .length,
-          topicResults: Object.values(byTopic),
-          errors: wrong,
+          answers: active.map((q, i) => ({
+            questionId: q.id,
+            selectedText: finalAnswers[i] !== undefined ? q.options[finalAnswers[i]] || "" : "",
+          })),
         }),
       });
-      if (response.ok) {
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.results) {
+        setQuizResults(data.results);
+        const wrong = data.results
+          .filter((r: { correct: boolean }) => !r.correct)
+          .map((r: { questionId: string; correctText: string; explanation: string }, i: number) => {
+            const q = active.find((item) => item.id === r.questionId);
+            return {
+              questionId: r.questionId,
+              topic: q?.topic || topic,
+              question: q?.text || "",
+              selectedAnswer: q ? q.options[finalAnswers[active.indexOf(q)]] || "Sem resposta — tempo esgotado" : "",
+              correctAnswer: r.correctText,
+              explanation: r.explanation,
+            };
+          });
+        setSavedErrors((old) => [...wrong, ...old]);
         setAttempts((v) => v + 1);
         window.dispatchEvent(new Event("semiolab:learning-updated"));
       }
@@ -729,17 +510,6 @@ export default function QuizExperience({
         <main>
           <small>{question.topic.toUpperCase()} · QUIZ RÁPIDO</small>
           <h1>{question.text}</h1>
-          {question.image && (
-            <figure className="quiz-image">
-              <img
-                src={question.image}
-                alt="Tomografia computadorizada usada na questão"
-              />
-              <figcaption>
-                <ImageIcon /> Imagem clínica da questão
-              </figcaption>
-            </figure>
-          )}
           <div>
             {question.options.map((option, i) => (
               <button
@@ -796,21 +566,25 @@ export default function QuizExperience({
             seu caderno.
           </p>
           <div className="answer-list">
-            {active.map((q, i) => (
-              <article
-                key={q.id}
-                className={answers[i] === q.correct ? "correct" : "wrong"}
-              >
-                <b>{i + 1}</b>
-                <span>
-                  <small>
-                    {answers[i] === q.correct ? "RESPOSTA CORRETA" : "REVISAR"}
-                  </small>
-                  <p>{q.text}</p>
-                  <em>{q.why}</em>
-                </span>
-              </article>
-            ))}
+            {active.map((q, i) => {
+              const result = quizResults.find((r) => r.questionId === q.id);
+              const isCorrect = result?.correct ?? false;
+              return (
+                <article
+                  key={q.id}
+                  className={isCorrect ? "correct" : "wrong"}
+                >
+                  <b>{i + 1}</b>
+                  <span>
+                    <small>
+                      {isCorrect ? "RESPOSTA CORRETA" : "REVISAR"}
+                    </small>
+                    <p>{q.text}</p>
+                    <em>{result?.explanation ?? ""}</em>
+                  </span>
+                </article>
+              );
+            })}
           </div>
           <div className="result-actions">
             <button onClick={() => setMode("errors")}>
@@ -1041,8 +815,8 @@ export default function QuizExperience({
               </small>
             </span>
           </div>
-          <button className="primary" onClick={startQuiz} disabled={maxAmount === 0}>
-            Começar quiz <ChevronRight />
+          <button className="primary" onClick={() => startQuiz()} disabled={maxAmount === 0 || quizStartLoading}>
+            {quizStartLoading ? "Carregando..." : "Começar quiz"} <ChevronRight />
           </button>
         </div>
       </div>
@@ -1201,17 +975,13 @@ export default function QuizExperience({
         onClick={() => {
           setTopic("Todos");
           setAmount(10);
-          setActive(shuffle(bank).slice(0, Math.min(10, bank.length)).map(shuffleQuestionOptions));
-          setCurrent(0);
-          setAnswers([]);
-          setSelected(null);
-          setMode("quiz");
+          startQuiz("Todos", 10);
         }}
       >
         <i><Target /></i>
         <span>
           <b>Começar treino misto</b>
-          <small>5 questões variadas de Semiologia</small>
+          <small>Questões variadas de Semiologia</small>
         </span>
         <em>Iniciar agora</em>
         <ChevronRight />

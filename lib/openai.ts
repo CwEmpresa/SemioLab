@@ -12,6 +12,10 @@ export const OPENAI_TTS_MODEL = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts
 // um humano antes de considerar definitiva (não há como testar áudio real
 // neste ambiente).
 export const OPENAI_TTS_VOICE = process.env.OPENAI_TTS_VOICE || "coral";
+export const OPENAI_QUESTION_MODEL = process.env.OPENAI_QUESTION_MODEL || OPENAI_MODEL;
+/** Chave de segurança: interrompe a geração de questões imediatamente,
+ * sem precisar de novo deploy — padrão desligado por segurança. */
+export const QUESTION_GENERATION_ENABLED = process.env.QUESTION_GENERATION_ENABLED === "true";
 
 let client: OpenAI | null = null;
 
