@@ -782,28 +782,6 @@ type AppTheme = "light"|"dark";
 const defaultRole = "Estudante de Medicina · Ciclo clínico";
 const defaultPreferences = { dailyGoal:"20", reminders:true, reminderTime:"19:00", sound:true };
 
-async function prepareProfileImage(file: File) {
-  if (!file.type.startsWith("image/")) throw new Error("Escolha uma imagem válida.");
-  const original = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("Não foi possível ler a imagem."));
-    reader.readAsDataURL(file);
-  });
-  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("Não foi possível processar a imagem."));
-    img.src = original;
-  });
-  const scale = Math.min(1, 1280 / Math.max(image.width, image.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(image.width * scale));
-  canvas.height = Math.max(1, Math.round(image.height * scale));
-  canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL("image/jpeg", .82);
-}
-
 function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:()=>void; theme:AppTheme; setTheme:(theme:AppTheme)=>void }) {
   const user = useUser();
   const defaultProfile = { name:user.name, role:defaultRole, email:user.email };
@@ -835,13 +813,19 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
     try {
       const savedRole = localStorage.getItem(`semiolab:${user.id}:role`);
       const savedPreferences = localStorage.getItem(`semiolab:${user.id}:preferences`);
-      const savedAvatar = localStorage.getItem(`semiolab:${user.id}:avatar`);
-      const savedCover = localStorage.getItem(`semiolab:${user.id}:cover`);
       if (savedRole) { setProfile((p) => ({ ...p, role: savedRole })); setDraft((p) => ({ ...p, role: savedRole })); }
       if (savedPreferences) { const value = JSON.parse(savedPreferences); setPreferences(value); setPreferenceDraft(value); }
-      if (savedAvatar) setAvatar(savedAvatar);
-      if (savedCover) setCover(savedCover);
     } catch { /* dados locais inválidos voltam aos padrões seguros */ }
+    // Avatar/capa agora vêm do Supabase (bucket privado, URL assinada),
+    // não mais do localStorage — mesma rota usada pelo perfil público do
+    // Ranking, aqui pedida para o próprio usuário.
+    fetch(`/api/ranking/profile?userId=${user.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.avatarUrl) setAvatar(data.avatarUrl);
+        if (data?.coverUrl) setCover(data.coverUrl);
+      })
+      .catch(() => {});
   }, [user.id]);
 
   const inform = (message: string) => {
@@ -851,11 +835,16 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
   const uploadImage = async (file: File | undefined, kind: "avatar"|"cover") => {
     if (!file) return;
     try {
-      const image = await prepareProfileImage(file);
-      if (kind === "avatar") { setAvatar(image); localStorage.setItem(`semiolab:${user.id}:avatar`, image); }
-      else { setCover(image); localStorage.setItem(`semiolab:${user.id}:cover`, image); }
+      const form = new FormData();
+      form.append("file", file);
+      form.append("kind", kind);
+      const response = await fetch("/api/profile/avatar", { method: "POST", body: form });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) { inform(data.error || "Não foi possível usar essa imagem."); return; }
+      if (kind === "avatar") setAvatar(data.url);
+      else setCover(data.url);
       inform(kind === "avatar" ? "Foto de perfil atualizada." : "Capa atualizada.");
-    } catch (error) { inform(error instanceof Error ? error.message : "Não foi possível usar essa imagem."); }
+    } catch { inform("Não foi possível usar essa imagem."); }
   };
   const saveAccount = () => {
     if (!draft.name.trim()) {

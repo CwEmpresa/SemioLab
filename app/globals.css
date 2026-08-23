@@ -10080,3 +10080,31 @@ button.avatar:hover {
     display: none;
   }
 }
+
+/* ── Ranking novo (Etapa 4) ─────────────────────────────────────── */
+.ranking-tabs { display: flex; gap: 8px; padding: 4px 20px 12px; }
+.ranking-tabs button { padding: 8px 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 12px; font-weight: 700; }
+.ranking-tabs button.active { background: var(--mint); color: #04211c; }
+.ranking-tabs button.locked { opacity: .55; cursor: not-allowed; display: flex; align-items: center; gap: 6px; }
+.podium-v2 { display: grid; grid-template-columns: 1fr 1.15fr 1fr; align-items: end; gap: 10px; padding: 12px 20px 20px; }
+.podium-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 8px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); }
+.podium-slot i { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: #0c1e24; }
+.podium-slot.slot-gold { padding-top: 26px; transform: translateY(-14px); border-color: #e8c766; }
+.podium-slot.slot-gold i { width: 58px; height: 58px; background: linear-gradient(145deg,#f6d976,#c9971f); color: #3a2a02; }
+.podium-slot.slot-silver i { background: linear-gradient(145deg,#e7ecef,#a9b4bb); color: #262b2e; }
+.podium-slot.slot-bronze i { background: linear-gradient(145deg,#e0a06a,#9c5f2e); color: #2c1704; }
+.podium-slot strong { font-size: 13px; color: var(--mint); }
+.rank-list-v2 { display: flex; flex-direction: column; gap: 6px; padding: 0 20px; }
+.rank-row { display: grid; grid-template-columns: 28px 34px 1fr auto auto; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); text-align: left; }
+.rank-row.me { border-color: var(--mint); background: rgba(53,201,177,.1); }
+.rank-row.outside-top10 { margin: 14px 20px 0; grid-template-columns: 28px 34px 1fr auto auto; flex-wrap: wrap; }
+.rank-row i { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #0c1e24; font-size: 11px; font-weight: 800; }
+.rank-distance { grid-column: 1 / -1; color: var(--muted); font-size: 11px; margin-top: 4px; }
+.rank-change.up { color: #35c9b1; } .rank-change.down { color: #e0453f; } .rank-change.none, .rank-change.flat { color: var(--muted); }
+.public-profile-modal { max-width: 340px; text-align: center; overflow: hidden; padding: 0 0 20px; }
+.public-profile-cover { height: 110px; background: linear-gradient(135deg,#123b42,#0a1c21); background-size: cover; background-position: center; }
+.public-profile-avatar { width: 74px; height: 74px; border-radius: 50%; margin: -37px auto 8px; border: 4px solid var(--bg); background: #0c1e24; display: grid; place-items: center; font-weight: 800; overflow: hidden; }
+.public-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.public-profile-xp { display: block; font-size: 22px; color: var(--mint); margin: 4px 0 10px; }
+.public-profile-stats { display: flex; justify-content: space-around; padding: 0 16px; }
+.public-profile-stats span { display: flex; flex-direction: column; }
