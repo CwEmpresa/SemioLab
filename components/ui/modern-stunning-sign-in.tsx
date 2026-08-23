@@ -214,7 +214,7 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
               <button
                 type="button"
                 onClick={() => switchMode("forgot")}
-                className="-mt-1.5 self-end text-xs font-semibold text-[#8da1a6] underline decoration-white/20 underline-offset-4 hover:text-white"
+                className="-mt-1.5 self-end text-xs font-semibold text-[#7fe0cd] underline decoration-[#7fe0cd]/40 underline-offset-4 hover:text-[#a6f0e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#46d6c1] rounded-sm"
               >
                 Esqueci minha senha
               </button>
@@ -273,17 +273,9 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
               <ShieldCheck className="h-3.5 w-3.5" />
               Ambiente educacional seguro
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-[10px] text-[#73898e]">
-              <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="underline decoration-white/20 underline-offset-2 hover:text-white">
-                Termos de Uso
-              </a>
-              <span aria-hidden="true">·</span>
-              <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="underline decoration-white/20 underline-offset-2 hover:text-white">
-                Privacidade
-              </a>
-              <span aria-hidden="true">·</span>
-              <a href="/aviso-medico" target="_blank" rel="noopener noreferrer" className="underline decoration-white/20 underline-offset-2 hover:text-white">
-                Aviso educacional
+            <div className="flex items-center justify-center text-center text-[10px] text-[#73898e]">
+              <a href="/legal" target="_blank" rel="noopener noreferrer" className="underline decoration-white/20 underline-offset-2 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#46d6c1] rounded-sm">
+                Termos, privacidade e informações legais
               </a>
             </div>
           </form>
@@ -300,14 +292,6 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
             <Sparkles className="h-3.5 w-3.5 text-[#65e5d0]" /> Evolução diária
           </span>
         </div>
-
-        <footer className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[10px] text-[#5c7176]">
-          <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer" className="hover:text-white">Termos de Uso</a>
-          <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="hover:text-white">Privacidade e LGPD</a>
-          <a href="/reembolso" target="_blank" rel="noopener noreferrer" className="hover:text-white">Cancelamento e reembolso</a>
-          <a href="/aviso-medico" target="_blank" rel="noopener noreferrer" className="hover:text-white">Aviso educacional</a>
-          <a href="/contato" target="_blank" rel="noopener noreferrer" className="hover:text-white">Contato e suporte</a>
-        </footer>
       </div>
     </main>
   );

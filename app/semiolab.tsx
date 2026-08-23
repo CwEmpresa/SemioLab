@@ -13,6 +13,7 @@ import QuizExperience from "./quiz-experience";
 import RankingExperience, { HomeRankCard } from "./ranking-experience";
 import PwaOnboarding, { NotificationSettingsPanel } from "./pwa-onboarding";
 import { HeartDashboardHero } from "@/components/ui/heart-dashboard-hero";
+import { createPortal } from "react-dom";
 import { useUser } from "./user-context";
 import { createClient } from "@/lib/supabase/client";
 import { levelFromXp, safeDisplayName } from "@/lib/level";
@@ -789,6 +790,11 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
   const [premium, setPremium] = useState(false);
   const [proPlan, setProPlan] = useState<"monthly"|"annual">("annual");
   const [panel, setPanel] = useState<ProfilePanel>(null);
+  useEffect(() => {
+    if (!panel) return;
+    document.body.classList.add("pwa-modal-open");
+    return () => document.body.classList.remove("pwa-modal-open");
+  }, [panel]);
   const [profile, setProfile] = useState(defaultProfile);
   const [draft, setDraft] = useState(defaultProfile);
   const [preferences, setPreferences] = useState(defaultPreferences);
@@ -954,8 +960,8 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
         </div>
       </section>
       {notice && <div className="profile-toast" role="status"><Check />{notice}</div>}
-      {panel && (
-        <div className="overlay profile-overlay" onMouseDown={() => setPanel(null)}>
+      {panel && typeof document !== "undefined" && createPortal(
+        <div className="overlay profile-overlay pwa-modal-overlay" onMouseDown={() => setPanel(null)}>
           <section className="profile-dialog" onMouseDown={(event) => event.stopPropagation()}>
             <button className="close" aria-label="Fechar" onClick={() => setPanel(null)}><X /></button>
             {panel === "account" && <>
@@ -981,7 +987,8 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
               <a className="profile-dialog-primary" href="https://mail.google.com/mail/?view=cm&fs=1&to=suporte.semiolab@gmail.com&su=Suporte%20SemioLab" target="_blank" rel="noopener noreferrer"><Mail /> Falar com o suporte</a>
             </>}
           </section>
-        </div>
+        </div>,
+        document.body,
       )}
       {premium && (
         <div className="overlay pro-offer-overlay" onMouseDown={() => setPremium(false)}>

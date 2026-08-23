@@ -1,6 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+
+/** Trava o scroll da página e some com a bottom-nav enquanto qualquer
+ * modal PWA estiver aberto — restaura tudo ao fechar/desmontar. */
+function useModalBodyLock(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    document.body.classList.add("pwa-modal-open");
+    return () => document.body.classList.remove("pwa-modal-open");
+  }, [active]);
+}
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -100,10 +111,12 @@ export default function PwaOnboarding({ userId }: { userId: string }) {
     setStep("hidden");
   };
 
+  useModalBodyLock(step !== "hidden");
   if (step === "hidden") return null;
+  if (typeof document === "undefined") return null;
 
-  return (
-    <div className="overlay" onMouseDown={finish}>
+  return createPortal(
+    <div className="overlay pwa-modal-overlay" onMouseDown={finish}>
       <section className="clinical-modal pwa-onboarding-modal" onMouseDown={(e) => e.stopPropagation()}>
         {step === "notifications" ? (
           <>
@@ -129,6 +142,7 @@ export default function PwaOnboarding({ userId }: { userId: string }) {
           </>
         )}
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

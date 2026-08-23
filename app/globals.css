@@ -10113,6 +10113,38 @@ button.avatar:hover {
 .pwa-onboarding-modal { max-width: 360px; text-align: center; }
 .pwa-onboarding-modal h2 { margin-bottom: 8px; }
 .pwa-onboarding-modal p { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
-.pwa-onboarding-modal button { display: block; width: 100%; margin-bottom: 8px; }
+.pwa-onboarding-modal button {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  background: transparent;
+  color: #cfe8e2;
+  border: 1px solid #347169;
+  border-radius: 999px;
+  padding: 11px 16px;
+  font-weight: 700;
+}
+.pwa-onboarding-modal button:hover { background: #12332f; color: #f7fffd; }
+.pwa-onboarding-modal button:focus-visible { outline: 2px solid #46d6c1; outline-offset: 2px; }
+.pwa-onboarding-modal button.primary {
+  background: linear-gradient(145deg, #2dc4ae, #078071);
+  color: #04211c;
+  border-color: transparent;
+}
+.pwa-onboarding-modal button.primary:hover { background: linear-gradient(145deg, #2dc4ae, #078071); color: #04211c; filter: brightness(1.08); }
 .pwa-settings-panel h3 { font-size: 13px; margin: 0 0 6px; }
 .pwa-settings-panel p { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+
+/* ── Correção: modais PWA acima de tudo, nunca atrás da bottom-nav ── */
+body.pwa-modal-open { overflow: hidden; }
+body.pwa-modal-open .bottom-nav { display: none !important; }
+.pwa-modal-overlay {
+  z-index: 300;
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+}
+.pwa-modal-overlay .clinical-modal,
+.pwa-modal-overlay .profile-dialog {
+  max-height: calc(100dvh - max(40px, env(safe-area-inset-top) + env(safe-area-inset-bottom) + 20px));
+  overflow-y: auto;
+}
