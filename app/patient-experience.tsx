@@ -28,7 +28,7 @@ import {
 
 import { useUser } from "./user-context";
 import { useLearningSummary } from "./use-learning-summary";
-import { openProUpgradeModal } from "./pro-upgrade-modal";
+import { openProUpgradeModal, openDailyLimitInfo } from "./pro-upgrade-modal";
 
 type Phase = "wait" | "chat" | "finish" | "result";
 type LabRow = {
@@ -334,7 +334,8 @@ export default function PatientExperience({
       const data = await response.json().catch(() => ({}));
       if (response.status === 403 && data.limitReached) {
         setBlocked({ checkoutUrls: data.checkoutUrls, message: data.error });
-        openProUpgradeModal(learning?.pro?.tier === "free" ? "patient" : "limit");
+        if (learning?.pro?.tier === "pro") openDailyLimitInfo();
+        else openProUpgradeModal(learning?.pro?.tier === "free" ? "patient" : "limit");
         return;
       }
       if (!response.ok) {

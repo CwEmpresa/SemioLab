@@ -10134,10 +10134,15 @@ button.avatar:hover {
 .pwa-onboarding-modal button.primary:hover { background: linear-gradient(145deg, #2dc4ae, #078071); color: #04211c; filter: brightness(1.08); }
 .pwa-settings-panel h3 { font-size: 13px; margin: 0 0 6px; }
 .pwa-settings-panel p { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+.pwa-install-steps { list-style: none; padding: 0; margin: 0 0 10px; display: flex; flex-direction: column; gap: 8px; }
+.pwa-install-steps li { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--muted); text-align: left; }
+.pwa-install-steps b { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%; background: #12332f; color: #cfe8e2; display: grid; place-items: center; font-size: 11px; }
+.daily-limit-info-modal { max-width: 340px; text-align: center; }
+.daily-limit-info-modal p { color: var(--muted); margin: 8px 0 18px; }
+.daily-limit-info-modal button.primary { width: 100%; }
 
 /* ── Correção: modais PWA acima de tudo, nunca atrás da bottom-nav ── */
 body.pwa-modal-open { overflow: hidden; }
-body.pwa-modal-open .bottom-nav { display: none !important; }
 .pwa-modal-overlay {
   z-index: 300;
   padding-top: max(20px, env(safe-area-inset-top));
@@ -10147,4 +10152,15 @@ body.pwa-modal-open .bottom-nav { display: none !important; }
 .pwa-modal-overlay .profile-dialog {
   max-height: calc(100dvh - max(40px, env(safe-area-inset-top) + env(safe-area-inset-bottom) + 20px));
   overflow-y: auto;
+}
+@media (max-width: 760px) {
+  /* A bottom-nav volta a ficar visível e na posição original — o modal
+   * só reserva espaço extra embaixo para nunca sobrepor a barra. */
+  .pwa-modal-overlay {
+    padding-bottom: calc(58px + max(14px, env(safe-area-inset-bottom)) + 20px);
+  }
+  .pwa-modal-overlay .clinical-modal,
+  .pwa-modal-overlay .profile-dialog {
+    max-height: calc(100dvh - max(40px, env(safe-area-inset-top)) - (58px + max(14px, env(safe-area-inset-bottom)) + 20px));
+  }
 }

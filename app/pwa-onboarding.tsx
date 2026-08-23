@@ -23,9 +23,26 @@ function urlBase64ToUint8Array(base64String: string) {
 function isIos() {
   return typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
+function isAndroid() {
+  return typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
+}
 function isStandalone() {
   if (typeof window === "undefined") return false;
   return window.matchMedia?.("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
+}
+
+/** Passo a passo numerado — mostra só o do dispositivo detectado. */
+function InstallSteps() {
+  const steps = isIos()
+    ? ["Toque em Compartilhar (ícone com uma seta) na barra do Safari.", "Toque em \"Adicionar à Tela de Início\".", "Toque em \"Adicionar\".", "Abra o SemioLab pelo ícone criado na tela inicial.", "Dentro do app instalado, ative as notificações — no iPhone elas só funcionam assim."]
+    : isAndroid()
+    ? ["Toque nos três pontinhos do menu do navegador.", "Toque em \"Instalar app\" (ou \"Adicionar à tela inicial\").", "Toque em \"Instalar\".", "Abra o SemioLab pelo ícone criado."]
+    : ["Clique no ícone de instalação na barra de endereço do navegador.", "Clique em \"Instalar\"."];
+  return (
+    <ol className="pwa-install-steps">
+      {steps.map((step, i) => <li key={i}><b>{i + 1}</b><span>{step}</span></li>)}
+    </ol>
+  );
 }
 
 /** Ativa notificações: pede permissão (só quando chamado por clique real,
@@ -84,11 +101,7 @@ export function NotificationSettingsPanel() {
         </>
       )}
       <h3 style={{ marginTop: 18 }}>Como instalar o app</h3>
-      {isIos() ? (
-        <p>No iPhone/iPad: toque em <b>Compartilhar</b> e depois em <b>Adicionar à Tela de Início</b>. No iOS, as notificações só funcionam depois de instalar o app dessa forma.</p>
-      ) : (
-        <p>No Android/Chrome: toque no menu do navegador e escolha <b>Instalar app</b> (ou <b>Adicionar à tela inicial</b>). No computador, use o ícone de instalação na barra de endereço.</p>
-      )}
+      <InstallSteps />
     </div>
   );
 }
@@ -128,13 +141,7 @@ export default function PwaOnboarding({ userId }: { userId: string }) {
         ) : (
           <>
             <h2>Instale o SemioLab</h2>
-            {isIos() ? (
-              <p>Toque em <b>Compartilhar</b> na barra do Safari e depois em <b>Adicionar à Tela de Início</b>.</p>
-            ) : deferredPrompt ? (
-              <p>Instale o app para acesso rápido, mesmo offline para o conteúdo já visitado.</p>
-            ) : (
-              <p>Use o menu do navegador e escolha <b>Instalar app</b> (ou <b>Adicionar à tela inicial</b>).</p>
-            )}
+            <InstallSteps />
             {!isIos() && deferredPrompt && (
               <button className="primary" onClick={async () => { (deferredPrompt as unknown as { prompt: () => void }).prompt(); finish(); }}>Instalar agora</button>
             )}

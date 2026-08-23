@@ -33,6 +33,40 @@ function brasiliaDateKey(): string {
 
 const POPUP_VERSION = "v1";
 
+const LIMIT_INFO_EVENT = "semiolab:open-daily-limit-info";
+
+/** Modal separado só pra Pro batendo no limite diário — nunca é o
+ * ProUpgradeModal, nunca mostra checkout, é só um aviso informativo. */
+export function openDailyLimitInfo() {
+  window.dispatchEvent(new CustomEvent(LIMIT_INFO_EVENT));
+}
+
+export function DailyLimitInfoModal() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const handler = () => setOpen(true);
+    window.addEventListener(LIMIT_INFO_EVENT, handler);
+    return () => window.removeEventListener(LIMIT_INFO_EVENT, handler);
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    document.body.classList.add("pwa-modal-open");
+    return () => document.body.classList.remove("pwa-modal-open");
+  }, [open]);
+  if (!open || typeof document === "undefined") return null;
+  const close = () => setOpen(false);
+  return createPortal(
+    <div className="overlay pwa-modal-overlay" onMouseDown={close}>
+      <section className="clinical-modal daily-limit-info-modal" onMouseDown={(e) => e.stopPropagation()}>
+        <h2>Limite diário atingido</h2>
+        <p>Novos atendimentos estarão disponíveis amanhã.</p>
+        <button className="primary" onClick={close}>Entendi</button>
+      </section>
+    </div>,
+    document.body,
+  );
+}
+
 export default function ProUpgradeModal({ userId }: { userId: string }) {
   const { summary: learning } = useLearningSummary();
   const [reason, setReason] = useState<ProUpgradeReason | null>(null);

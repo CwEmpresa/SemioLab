@@ -12,7 +12,7 @@ import PatientExperience from "./patient-experience";
 import QuizExperience from "./quiz-experience";
 import RankingExperience, { HomeRankCard } from "./ranking-experience";
 import PwaOnboarding, { NotificationSettingsPanel } from "./pwa-onboarding";
-import ProUpgradeModal, { openProUpgradeModal } from "./pro-upgrade-modal";
+import ProUpgradeModal, { openProUpgradeModal, DailyLimitInfoModal } from "./pro-upgrade-modal";
 import { HeartDashboardHero } from "@/components/ui/heart-dashboard-hero";
 import { createPortal } from "react-dom";
 import { useUser } from "./user-context";
@@ -1161,6 +1161,7 @@ export default function SemioLab() {
       {checkin && <Checkin close={() => setCheckin(false)} />}
       <PwaOnboarding userId={user.id} />
       <ProUpgradeModal userId={user.id} />
+      <DailyLimitInfoModal />
     </main>
   );
 }
