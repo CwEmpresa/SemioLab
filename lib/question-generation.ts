@@ -1,9 +1,21 @@
 import { z } from "zod";
-import { getOpenAIClient, OPENAI_QUESTION_MODEL, extractUsage, safeErrorMeta } from "@/lib/openai";
-import { logAudioUsage } from "@/lib/ai-usage";
+import { getOpenAIClient, OPENAI_QUESTION_MODEL, extractUsage, estimateCostUsd, safeErrorMeta } from "@/lib/openai";
+import { logAudioUsage, startOfBrasiliaDayUtc } from "@/lib/ai-usage";
 import { createServiceClient } from "@/lib/supabase/service";
 import { normalizeQuestionText } from "@/lib/question-bank";
 import { createHash } from "node:crypto";
+
+/** Soma real (não estimativa por lote) do custo de geração de questões já
+ * gasto hoje (horário de Brasília) — consultada de novo a cada lote, para
+ * o job poder parar assim que o limite diário configurável for atingido. */
+export async function getTodayGenerationCostUsd(service: ReturnType<typeof createServiceClient>): Promise<number> {
+  const { data } = await service
+    .from("ai_usage_logs")
+    .select("estimated_cost_usd")
+    .eq("operation", "question_generation")
+    .gte("created_at", startOfBrasiliaDayUtc());
+  return (data ?? []).reduce((sum, row) => sum + (row.estimated_cost_usd ?? 0), 0);
+}
 
 const CandidateSchema = z.object({
   topic: z.string().min(2),
@@ -67,7 +79,7 @@ async function checkCoherence(service: ReturnType<typeof createServiceClient>, q
       model: OPENAI_QUESTION_MODEL,
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
-      estimatedCostUsd: 0,
+      estimatedCostUsd: estimateCostUsd(usage),
     });
     const parsed = CoherenceCheckSchema.safeParse(JSON.parse(result.output_text || "{}"));
     if (!parsed.success) return { ok: false, reason: "resposta de verificação inválida" };
@@ -110,7 +122,7 @@ async function generateBatch(
     model: OPENAI_QUESTION_MODEL,
     inputTokens: usage.inputTokens,
     outputTokens: usage.outputTokens,
-    estimatedCostUsd: 0,
+    estimatedCostUsd: estimateCostUsd(usage),
   });
 
   const parsed = CandidateBatchSchema.safeParse(JSON.parse(result.output_text || "{}"));
