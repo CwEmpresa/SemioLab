@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState, useRef, useEffect } from "react";
 import {
-  Activity, ArrowLeft, Award, BarChart3, Bell, BookOpen, Brain, Check,
+  Activity, Award, BarChart3, Bell, BookOpen, Brain, Check,
   BadgeCheck, Camera, ChevronRight, CircleAlert, ClipboardCheck, Clock3, CreditCard, FileText, Flame, HeartPulse,
   AudioLines, HelpCircle, Mail, MessageCircle, Palette,
   Home, LibraryBig, LockKeyhole, LogOut, Menu, MessageSquareText,
@@ -12,6 +12,7 @@ import PatientExperience from "./patient-experience";
 import QuizExperience from "./quiz-experience";
 import RankingExperience, { HomeRankCard } from "./ranking-experience";
 import PwaOnboarding, { NotificationSettingsPanel } from "./pwa-onboarding";
+import ProUpgradeModal, { openProUpgradeModal } from "./pro-upgrade-modal";
 import { HeartDashboardHero } from "@/components/ui/heart-dashboard-hero";
 import { createPortal } from "react-dom";
 import { useUser } from "./user-context";
@@ -576,6 +577,9 @@ function AuscultationLab({ theme }: { theme:AppTheme }) {
   const { summary: learning } = useLearningSummary();
   const tier = learning?.pro?.tier;
   const allowed = tier === undefined || tier === "trial" || tier === "pro" || learning?.pro?.active;
+  useEffect(() => {
+    if (learning && !allowed) openProUpgradeModal("auscultation");
+  }, [learning, allowed]);
   if (learning && !allowed) {
     return (
       <div className="page auscultation-lab-page patient-wait" ref={pageRef}>
@@ -787,8 +791,6 @@ const defaultPreferences = { dailyGoal:"20", reminders:true, reminderTime:"19:00
 function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:()=>void; theme:AppTheme; setTheme:(theme:AppTheme)=>void }) {
   const user = useUser();
   const defaultProfile = { name:user.name, role:defaultRole, email:user.email };
-  const [premium, setPremium] = useState(false);
-  const [proPlan, setProPlan] = useState<"monthly"|"annual">("annual");
   const [panel, setPanel] = useState<ProfilePanel>(null);
   useEffect(() => {
     if (!panel) return;
@@ -806,15 +808,8 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
   const avatarInput = useRef<HTMLInputElement>(null);
   const coverInput = useRef<HTMLInputElement>(null);
   const pageRef = useScreenTransition("profile");
-  const modalRef = useRef<HTMLElement>(null);
   const profileScores = (learning?.mastery || []).flatMap((item) => item.score === null ? [] : [item.score]);
   const profileMastery = profileScores.length ? Math.round(profileScores.reduce((sum, value) => sum + value, 0) / profileScores.length) : null;
-  useModalEntrance(premium ? modalRef : { current: null }, {
-    fromY: 180,
-    fromScale: .985,
-    duration: .62,
-    ease: "power3.out",
-  });
 
   useEffect(() => {
     try {
@@ -921,14 +916,14 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
             <h2>Evolua sem limites.</h2>
             <p>Pacientes virtuais, atlas clínico e simulados ilimitados.</p>
           </span>
-          <button onClick={() => setPremium(true)}>Conhecer Pro <ChevronRight /></button>
+          <button onClick={() => openProUpgradeModal("daily")}>Conhecer Pro <ChevronRight /></button>
         </section>
       )}
       <section className="profile-settings-block">
         <h3>Conta</h3>
         <div className="profile-settings-list">
           <button onClick={() => openPanel("account")}><Settings /><span><b>Dados da conta</b><small>Nome e formação</small></span><ChevronRight /></button>
-          <button onClick={() => setPremium(true)}>
+          <button onClick={() => openProUpgradeModal("daily")}>
             <CreditCard />
             <span>
               <b>Plano e assinatura</b>
@@ -989,61 +984,6 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
           </section>
         </div>,
         document.body,
-      )}
-      {premium && (
-        <div className="overlay pro-offer-overlay" onMouseDown={() => setPremium(false)}>
-          <section className="premium-modal pro-offer" ref={modalRef as any} onMouseDown={(e) => e.stopPropagation()}>
-            <header className="pro-offer-topbar">
-              <button aria-label="Voltar" onClick={() => setPremium(false)}><ArrowLeft /></button>
-              <button aria-label="Fechar oferta" onClick={() => setPremium(false)}><X /></button>
-            </header>
-            <div className="pro-offer-hero">
-              <span className="pro-medical-cross" aria-hidden="true" />
-              <span className="pro-organ-line" aria-hidden="true"><HeartPulse /></span>
-              <img src="/semiolab-pro-fox.webp" alt="Raposa médica do SemioLab" width="560" height="560" decoding="sync" />
-            </div>
-            <div className="pro-offer-sheet">
-              <div className="pro-offer-title">
-                <h2>Desbloqueie o SemioLab Pro</h2>
-                <p>Aprenda, pratique e evolua todos os dias.</p>
-              </div>
-              <div className="pro-benefits">
-                <span><i><Check /></i>Pacientes virtuais ilimitados</span>
-                <span><i><Check /></i>Casos clínicos exclusivos</span>
-                <span><i><Check /></i>Quiz e desafios completos</span>
-                <span><i><Check /></i>Evolução de estudos</span>
-                <span><i><Check /></i>Laboratório de ausculta</span>
-                <span><i><Check /></i>Atlas de tomografia completo</span>
-                <strong><Sparkles /> Acesso a todas as futuras funcionalidades</strong>
-              </div>
-              <div className="pro-plans" role="radiogroup" aria-label="Escolha o plano">
-                <button className={proPlan === "monthly" ? "selected" : ""} onClick={() => setProPlan("monthly")} role="radio" aria-checked={proPlan === "monthly"}>
-                  <span className="pro-plan-head">
-                    <i>{proPlan === "monthly" && <Check />}</i>
-                    <small>MENSAL</small>
-                  </span>
-                  <span className="pro-plan-copy">Flexibilidade para começar</span>
-                  <b className="pro-plan-price"><em>R$</em> 29,90 <span>/mês</span></b>
-                  <span className="pro-plan-billing">Cobrança mensal</span>
-                </button>
-                <button className={`recommended ${proPlan === "annual" ? "selected" : ""}`} onClick={() => setProPlan("annual")} role="radio" aria-checked={proPlan === "annual"}>
-                  <strong className="pro-best-badge"><Sparkles /> MELHOR ESCOLHA</strong>
-                  <span className="pro-plan-head">
-                    <i>{proPlan === "annual" && <Check />}</i>
-                    <small>ANUAL</small>
-                  </span>
-                  <span className="pro-plan-copy">Acesso completo por 12 meses</span>
-                  <b className="pro-plan-price"><em>R$</em> 199,90 <span>/ano</span></b>
-                  <span className="pro-plan-equivalent">equivale a <b>R$ 16,66/mês</b></span>
-                  <span className="pro-plan-saving">Economize R$ 159,90</span>
-                </button>
-              </div>
-              <a className="pro-unlock" href={proPlan === "annual" ? "https://pay.cakto.com.br/pdgqt5d" : "https://pay.cakto.com.br/hf4wgnz_1041214"} target="_blank" rel="noopener noreferrer">QUERO DESBLOQUEAR O PRO</a>
-              <p className="pro-cancel"><ShieldCheck /> Cancele quando quiser</p>
-              <button className="pro-continue" onClick={() => setPremium(false)}>Continuar no plano gratuito</button>
-            </div>
-          </section>
-        </div>
       )}
     </div>
   );
@@ -1220,6 +1160,7 @@ export default function SemioLab() {
       </div>
       {checkin && <Checkin close={() => setCheckin(false)} />}
       <PwaOnboarding userId={user.id} />
+      <ProUpgradeModal userId={user.id} />
     </main>
   );
 }

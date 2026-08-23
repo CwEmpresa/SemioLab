@@ -28,6 +28,7 @@ import {
 
 import { useUser } from "./user-context";
 import { useLearningSummary } from "./use-learning-summary";
+import { openProUpgradeModal } from "./pro-upgrade-modal";
 
 type Phase = "wait" | "chat" | "finish" | "result";
 type LabRow = {
@@ -110,7 +111,6 @@ export default function PatientExperience({
     [physicalFindings, setPhysicalFindings] = useState<Record<string, string>>({}),
     [examOpen, setExamOpen] = useState(false),
     [zoomedImage, setZoomedImage] = useState<ExamImage | null>(null),
-    [voiceUpsellOpen, setVoiceUpsellOpen] = useState(false),
     [recording, setRecording] = useState(false),
     [transcribing, setTranscribing] = useState(false),
     [micError, setMicError] = useState(""),
@@ -334,6 +334,7 @@ export default function PatientExperience({
       const data = await response.json().catch(() => ({}));
       if (response.status === 403 && data.limitReached) {
         setBlocked({ checkoutUrls: data.checkoutUrls, message: data.error });
+        openProUpgradeModal(learning?.pro?.tier === "free" ? "patient" : "limit");
         return;
       }
       if (!response.ok) {
@@ -1112,7 +1113,7 @@ export default function PatientExperience({
             <button
               className="chat-mic is-locked"
               aria-label="Conversa por voz — recurso do plano Pro"
-              onClick={() => setVoiceUpsellOpen(true)}
+              onClick={() => openProUpgradeModal("audio")}
               type="button"
             >
               <Mic /><LockKeyhole className="chat-mic-lock-badge" />
@@ -1184,22 +1185,6 @@ export default function PatientExperience({
             >
               Confirmar solicitação <ChevronRight />
             </button>
-          </section>
-        </div>
-      )}
-      {voiceUpsellOpen && (
-        <div className="overlay" onClick={() => setVoiceUpsellOpen(false)}>
-          <section className="clinical-modal voice-upsell-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="close" onClick={() => setVoiceUpsellOpen(false)}><X /></button>
-            <LockKeyhole className="voice-upsell-icon" />
-            <h2>Conversa por voz disponível no SemioLab Pro.</h2>
-            <p>Grave sua pergunta e ouça a resposta do paciente com voz gerada por inteligência artificial.</p>
-            <a className="primary" href={learning?.pro?.checkoutUrls?.monthly} target="_blank" rel="noopener noreferrer">
-              <span>Assinar mensal</span>
-            </a>
-            <a className="primary" href={learning?.pro?.checkoutUrls?.annual} target="_blank" rel="noopener noreferrer">
-              <span>Assinar anual</span>
-            </a>
           </section>
         </div>
       )}

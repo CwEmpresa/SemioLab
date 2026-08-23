@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLearningSummary } from "./use-learning-summary";
+import { openProUpgradeModal } from "./pro-upgrade-modal";
 import {
   ArrowLeft,
   BarChart3,
@@ -221,6 +222,7 @@ export default function QuizExperience({
       if (response.status === 403 && data.limitReached) {
         setSimuladoBlocked({ message: data.error, usedToday: data.simuladosUsedToday, limitToday: data.simuladosLimitToday });
         setSimuladoMode("blocked");
+        openProUpgradeModal(learning?.pro?.tier === "free" ? "simulado" : "limit");
         return;
       }
       if (response.status === 409 && data.code === "INSUFFICIENT_QUESTION_BANK") {
