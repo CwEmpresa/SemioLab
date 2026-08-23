@@ -33,6 +33,18 @@ export async function GET() {
   const service = createServiceClient();
   const weekStart = currentWeekStart();
 
+  // Fotos só para quem já está neste conjunto (Top10 + eu + a posição
+  // imediatamente anterior) — a RPC já restringe isso, nunca busca além.
+  const userIds = rows.map((r: { user_id: string }) => r.user_id);
+  const { data: avatarRows } = await service.from("profiles").select("id, avatar_path").in("id", userIds).not("avatar_path", "is", null);
+  const avatarUrlByUser = new Map<string, string>();
+  for (const row of avatarRows ?? []) {
+    if (!row.avatar_path) continue;
+    const { data: signed } = await service.storage.from("avatars").createSignedUrl(row.avatar_path, 3600);
+    if (signed?.signedUrl) avatarUrlByUser.set(row.id, signed.signedUrl);
+  }
+  const withAvatars = rows.map((r: { user_id: string }) => ({ ...r, avatarUrl: avatarUrlByUser.get(r.user_id) ?? null }));
+
   // Snapshot semanal preguiçoso e idempotente: só grava se ainda não existe
   // um snapshot desta semana para este usuário (unique constraint garante
   // 1 por usuário+semana mesmo com requisições concorrentes).
@@ -56,16 +68,17 @@ export async function GET() {
     if (prevSnapshot) weeklyChange = prevSnapshot.rank - me.rank; // positivo = subiu
   }
 
-  const podium = rows.filter((r: { rank: number }) => r.rank <= 3);
-  const list = rows.filter((r: { rank: number }) => r.rank >= 4 && r.rank <= 10);
-  const outsideTop10 = me && me.rank > 10 ? me : null;
-  const previousRankRow = outsideTop10 ? rows.find((r: { rank: number }) => r.rank === outsideTop10.rank - 1) : null;
+  const podium = withAvatars.filter((r: { rank: number }) => r.rank <= 3);
+  const list = withAvatars.filter((r: { rank: number }) => r.rank >= 4 && r.rank <= 10);
+  const meWithAvatar = withAvatars.find((r: { is_me: boolean }) => r.is_me);
+  const outsideTop10 = meWithAvatar && meWithAvatar.rank > 10 ? meWithAvatar : null;
+  const previousRankRow = outsideTop10 ? withAvatars.find((r: { rank: number }) => r.rank === outsideTop10.rank - 1) : null;
   const distanceToPrevious = outsideTop10 && previousRankRow ? previousRankRow.xp - outsideTop10.xp : null;
 
   return Response.json({
     podium,
     list,
-    me: me ? { ...me, weeklyChange } : null,
+    me: meWithAvatar ? { ...meWithAvatar, weeklyChange } : null,
     outsideTop10: outsideTop10 ? { ...outsideTop10, weeklyChange, distanceToPrevious } : null,
   });
 }

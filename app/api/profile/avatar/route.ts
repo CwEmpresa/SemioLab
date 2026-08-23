@@ -47,6 +47,6 @@ export async function POST(request: Request) {
   const column = kind === "avatar" ? "avatar_path" : "cover_path";
   await service.from("profiles").update({ [column]: path }).eq("id", user.id);
 
-  const { data: signed } = await service.storage.from("avatars").createSignedUrl(path, 300);
+  const { data: signed } = await service.storage.from("avatars").createSignedUrl(path, 3600);
   return Response.json({ ok: true, path, url: signed?.signedUrl ?? null });
 }

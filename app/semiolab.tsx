@@ -92,6 +92,20 @@ function Navigation({ screen, go, open, setOpen }: { screen:Screen; go:(s:Screen
   const { summary: learning } = useLearningSummary();
   const displayName = safeDisplayName(user.name, user.email);
   const initials = initialsFor(displayName);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  useEffect(() => {
+    const load = () => {
+      fetch(`/api/ranking/profile?userId=${user.id}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => setAvatarUrl(data?.avatarUrl ?? null))
+        .catch(() => {});
+    };
+    load();
+    // Mesmo padrão já usado para XP/streak: qualquer upload novo dispara
+    // este evento e a sidebar atualiza na hora, sem esperar novo mount.
+    window.addEventListener("semiolab:avatar-updated", load);
+    return () => window.removeEventListener("semiolab:avatar-updated", load);
+  }, [user.id]);
   const level = levelFromXp(learning?.profile?.xp ?? user.xp ?? 0);
   const sideRef = useSidebarReveal(open);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -125,7 +139,7 @@ function Navigation({ screen, go, open, setOpen }: { screen:Screen; go:(s:Screen
           <button className={screen === "ranking"  ? "active" : ""} onClick={() => go("ranking")}><Trophy /><span>Ranking</span></button>
         </div>
         <button className="side-user" onClick={() => go("profile")}>
-          <i>{initials}</i>
+          <i>{avatarUrl ? <img src={avatarUrl} alt={displayName} onError={() => setAvatarUrl(null)} /> : initials}</i>
           <span><b>{displayName}</b><small>Estudante · Nível {level}</small></span>
         </button>
         {!open && <button className="reopen" onClick={() => setOpen(true)}><Menu /></button>}
@@ -845,6 +859,7 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
       if (!response.ok) { inform(data.error || "Não foi possível usar essa imagem."); return; }
       if (kind === "avatar") setAvatar(data.url);
       else setCover(data.url);
+      window.dispatchEvent(new Event("semiolab:avatar-updated"));
       inform(kind === "avatar" ? "Foto de perfil atualizada." : "Capa atualizada.");
     } catch { inform("Não foi possível usar essa imagem."); }
   };
@@ -882,7 +897,7 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
         </div>
         <div className="profile-avatar-wrap">
           <div className="profile-avatar-ring">
-            <img src={avatar} alt={`Avatar de ${profile.name}`} className={avatar !== "/semiolab-fox.png" ? "user-photo" : ""} />
+            <img src={avatar} alt={`Avatar de ${profile.name}`} className={avatar !== "/semiolab-fox.png" ? "user-photo" : ""} onError={() => setAvatar("/semiolab-fox.png")} />
           </div>
           <button aria-label="Alterar foto de perfil" onClick={() => avatarInput.current?.click()}><Camera /></button>
           <input ref={avatarInput} className="profile-file-input" type="file" accept="image/*" onChange={(event) => uploadImage(event.target.files?.[0], "avatar")} />

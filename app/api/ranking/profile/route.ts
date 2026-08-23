@@ -46,11 +46,11 @@ export async function GET(request: Request) {
   let avatarUrl: string | null = null;
   let coverUrl: string | null = null;
   if (profile?.avatar_path) {
-    const { data } = await service.storage.from("avatars").createSignedUrl(profile.avatar_path, 300);
+    const { data } = await service.storage.from("avatars").createSignedUrl(profile.avatar_path, 3600);
     avatarUrl = data?.signedUrl ?? null;
   }
   if (profile?.cover_path) {
-    const { data } = await service.storage.from("avatars").createSignedUrl(profile.cover_path, 300);
+    const { data } = await service.storage.from("avatars").createSignedUrl(profile.cover_path, 3600);
     coverUrl = data?.signedUrl ?? null;
   }
 

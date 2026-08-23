@@ -11,7 +11,7 @@ function useRanking(){const[data,setData]=useState<LearningData|null>(null),[loa
 
 export function HomeRankCard({open}:{open:()=>void}){const{data,loading}=useRanking(),list=data?.ranking||[],me=data?.profile,position=me?list.findIndex(user=>user.displayName===me.displayName)+1:0;return <section className="rank-card live-rank"><header className="section-title"><span><small>RANKING REAL</small><h3>{loading?"Carregando classificação...":position?`Sua posição: ${position}º`:"Ranking ainda sem participantes"}</h3></span><button onClick={open}>Ver ranking</button></header>{list.length?<div>{list.slice(0,3).map((user,index)=><span key={`${user.displayName}-${index}`} className={user.displayName===me?.displayName?"me":""}><b>{index+1}</b><i>{initials(user.displayName)}</i><small>{user.xp.toLocaleString()} XP</small></span>)}</div>:!loading&&<div className="mini-empty"><UserRound/><p>O ranking será formado somente por usuários que realmente acessarem e pontuarem no app.</p></div>}</section>}
 
-type RankRow = { rank: number; user_id: string; display_name: string; xp: number; weeklyChange?: number | null; distanceToPrevious?: number | null };
+type RankRow = { rank: number; user_id: string; display_name: string; xp: number; weeklyChange?: number | null; distanceToPrevious?: number | null; avatarUrl?: string | null };
 type RankingV2 = { podium: RankRow[]; list: RankRow[]; me: RankRow | null; outsideTop10: (RankRow & { distanceToPrevious: number | null }) | null };
 type PublicProfile = { displayName: string; rank: number; xp: number; level: number; levelProgress: number; streak: number; avatarUrl: string | null; coverUrl: string | null };
 
@@ -22,6 +22,12 @@ function useRankingV2() {
     fetch("/api/ranking").then((r) => (r.ok ? r.json() : null)).then(setData).catch(() => setData(null)).finally(() => setLoading(false));
   }, []);
   return { data, loading };
+}
+
+function Avatar({ url, name }: { url?: string | null; name: string }) {
+  const [failed, setFailed] = useState(false);
+  if (url && !failed) return <img src={url} alt={name} onError={() => setFailed(true)} />;
+  return <>{initials(name)}</>;
 }
 
 function ChangeBadge({ change }: { change?: number | null }) {
@@ -52,7 +58,7 @@ function ProfileOverlay({ userId, onClose }: { userId: string; onClose: () => vo
           <>
             <div className="public-profile-cover" style={profile.coverUrl ? { backgroundImage: `url(${profile.coverUrl})` } : undefined} />
             <div className="public-profile-avatar">
-              {profile.avatarUrl ? <img src={profile.avatarUrl} alt={profile.displayName} /> : <i>{initials(profile.displayName)}</i>}
+              <Avatar url={profile.avatarUrl} name={profile.displayName} />
             </div>
             <h2>{profile.displayName}</h2>
             <strong className="public-profile-xp">{profile.xp.toLocaleString("pt-BR")} XP</strong>
@@ -95,7 +101,7 @@ export default function RankingExperience({ go }: { go: (screen: "profile" | "ho
             {[data.podium.find((p) => p.rank === 2), data.podium.find((p) => p.rank === 1), data.podium.find((p) => p.rank === 3)].map((user, slot) =>
               user ? (
                 <button key={user.user_id} className={`podium-slot slot-${slot === 1 ? "gold" : slot === 0 ? "silver" : "bronze"}`} onClick={() => setViewingUserId(user.user_id)}>
-                  <i>{initials(user.display_name)}</i>
+                  <i><Avatar url={user.avatarUrl} name={user.display_name} /></i>
                   <b>{user.display_name.split(" ")[0]}</b>
                   <strong>{user.xp.toLocaleString("pt-BR")} XP</strong>
                   <small>{user.rank}º</small>
@@ -108,7 +114,7 @@ export default function RankingExperience({ go }: { go: (screen: "profile" | "ho
             {data.list.map((user) => (
               <button key={user.user_id} className={`rank-row ${data.me?.user_id === user.user_id ? "me" : ""}`} onClick={() => setViewingUserId(user.user_id)}>
                 <b>{user.rank}º</b>
-                <i>{initials(user.display_name)}</i>
+                <i><Avatar url={user.avatarUrl} name={user.display_name} /></i>
                 <span><em>{user.display_name}</em><small>Nível {Math.floor(user.xp / 500) + 1}</small></span>
                 <strong>{user.xp.toLocaleString("pt-BR")} XP</strong>
                 <ChangeBadge change={user.weeklyChange} />
@@ -119,7 +125,7 @@ export default function RankingExperience({ go }: { go: (screen: "profile" | "ho
           {data.outsideTop10 && (
             <div className="rank-row me outside-top10">
               <b>{data.outsideTop10.rank}º</b>
-              <i>{initials(data.outsideTop10.display_name)}</i>
+              <i><Avatar url={data.outsideTop10.avatarUrl} name={data.outsideTop10.display_name} /></i>
               <span><em>Você</em><small>Nível {Math.floor(data.outsideTop10.xp / 500) + 1}</small></span>
               <strong>{data.outsideTop10.xp.toLocaleString("pt-BR")} XP</strong>
               <ChangeBadge change={data.outsideTop10.weeklyChange} />
