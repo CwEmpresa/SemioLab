@@ -48,26 +48,37 @@ function structuralRejectionReason(q: Candidate): string | null {
   return null;
 }
 
-const CoherenceCheckSchema = z.object({ coherent: z.boolean(), reason: z.string() });
+const CoherenceBatchResultSchema = z.object({
+  results: z.array(z.object({ id: z.string(), approved: z.boolean(), reason: z.string() })),
+});
 
-async function checkCoherence(service: ReturnType<typeof createServiceClient>, q: Candidate): Promise<{ ok: boolean; reason: string }> {
+/** Valida coerência de até 8 questões em UMA chamada só (era 1 chamada por
+ * questão) — mesmo critério de antes, só que em lote. `id` aqui é só o
+ * índice temporário desta chamada (string), nunca o id real da questão. */
+async function checkCoherenceBatch(
+  service: ReturnType<typeof createServiceClient>,
+  items: { tempId: string; q: Candidate }[],
+): Promise<Map<string, { ok: boolean; reason: string }>> {
   const client = getOpenAIClient();
+  const results = new Map<string, { ok: boolean; reason: string }>();
+  if (items.length === 0) return results;
+
   const prompt = [
-    "Você audita questões de múltipla escolha de semiologia médica para uso educacional.",
-    `Enunciado: ${q.text}`,
-    `Alternativas: ${q.options.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join(" | ")}`,
-    `Alternativa marcada como correta: ${String.fromCharCode(65 + q.correctIndex)}`,
-    `Explicação fornecida: ${q.explanation}`,
-    'Responda APENAS com JSON: {"coherent": true|false, "reason": "motivo curto"}.',
-    "coherent deve ser true SOMENTE SE: a alternativa marcada é inequivocamente a única correta, e a explicação é coerente com o enunciado e essa alternativa.",
-  ].join("\n");
+    "Você audita um LOTE de questões de múltipla escolha de semiologia médica para uso educacional.",
+    "Para CADA questão, decida se a alternativa marcada como correta é inequivocamente a única correta, e se a explicação é coerente com o enunciado e essa alternativa.",
+    ...items.map(
+      ({ tempId, q }) =>
+        `--- Questão id="${tempId}" ---\nEnunciado: ${q.text}\nAlternativas: ${q.options.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join(" | ")}\nAlternativa marcada como correta: ${String.fromCharCode(65 + q.correctIndex)}\nExplicação fornecida: ${q.explanation}`,
+    ),
+    'Responda APENAS com JSON: {"results":[{"id":string,"approved":true|false,"reason":"motivo curto"}]}, com EXATAMENTE um item por questão do lote, usando o mesmo "id" informado acima.',
+  ].join("\n\n");
 
   try {
     const result = await client.responses.create({
       model: OPENAI_QUESTION_MODEL,
-      instructions: "Você é um revisor rigoroso de conteúdo educacional médico. Responda apenas com o JSON pedido.",
+      instructions: "Você é um revisor rigoroso de conteúdo educacional médico. Responda apenas com o JSON pedido, um resultado por questão do lote.",
       input: prompt,
-      max_output_tokens: 500,
+      max_output_tokens: 350 * items.length + 500,
       reasoning: { effort: "minimal" },
       text: { format: { type: "json_object" } },
     });
@@ -81,13 +92,22 @@ async function checkCoherence(service: ReturnType<typeof createServiceClient>, q
       outputTokens: usage.outputTokens,
       estimatedCostUsd: estimateCostUsd(usage),
     });
-    const parsed = CoherenceCheckSchema.safeParse(JSON.parse(result.output_text || "{}"));
-    if (!parsed.success) return { ok: false, reason: "resposta de verificação inválida" };
-    return { ok: parsed.data.coherent, reason: parsed.data.reason };
+    const parsed = CoherenceBatchResultSchema.safeParse(JSON.parse(result.output_text || "{}"));
+    if (parsed.success) {
+      for (const r of parsed.data.results) results.set(r.id, { ok: r.approved, reason: r.reason });
+    } else {
+      console.error("[question-generation] resposta de coerência em lote inválida", parsed.error.issues.slice(0, 3));
+    }
   } catch (err) {
-    console.error("[question-generation] falha na verificação de coerência", safeErrorMeta(err));
-    return { ok: false, reason: "falha ao verificar coerência" };
+    console.error("[question-generation] falha na verificação de coerência em lote", safeErrorMeta(err));
   }
+  // Segurança: qualquer questão sem entrada válida na resposta (id
+  // ausente, JSON malformado, falha de chamada) fica reprovada por
+  // padrão — nunca aprova por omissão.
+  for (const { tempId } of items) {
+    if (!results.has(tempId)) results.set(tempId, { ok: false, reason: "sem resposta de verificação para esta questão no lote" });
+  }
+  return results;
 }
 
 async function generateBatch(
@@ -145,10 +165,13 @@ export async function generateAndValidateBatch(
   let created = 0;
   let rejected = 0;
 
+  // 1ª passada: estrutural + dedup por hash — nunca gasta uma chamada de
+  // coerência com o que já pode ser rejeitado sem IA.
+  const survivors: { q: Candidate; hash: string; id: string }[] = [];
   for (const q of candidates) {
     const hash = contentHash(q.text);
-    const structuralReason = structuralRejectionReason(q);
     const id = `ai_${hash.slice(0, 12)}`;
+    const structuralReason = structuralRejectionReason(q);
 
     if (structuralReason) {
       await service.from("simulado_questions").insert({
@@ -166,8 +189,20 @@ export async function generateAndValidateBatch(
       rejected += 1;
       continue;
     }
+    survivors.push({ q, hash, id });
+  }
 
-    const coherence = await checkCoherence(service, q);
+  // 2ª passada: UMA chamada de coerência para todo o lote sobrevivente
+  // (era 1 chamada por questão) — mesmo critério, menos chamadas de API.
+  const coherenceMap = await checkCoherenceBatch(
+    service,
+    survivors.map((s, i) => ({ tempId: String(i), q: s.q })),
+  );
+
+  for (let i = 0; i < survivors.length; i += 1) {
+    const { q, hash, id } = survivors[i];
+    const coherence = coherenceMap.get(String(i)) ?? { ok: false, reason: "sem resposta de verificação para esta questão no lote" };
+
     if (!coherence.ok) {
       await service.from("simulado_questions").insert({
         id, topic: q.topic, subtopic: q.subtopic, difficulty: q.difficulty, text: q.text,
