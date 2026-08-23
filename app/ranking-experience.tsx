@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChevronRight, Trophy, UserRound } from "lucide-react";
+import Avatar from "./avatar";
 
 type RankUser={displayName:string;xp:number};
 type LearningData={profile?:RankUser&{email?:string};ranking?:RankUser[]};
@@ -22,12 +23,6 @@ function useRankingV2() {
     fetch("/api/ranking").then((r) => (r.ok ? r.json() : null)).then(setData).catch(() => setData(null)).finally(() => setLoading(false));
   }, []);
   return { data, loading };
-}
-
-function Avatar({ url, name }: { url?: string | null; name: string }) {
-  const [failed, setFailed] = useState(false);
-  if (url && !failed) return <img src={url} alt={name} onError={() => setFailed(true)} />;
-  return <>{initials(name)}</>;
 }
 
 function ChangeBadge({ change }: { change?: number | null }) {
