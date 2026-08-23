@@ -8,9 +8,11 @@ export type MasteryRecord = {
   status: string;
   questions: number;
   consultations: number;
-  reviews: number;
+  reviews?: number;
   sources: string[];
-  lastActivity: number | null;
+  lastActivity?: number | null;
+  insufficientData?: boolean;
+  evidenceCount?: number;
 };
 
 export type ProStatus = {
@@ -41,7 +43,8 @@ export type RecentConsultation = {
 export type LearningSummary = {
   profile?: { xp?: number };
   mastery?: MasteryRecord[];
-  stats?: { attempts?: number; questions?: number; correct?: number; consultations?: number; activities?: number; averageScore?: number };
+  stats?: { attempts?: number; questions?: number; correct?: number; consultations?: number; activities?: number; averageScore?: number; quizAccuracy?: number; simuladoAverage?: number | null; patientAverage?: number | null };
+  errors?: { id?: number; questionId?: string; topic: string; question: string; selectedAnswer: string; correctAnswer: string; explanation: string; createdAt?: number | null }[];
   loginDays?: string[];
   streak?: number;
   weeklyActivity?: number[];

@@ -2,7 +2,7 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import {
   Activity, ArrowLeft, Award, BarChart3, Bell, BookOpen, Brain, Check,
-  BadgeCheck, Camera, ChevronRight, CircleAlert, ClipboardCheck, Clock3, CreditCard, Flame, HeartPulse,
+  BadgeCheck, Camera, ChevronRight, CircleAlert, ClipboardCheck, Clock3, CreditCard, FileText, Flame, HeartPulse,
   AudioLines, HelpCircle, Mail, MessageCircle, Palette,
   Home, LibraryBig, LockKeyhole, LogOut, Menu, MessageSquareText,
   Search, Settings, ShieldCheck, SlidersHorizontal, Sparkles, Stethoscope, Target,
@@ -619,9 +619,22 @@ function Progress({ go }: { go:(s:Screen)=>void }) {
   const correct = Number(summary?.stats?.correct || 0);
   const accuracy = questions ? Math.round(correct / questions * 100) : null;
   const consultations = Number(summary?.stats?.consultations || 0);
+  const simuladoAverage = summary?.stats?.simuladoAverage ?? null;
+  const patientAverage = summary?.stats?.patientAverage ?? null;
   const realFor = (name: string) => summary?.mastery?.find((item) => item.topic === name);
   const spotlight = ["Cardiovascular", "Neurológico", "Respiratório", "Abdome e digestório"];
   const topicWheel = ["Cardiovascular", "Respiratório", "Anamnese", "Neurológico", "Abdome e digestório", "Exame físico"];
+  const hasEvidence = questions > 0 || consultations > 0 || simuladoAverage !== null;
+  const masteredTopics = (summary?.mastery || []).filter((m) => m.status === "Domínio");
+  const improvingTopics = (summary?.mastery || []).filter((m) => m.status === "Em evolução");
+  const weakTopics = (summary?.mastery || []).filter((m) => m.status === "Precisa melhorar");
+  const errorCounts = Object.values(
+    (summary?.errors || []).reduce<Record<string, { topic: string; count: number }>>((acc, e) => {
+      acc[e.topic] = acc[e.topic] || { topic: e.topic, count: 0 };
+      acc[e.topic].count += 1;
+      return acc;
+    }, {}),
+  ).sort((a, b) => b.count - a.count).slice(0, 3);
 
   return (
     <div className="page progress-page-v2" ref={pageRef}>
@@ -634,7 +647,13 @@ function Progress({ go }: { go:(s:Screen)=>void }) {
           <small>NÍVEL {level}</small>
           <h2>Raciocínio clínico</h2>
           <strong>{loading ? "…" : `${xp.toLocaleString("pt-BR")} XP`}</strong>
-          <p>{loading ? "Carregando seu histórico real…" : `Faltam ${toNextLevel} XP para o próximo nível`}</p>
+          <p>
+            {loading
+              ? "Carregando seu histórico real…"
+              : !hasEvidence
+                ? "Comece a praticar para gerar sua análise"
+                : `Faltam ${toNextLevel} XP para o próximo nível`}
+          </p>
           <div className="progress-level-track"><i style={{ width:`${levelProgress}%` }} /><b>{levelProgress}%</b></div>
         </div>
         <div className="progress-heart-stage">
@@ -645,10 +664,17 @@ function Progress({ go }: { go:(s:Screen)=>void }) {
       </section>
 
       <div className="progress-metric-grid">
-        <article><i><Target /></i><span><b>{accuracy === null ? "—" : `${accuracy}%`}</b><small>Acertos reais</small></span></article>
+        <article><i><Target /></i><span><b>{accuracy === null ? "—" : `${accuracy}%`}</b><small>Acertos nos quizzes</small></span></article>
         <article><i><ClipboardCheck /></i><span><b>{questions}</b><small>Questões concluídas</small></span></article>
-        <article><i><Stethoscope /></i><span><b>{consultations}</b><small>Consultas finalizadas</small></span></article>
+        <article><i><FileText /></i><span><b>{simuladoAverage === null ? "—" : `${simuladoAverage}%`}</b><small>Média nos simulados</small></span></article>
+        <article><i><Stethoscope /></i><span><b>{patientAverage === null ? "—" : `${patientAverage}%`}</b><small>Média nas consultas</small></span></article>
       </div>
+
+      {!loading && !hasEvidence && (
+        <section className="clinical-domain-card">
+          <p style={{ padding: "16px 4px" }}>Comece a praticar para gerar sua análise — os dados desta página aparecem assim que você concluir um quiz, simulado ou atendimento.</p>
+        </section>
+      )}
 
       <section className="clinical-domain-card">
         <header><span><h2>Domínio clínico</h2><p>Evolução por sistema</p></span><i title="Somente resultados avaliados"><ShieldCheck /></i></header>
@@ -662,7 +688,7 @@ function Progress({ go }: { go:(s:Screen)=>void }) {
             </article>;
           })}
         </div>
-        <footer><ShieldCheck /> Dados calculados a partir dos seus resultados reais</footer>
+        <footer><ShieldCheck /> Dados calculados a partir dos seus resultados reais (quiz 30% + simulado 30% + Paciente IA 40%)</footer>
       </section>
 
       <section className="topic-advance-card">
@@ -678,8 +704,28 @@ function Progress({ go }: { go:(s:Screen)=>void }) {
           })}
           <i className="topic-wheel-core"><Activity /><small>DOMÍNIO</small><b>{generalMastery == null ? "—" : `${generalMastery}%`}</b></i>
         </div>
-        <p className="topic-wheel-note"><ShieldCheck /> O preenchimento de cada segmento usa somente resultados avaliados.</p>
+        <p className="topic-wheel-note"><ShieldCheck /> O preenchimento de cada segmento usa somente resultados avaliados. Temas com menos de 5 evidências aparecem como &quot;—&quot; (dados insuficientes).</p>
       </section>
+
+      {hasEvidence && (
+        <section className="clinical-domain-card">
+          <header><span><h2>Temas por status</h2><p>Dominados, em evolução e a melhorar</p></span></header>
+          <div style={{ padding: "8px 4px", fontSize: 13, lineHeight: 1.8 }}>
+            <p><b>Dominados:</b> {masteredTopics.length ? masteredTopics.map((m) => m.topic).join(", ") : "nenhum ainda"}</p>
+            <p><b>Em evolução:</b> {improvingTopics.length ? improvingTopics.map((m) => m.topic).join(", ") : "nenhum ainda"}</p>
+            <p><b>A melhorar:</b> {weakTopics.length ? weakTopics.map((m) => m.topic).join(", ") : "nenhum ainda"}</p>
+          </div>
+        </section>
+      )}
+
+      {errorCounts.length > 0 && (
+        <section className="clinical-domain-card">
+          <header><span><h2>Erros mais recorrentes</h2><p>Temas com mais revisões pendentes</p></span></header>
+          <div style={{ padding: "8px 4px", fontSize: 13, lineHeight: 1.8 }}>
+            {errorCounts.map((e) => <p key={e.topic}><b>{e.topic}</b> — {e.count} erro{e.count > 1 ? "s" : ""}</p>)}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { CAKTO_CHECKOUT_URLS, isProActive } from "@/lib/pro";
 import { resolveUserAccess } from "@/lib/user-access";
 import { brasiliaDateKey } from "@/lib/ai-usage";
+import { CANONICAL_TOPICS, toCanonicalTopic, type CanonicalTopic } from "@/lib/canonical-topics";
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +89,7 @@ export async function GET(request: Request) {
     supabase.from("error_notebook").select("id, question_id, topic, question, selected_answer, correct_answer, explanation, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
     supabase.from("topic_activity").select("topic, questions, correct, consultations, reviews, last_activity").eq("user_id", user.id),
     supabase.from("login_days").select("activity_date").eq("user_id", user.id).order("activity_date", { ascending: true }),
-    supabase.from("patient_attempts").select("id, created_at").eq("user_id", user.id),
+    supabase.from("patient_attempts").select("id, topic, score, created_at").eq("user_id", user.id),
     // Fonte definitiva do histórico de consultas: sempre do Supabase,
     // filtrado por dono (user_id = auth.uid(), garantido pela RLS). O
     // localStorage nunca é a fonte de verdade, só um cache opcional.
@@ -99,6 +101,19 @@ export async function GET(request: Request) {
       .order("finished_at", { ascending: false })
       .limit(12),
     getProStatus(supabase, user.id),
+  ]);
+
+  // simulado_questions só é legível por service role (RLS bloqueia o
+  // cliente) — mas a consulta continua travada no usuário autenticado
+  // (nunca em algo vindo do cliente), igual às rotas /api/simulados/*.
+  const service = createServiceClient();
+  const [simuladoAnsweredRes, simuladoAttemptsRes] = await Promise.all([
+    service
+      .from("simulado_attempt_questions")
+      .select("selected_index, simulado_attempts!inner(user_id), simulado_questions(topic, correct_index)")
+      .eq("simulado_attempts.user_id", user.id)
+      .not("selected_index", "is", null),
+    service.from("simulado_attempts").select("score, completed_at").eq("user_id", user.id).eq("status", "completed"),
   ]);
 
   const profile = profileRes.data;
@@ -145,16 +160,79 @@ export async function GET(request: Request) {
   const correctTotal = attempts.reduce((sum, a) => sum + (a.correct || 0), 0);
   const consultationsTotal = (topicsRes.data || []).reduce((sum, t) => sum + (t.consultations || 0), 0);
 
-  const mastery = (topicsRes.data || []).map((row) => ({
-    topic: row.topic,
-    score: row.questions > 0 ? Math.round((row.correct / row.questions) * 100) : null,
-    status: row.questions === 0 ? "Não iniciado" : row.correct / row.questions >= 0.8 ? "Dominado" : "Em progresso",
-    questions: row.questions,
-    consultations: row.consultations,
-    reviews: row.reviews,
-    sources: [row.questions > 0 ? "quiz" : null, row.consultations > 0 ? "patient" : null].filter(Boolean) as string[],
-    lastActivity: row.last_activity ? new Date(row.last_activity).getTime() : null,
-  }));
+  // --- Domínio por tema: Quiz 30% + Simulado 30% + Paciente IA 40% -------
+  // Pesos redistribuídos proporcionalmente entre as fontes disponíveis
+  // quando alguma não tem dado para aquele tema; menos de 5 evidências no
+  // total (perguntas de quiz+simulado + consultas) = "Dados insuficientes",
+  // nunca classificado como desempenho ruim.
+  type TopicAgg = { quizCorrect: number; quizTotal: number; simCorrect: number; simTotal: number; patientSum: number; patientCount: number };
+  const byTopic: Record<CanonicalTopic, TopicAgg> = Object.fromEntries(
+    CANONICAL_TOPICS.map((t) => [t, { quizCorrect: 0, quizTotal: 0, simCorrect: 0, simTotal: 0, patientSum: 0, patientCount: 0 }]),
+  ) as Record<CanonicalTopic, TopicAgg>;
+
+  for (const attempt of attempts) {
+    for (const tr of (attempt.topic_results as TopicResult[] | null) ?? []) {
+      const canonical = toCanonicalTopic(tr.topic);
+      if (!canonical) continue;
+      byTopic[canonical].quizTotal += tr.total || 0;
+      byTopic[canonical].quizCorrect += tr.correct || 0;
+    }
+  }
+  for (const row of simuladoAnsweredRes.data ?? []) {
+    const q = row.simulado_questions as unknown as { topic: string; correct_index: number } | null;
+    const canonical = toCanonicalTopic(q?.topic);
+    if (!canonical || !q) continue;
+    byTopic[canonical].simTotal += 1;
+    if (row.selected_index === q.correct_index) byTopic[canonical].simCorrect += 1;
+  }
+  for (const attempt of patientAttempts) {
+    const canonical = toCanonicalTopic((attempt as { topic?: string }).topic);
+    if (!canonical) continue;
+    byTopic[canonical].patientSum += (attempt as { score?: number }).score || 0;
+    byTopic[canonical].patientCount += 1;
+  }
+
+  const mastery = CANONICAL_TOPICS.map((topic) => {
+    const agg = byTopic[topic];
+    const quizPct = agg.quizTotal > 0 ? (agg.quizCorrect / agg.quizTotal) * 100 : null;
+    const simPct = agg.simTotal > 0 ? (agg.simCorrect / agg.simTotal) * 100 : null;
+    const patientPct = agg.patientCount > 0 ? agg.patientSum / agg.patientCount : null;
+
+    const weighted: { pct: number; weight: number }[] = [];
+    if (quizPct !== null) weighted.push({ pct: quizPct, weight: 0.3 });
+    if (simPct !== null) weighted.push({ pct: simPct, weight: 0.3 });
+    if (patientPct !== null) weighted.push({ pct: patientPct, weight: 0.4 });
+    const weightSum = weighted.reduce((s, w) => s + w.weight, 0);
+    const score = weightSum > 0 ? Math.round(weighted.reduce((s, w) => s + w.pct * w.weight, 0) / weightSum) : null;
+
+    const evidenceCount = agg.quizTotal + agg.simTotal + agg.patientCount;
+    const insufficientData = evidenceCount < 5;
+    const status =
+      insufficientData || score === null
+        ? "Dados insuficientes"
+        : score >= 75
+          ? "Domínio"
+          : score >= 50
+            ? "Em evolução"
+            : "Precisa melhorar";
+
+    return {
+      topic,
+      score: insufficientData ? null : score,
+      status,
+      insufficientData,
+      evidenceCount,
+      questions: agg.quizTotal,
+      consultations: agg.patientCount,
+      sources: [agg.quizTotal > 0 ? "quiz" : null, agg.simTotal > 0 ? "simulado" : null, agg.patientCount > 0 ? "patient" : null].filter(Boolean) as string[],
+    };
+  });
+
+  const simuladoScores = (simuladoAttemptsRes.data ?? []).map((a) => a.score ?? 0);
+  const simuladoAverage = simuladoScores.length ? Math.round(simuladoScores.reduce((s, v) => s + v, 0) / simuladoScores.length) : null;
+  const patientScores = patientAttempts.map((a) => (a as { score?: number }).score ?? 0);
+  const patientAverage = patientScores.length ? Math.round(patientScores.reduce((s, v) => s + v, 0) / patientScores.length) : null;
+  const activitiesCompleted = attempts.length + (simuladoAttemptsRes.data?.length ?? 0) + patientAttempts.length;
 
   return Response.json({
     profile: { displayName: profile?.name || "Usuário", email: profile?.email || user.email, xp: profile?.xp || 0 },
@@ -168,8 +246,11 @@ export async function GET(request: Request) {
       questions: questionsTotal,
       correct: correctTotal,
       consultations: consultationsTotal,
-      activities: attempts.length + patientAttempts.length,
+      activities: activitiesCompleted,
       averageScore: questionsTotal > 0 ? Math.round((correctTotal / questionsTotal) * 100) : null,
+      quizAccuracy: questionsTotal > 0 ? Math.round((correctTotal / questionsTotal) * 100) : null,
+      simuladoAverage,
+      patientAverage,
     },
     loginDays,
     streak: computeCurrentStreak(loginDays),
