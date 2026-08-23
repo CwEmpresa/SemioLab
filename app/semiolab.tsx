@@ -593,31 +593,17 @@ function AuscultationLab({ theme }: { theme:AppTheme }) {
   const tier = learning?.pro?.tier;
   const allowed = tier === undefined || tier === "trial" || tier === "pro" || learning?.pro?.active;
   useEffect(() => {
-    if (learning && !allowed) openProUpgradeModal("auscultation");
-  }, [learning, allowed]);
-  if (learning && !allowed) {
-    return (
-      <div className="page auscultation-lab-page patient-wait" ref={pageRef}>
-        <div className="patient-wait-shade" />
-        <main className="patient-wait-content">
-          <section className="patient-wait-intro">
-            <small><i /> RECURSO PRO</small>
-            <h1>Ausculta clínica é um recurso Pro.</h1>
-            <p>Seu período de teste acabou. Assine para continuar praticando ausculta cardíaca e pulmonar sem limites.</p>
-          </section>
-          <section className="patient-call-panel">
-            {learning?.pro?.checkoutUrls && <a className="primary" href={learning.pro.checkoutUrls.monthly} target="_blank" rel="noopener noreferrer"><span>Assinar mensal</span></a>}
-            {learning?.pro?.checkoutUrls && <a className="primary" href={learning.pro.checkoutUrls.annual} target="_blank" rel="noopener noreferrer"><span>Assinar anual</span></a>}
-          </section>
-        </main>
-      </div>
-    );
-  }
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === "semiolab:auscultation-locked") openProUpgradeModal("auscultation");
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
   return (
     <div className="page auscultation-lab-page" ref={pageRef}>
       <EmbeddedFrame
         className="auscultation-lab-frame"
-        src="/semiolab-laboratorio-ausculta.html"
+        src={`/semiolab-laboratorio-ausculta.html${allowed ? "" : "?locked=1"}`}
         title="SemioLab — Laboratório de Ausculta"
         theme={theme}
       />

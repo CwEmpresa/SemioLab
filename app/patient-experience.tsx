@@ -131,7 +131,6 @@ export default function PatientExperience({
     [conduct, setConduct] = useState(""),
     [sessionId, setSessionId] = useState<string | null>(null),
     [caseInfo, setCaseInfo] = useState<{ title: string; specialty: string; receptionReason: string; patientName: string; patientAge: number } | null>(null),
-    [blocked, setBlocked] = useState<{ checkoutUrls: { monthly: string; annual: string }; message: string } | null>(null),
     [loadError, setLoadError] = useState(""),
     [finishing, setFinishing] = useState(false),
     [quota, setQuota] = useState<{ questionsUsed: number; questionsLimit: number; sessionsUsedToday: number; sessionsLimitToday: number } | null>(null),
@@ -316,6 +315,12 @@ export default function PatientExperience({
             ? "Alguns dados importantes ficaram de fora."
             : "A consulta terminou antes de reunir dados essenciais.";
   async function start() {
+    // Free nunca chega a chamar a API: nem cria sessão, nem gasta o
+    // atendimento — só abre o modal compartilhado.
+    if (learning?.pro?.tier === "free") {
+      openProUpgradeModal("patient");
+      return;
+    }
     setTyping(false);
     setPhysical(false);
     setExamOrder("");
@@ -326,16 +331,15 @@ export default function PatientExperience({
     setNotes("");
     setServerEvaluation(null);
     setLoadError("");
-    setBlocked(null);
     setMessages([]);
     setPhase("chat");
     try {
       const response = await fetch("/api/patient/session", { method: "POST" });
       const data = await response.json().catch(() => ({}));
       if (response.status === 403 && data.limitReached) {
-        setBlocked({ checkoutUrls: data.checkoutUrls, message: data.error });
+        setPhase("wait");
         if (learning?.pro?.tier === "pro") openDailyLimitInfo();
-        else openProUpgradeModal(learning?.pro?.tier === "free" ? "patient" : "limit");
+        else openProUpgradeModal("limit");
         return;
       }
       if (!response.ok) {
@@ -706,35 +710,6 @@ export default function PatientExperience({
         setFinishing(false);
       });
   }
-  if (blocked)
-    return (
-      <div className="patient-wait">
-        <div className="patient-wait-shade" />
-        <header className="patient-wait-header">
-          <button aria-label="Voltar ao início" onClick={() => go("home")}>
-            <ArrowLeft />
-          </button>
-          <Brand />
-          <span />
-        </header>
-        <main className="patient-wait-content">
-          <section className="patient-wait-intro">
-            <small><i /> LIMITE DIÁRIO</small>
-            <h1>{blocked.message}</h1>
-            <p>Assine o Pro para atendimentos e exames sem limite, a qualquer hora.</p>
-          </section>
-          <section className="patient-call-panel">
-            <a className="primary" href={blocked.checkoutUrls.monthly} target="_blank" rel="noopener noreferrer">
-              <span>Assinar mensal</span>
-            </a>
-            <a className="primary" href={blocked.checkoutUrls.annual} target="_blank" rel="noopener noreferrer">
-              <span>Assinar anual</span>
-            </a>
-            <button onClick={() => go("home")}>Voltar ao início</button>
-          </section>
-        </main>
-      </div>
-    );
   if (phase === "wait")
     return (
       <div className="patient-wait">
