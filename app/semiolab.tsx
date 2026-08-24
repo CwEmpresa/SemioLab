@@ -594,6 +594,9 @@ function AuscultationLab({ theme }: { theme:AppTheme }) {
   const allowed = tier === undefined || tier === "trial" || tier === "pro" || learning?.pro?.active;
   useEffect(() => {
     const handler = (event: MessageEvent) => {
+      // Aceita mensagens somente da própria origem (iframe same-origin) —
+      // nunca de domínios externos, mesmo que o payload pareça válido.
+      if (event.origin !== window.location.origin) return;
       if (event.data?.type === "semiolab:auscultation-locked") openProUpgradeModal("auscultation");
     };
     window.addEventListener("message", handler);

@@ -3,6 +3,7 @@ import { resolveUserAccess } from "@/lib/user-access";
 import { brasiliaDateKey, startOfBrasiliaDayUtc } from "@/lib/ai-usage";
 import { getWebPush, DEEP_LINKS, NOTIFICATION_MESSAGES } from "@/lib/push";
 import { MAX_SESSIONS_PER_DAY } from "@/lib/patient-ai-rules";
+import { timingSafeEqualStrings } from "@/lib/pro";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -58,8 +59,8 @@ async function pickMessage(
 export async function POST(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return Response.json({ error: "CRON_SECRET não configurado." }, { status: 503 });
-  const auth = request.headers.get("authorization");
-  if (auth !== `Bearer ${secret}`) return Response.json({ error: "Não autorizado." }, { status: 401 });
+  const auth = request.headers.get("authorization") ?? "";
+  if (!timingSafeEqualStrings(auth, `Bearer ${secret}`)) return Response.json({ error: "Não autorizado." }, { status: 401 });
 
   const body = (await request.json().catch(() => ({}))) as { slot?: string };
   if (body.slot !== "morning" && body.slot !== "evening") {

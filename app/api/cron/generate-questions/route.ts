@@ -2,6 +2,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { QUESTION_GENERATION_ENABLED } from "@/lib/openai";
 import { countPublishedByTopic, countPublishedTotal } from "@/lib/question-bank";
 import { generateAndValidateBatch, getTodayGenerationCostUsd } from "@/lib/question-generation";
+import { timingSafeEqualStrings } from "@/lib/pro";
 
 export const dynamic = "force-dynamic";
 // Teto do plano Hobby da Vercel é 60s por função — mantém exatamente nesse
@@ -60,8 +61,8 @@ async function handle(request: Request): Promise<Response> {
   if (!secret) {
     return Response.json({ error: "CRON_SECRET não configurado — job inacessível." }, { status: 503 });
   }
-  const auth = request.headers.get("authorization");
-  if (auth !== `Bearer ${secret}`) {
+  const auth = request.headers.get("authorization") ?? "";
+  if (!timingSafeEqualStrings(auth, `Bearer ${secret}`)) {
     return Response.json({ error: "Não autorizado." }, { status: 401 });
   }
   if (!QUESTION_GENERATION_ENABLED) {
