@@ -214,7 +214,7 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
               <button
                 type="button"
                 onClick={() => switchMode("forgot")}
-                className="-mt-1.5 self-end text-xs font-semibold text-[#7fe0cd] underline decoration-[#7fe0cd]/40 underline-offset-4 hover:text-[#a6f0e1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#46d6c1] rounded-sm"
+                className="-mt-1.5 self-end bg-transparent border-0 shadow-none appearance-none text-xs font-semibold text-[#7fe0cd]! underline decoration-[#7fe0cd]/40 underline-offset-4 hover:text-[#a6f0e1]! hover:decoration-[#a6f0e1]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#46d6c1] rounded-sm px-1 py-1"
               >
                 Esqueci minha senha
               </button>
@@ -251,19 +251,19 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
             <div className="mt-1 text-center text-xs text-[#8da1a6]">
               {mode === "signin" && <>
                 Ainda não tem uma conta?{" "}
-                <button type="button" onClick={() => switchMode("signup")} className="font-semibold text-white/90 underline decoration-white/30 underline-offset-4 hover:text-white">
+                <button type="button" onClick={() => switchMode("signup")} className="bg-transparent border-0 shadow-none appearance-none font-semibold text-[#7fe0cd]! underline decoration-[#7fe0cd]/40 underline-offset-4 hover:text-[#a6f0e1]! hover:decoration-[#a6f0e1]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#46d6c1] rounded-sm px-1 py-1">
                   Criar conta grátis
                 </button>
               </>}
               {mode === "signup" && <>
                 Já possui uma conta?{" "}
-                <button type="button" onClick={() => switchMode("signin")} className="font-semibold text-white/90 underline decoration-white/30 underline-offset-4 hover:text-white">
+                <button type="button" onClick={() => switchMode("signin")} className="bg-transparent border-0 shadow-none appearance-none font-semibold text-[#7fe0cd]! underline decoration-[#7fe0cd]/40 underline-offset-4 hover:text-[#a6f0e1]! hover:decoration-[#a6f0e1]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#46d6c1] rounded-sm px-1 py-1">
                   Entrar
                 </button>
               </>}
               {mode === "forgot" && <>
                 Lembrou sua senha?{" "}
-                <button type="button" onClick={() => switchMode("signin")} className="font-semibold text-white/90 underline decoration-white/30 underline-offset-4 hover:text-white">
+                <button type="button" onClick={() => switchMode("signin")} className="bg-transparent border-0 shadow-none appearance-none font-semibold text-[#7fe0cd]! underline decoration-[#7fe0cd]/40 underline-offset-4 hover:text-[#a6f0e1]! hover:decoration-[#a6f0e1]/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#46d6c1] rounded-sm px-1 py-1">
                   Voltar ao login
                 </button>
               </>}
