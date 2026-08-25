@@ -10229,6 +10229,15 @@ body.pwa-modal-open { overflow: hidden; }
 .admin-action-reset:disabled { border-color: var(--line); color: var(--muted); opacity: .7; }
 .admin-action-hint { color: var(--muted); font-size: 11px; margin: -2px 0 4px; }
 .admin-action-message { padding: 10px 12px; border-radius: 10px; background: #12332f; }
+.admin-funnel-panel { margin-bottom: 24px; }
+.admin-funnel-panel h2 { font-size: 16px; margin-bottom: 12px; }
+.admin-funnel-steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.admin-funnel-step { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.admin-funnel-step small { display: block; color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+.admin-funnel-step b { font-size: 20px; display: block; }
+.admin-funnel-step span { font-size: 10px; color: var(--muted); }
+.admin-stage-pill { font-size: 11px; padding: 3px 9px; border-radius: 999px; background: #12332f; color: #cfe8e2; white-space: nowrap; }
+.admin-badge-stage { background: #1a2a33; color: #cfe8e2; }
 @media (max-width: 480px) {
   .admin-detail-modal { padding: 20px; max-height: calc(100dvh - 40px); overflow-y: auto; }
   .admin-detail-grid { grid-template-columns: 1fr; }

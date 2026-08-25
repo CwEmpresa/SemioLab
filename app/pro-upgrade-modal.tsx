@@ -168,6 +168,13 @@ export default function ProUpgradeModal({ userId }: { userId: string }) {
                 if (checkoutLoading) { e.preventDefault(); return; }
                 setCheckoutLoading(plan);
                 window.setTimeout(() => setCheckoutLoading(null), 2500);
+                // Fire-and-forget: falha na telemetria nunca bloqueia o
+                // link real de checkout, que já abre normalmente (href).
+                fetch("/api/events", {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({ eventName: "checkout_clicked", source: "pro_upgrade_modal", safeMetadata: { plan, reason } }),
+                }).catch(() => {});
               }}
             >
               {checkoutLoading ? "Abrindo checkout..." : "QUERO DESBLOQUEAR O PRO"}

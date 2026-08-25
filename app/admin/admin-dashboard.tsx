@@ -12,7 +12,7 @@ type Overview = {
   failedNotifications: number;
 };
 type UserRow = {
-  id: string; email: string; name: string | null; xp: number; tier: string;
+  id: string; email: string; name: string | null; xp: number; tier: string; stage: string;
   created_at: string; email_confirmed_at: string | null; last_sign_in_at: string | null; trial_started_at: string | null;
 };
 type UserDetail = {
@@ -20,8 +20,34 @@ type UserDetail = {
   emailConfirmedAt: string | null; lastSignInAt: string | null; trialStartedAt: string | null;
   subscription: { status: string; plan: string; updated_at: string } | null;
   streakDays: number; quizAttempts: number; simuladoAttempts: number; patientAttempts: number;
-  aiCostTotal: number; pushSubscriptions: number;
+  aiCostTotal: number; pushSubscriptions: number; stage: string;
 };
+type Funnel = {
+  days: number; signups: number; confirmed: number; firstLogin: number; startedActivity: number;
+  activated: number; returnedD1: number; returnedD3: number; clickedPro: number; becamePro: number;
+};
+
+const STAGE_LABELS: Record<string, string> = {
+  pending_email: "E-mail pendente",
+  confirmed_no_login: "Confirmado, sem login",
+  logged_in_no_activity: "Entrou, sem atividade",
+  started_abandoned: "Iniciou e abandonou",
+  activated: "Ativado",
+  returned: "Retornou",
+  clicked_pro: "Clicou no Pro",
+  pro: "Pro",
+};
+const FUNNEL_STEPS: { key: keyof Funnel; label: string }[] = [
+  { key: "signups", label: "Cadastrados" },
+  { key: "confirmed", label: "Confirmaram" },
+  { key: "firstLogin", label: "Primeiro login" },
+  { key: "startedActivity", label: "Iniciaram atividade" },
+  { key: "activated", label: "Ativaram" },
+  { key: "returnedD1", label: "Retornaram D1" },
+  { key: "returnedD3", label: "Retornaram D3" },
+  { key: "clickedPro", label: "Clicaram no Pro" },
+  { key: "becamePro", label: "Viraram Pro" },
+];
 
 const FILTERS = [
   { id: "all", label: "Todos" },
@@ -41,6 +67,14 @@ function tierOf(u: UserDetail): "free" | "trial" | "pro" {
   if (u.trialStartedAt && Date.now() - new Date(u.trialStartedAt).getTime() < 7 * 24 * 60 * 60 * 1000) return "trial";
   return "free";
 }
+const TRIAL_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+/** Mesma fórmula canônica de lib/access-tier.ts (início + 7 dias) — o bug
+ * real era exibir trial_started_at cru como se fosse a data final. */
+function trialEndsLabel(trialStartedAt: string | null) {
+  if (!trialStartedAt) return "Sem período de teste";
+  const endsAt = new Date(trialStartedAt).getTime() + TRIAL_DAYS_MS;
+  return fmtDate(new Date(endsAt).toISOString()) ?? "—";
+}
 function fmtUsd(n: number) {
   return `$${n.toFixed(4)}`;
 }
@@ -56,6 +90,13 @@ export default function AdminDashboard() {
   const [confirmAction, setConfirmAction] = useState<"resend" | "reset" | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
+  const [funnel7, setFunnel7] = useState<Funnel | null>(null);
+  const [funnel30, setFunnel30] = useState<Funnel | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/funnel?days=7").then((r) => (r.ok ? r.json() : null)).then(setFunnel7).catch(() => {});
+    fetch("/api/admin/funnel?days=30").then((r) => (r.ok ? r.json() : null)).then(setFunnel30).catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch("/api/admin/overview").then((r) => (r.ok ? r.json() : null)).then(setOverview).catch(() => {});
@@ -113,6 +154,27 @@ export default function AdminDashboard() {
         </section>
       )}
 
+      {[funnel7, funnel30].map((f, i) => f && (
+        <section className="admin-funnel-panel" key={i}>
+          <h2>Funil de ativação — {f.days} dias</h2>
+          <div className="admin-funnel-steps">
+            {FUNNEL_STEPS.map((step, idx) => {
+              const value = f[step.key] as number;
+              const prevValue = idx === 0 ? null : (f[FUNNEL_STEPS[idx - 1].key] as number);
+              const pctPrev = prevValue && prevValue > 0 ? Math.round((value / prevValue) * 100) : null;
+              const pctTotal = f.signups > 0 ? Math.round((value / f.signups) * 100) : null;
+              return (
+                <div className="admin-funnel-step" key={step.key}>
+                  <small>{step.label}</small>
+                  <b>{value}</b>
+                  <span>{pctPrev !== null ? `${pctPrev}% da etapa anterior` : "—"} · {pctTotal !== null ? `${pctTotal}% do total` : "—"}</span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+
       <section className="admin-users-panel">
         <div className="admin-toolbar">
           <input placeholder="Buscar por nome ou e-mail" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
@@ -123,7 +185,7 @@ export default function AdminDashboard() {
           </div>
         </div>
         <table className="admin-table">
-          <thead><tr><th>Nome</th><th>E-mail</th><th>Cadastro</th><th>Confirmado</th><th>Último login</th><th>Tier</th><th>Trial até</th><th>XP</th></tr></thead>
+          <thead><tr><th>Nome</th><th>E-mail</th><th>Cadastro</th><th>Confirmado</th><th>Último login</th><th>Tier</th><th>Trial até</th><th>XP</th><th>Estágio</th></tr></thead>
           <tbody>
             {users.map((u) => (
               <tr key={u.id} onClick={() => openDetail(u.id)}>
@@ -133,8 +195,9 @@ export default function AdminDashboard() {
                 <td>{u.email_confirmed_at ? "Sim" : "Não"}</td>
                 <td>{fmtDate(u.last_sign_in_at) ?? "—"}</td>
                 <td><span className={`admin-tier admin-tier-${u.tier}`}>{u.tier}</span></td>
-                <td>{fmtDate(u.trial_started_at) ?? "—"}</td>
+                <td>{trialEndsLabel(u.trial_started_at)}</td>
                 <td>{u.xp}</td>
+                <td><span className="admin-stage-pill">{STAGE_LABELS[u.stage] || u.stage}</span></td>
               </tr>
             ))}
           </tbody>
@@ -166,6 +229,7 @@ export default function AdminDashboard() {
                   {selected.emailConfirmedAt ? "E-mail confirmado" : "E-mail pendente"}
                 </span>
                 <span className={`admin-badge admin-tier-${tierOf(selected)}`}>{tierOf(selected) === "free" ? "Free" : tierOf(selected) === "trial" ? "Trial" : "Pro"}</span>
+                <span className="admin-badge admin-badge-stage">{STAGE_LABELS[selected.stage] || selected.stage}</span>
               </div>
             </header>
 
@@ -182,6 +246,7 @@ export default function AdminDashboard() {
               <h3>Plano</h3>
               <div className="admin-detail-grid">
                 <span><small>Trial desde</small><b>{fmtDate(selected.trialStartedAt) ?? "Sem período de teste"}</b></span>
+                <span><small>Trial até</small><b>{trialEndsLabel(selected.trialStartedAt)}</b></span>
                 <span><small>Assinatura</small><b>{selected.subscription ? `${selected.subscription.plan} (${selected.subscription.status})` : "Nenhuma assinatura"}</b></span>
               </div>
             </div>
