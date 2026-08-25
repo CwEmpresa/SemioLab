@@ -10242,3 +10242,32 @@ body.pwa-modal-open { overflow: hidden; }
   .admin-detail-modal { padding: 20px; max-height: calc(100dvh - 40px); overflow-y: auto; }
   .admin-detail-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Primeira experiência guiada (Etapa 2 de ativação) ─────────── */
+.first-exp-card {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  background: var(--surface); border: 1px solid var(--mint); border-radius: 16px;
+  padding: 14px 16px; margin: 0 0 16px; text-align: left;
+}
+.first-exp-card i { width: 36px; height: 36px; border-radius: 11px; background: linear-gradient(145deg, #2dc4ae, #078071); display: grid; place-items: center; color: #04211c; flex-shrink: 0; }
+.first-exp-card span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.first-exp-card small { color: var(--muted); font-size: 12px; }
+.first-exp-modal { max-width: 420px; text-align: center; padding: 32px; }
+.first-exp-icon { width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(145deg, #2dc4ae, #078071); display: grid; place-items: center; margin: 0 auto 16px; color: #04211c; }
+.first-exp-icon-done { background: linear-gradient(145deg, #f6d976, #c9971f); }
+.first-exp-modal h2 { font-size: 20px; margin-bottom: 8px; }
+.first-exp-modal p { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+.first-exp-modal .primary { width: 100%; }
+.first-exp-skip { display: block; width: 100%; margin-top: 10px; background: transparent; border: 0; color: var(--muted); font-size: 12px; text-decoration: underline; }
+.first-exp-stats { display: flex; justify-content: center; gap: 28px; margin-bottom: 18px; }
+.first-exp-stats span { display: flex; flex-direction: column; }
+.first-exp-stats b { font-size: 22px; color: var(--mint); }
+.first-exp-stats small { color: var(--muted); font-size: 11px; }
+
+.first-consult-checklist { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin: 12px 0; }
+.first-consult-checklist summary { font-weight: 700; font-size: 13px; cursor: pointer; }
+.first-consult-checklist ul { margin: 10px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--muted); line-height: 1.9; }
+.first-consult-hint { font-size: 11px; color: var(--muted); margin: 10px 0 6px; }
+.first-consult-suggestions { display: flex; flex-wrap: wrap; gap: 6px; }
+.first-consult-suggestions button { background: transparent; border: 1px solid var(--mint); color: #cfe8e2; font-size: 11px; padding: 5px 10px; border-radius: 999px; }
+.first-consult-suggestions button:hover { background: #12332f; }

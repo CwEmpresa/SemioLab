@@ -14,6 +14,7 @@ import RankingExperience, { HomeRankCard } from "./ranking-experience";
 import PwaOnboarding, { NotificationSettingsPanel } from "./pwa-onboarding";
 import ProUpgradeModal, { openProUpgradeModal, DailyLimitInfoModal } from "./pro-upgrade-modal";
 import Avatar from "./avatar";
+import FirstExperience, { FirstExperienceCard } from "./first-experience";
 import { HeartDashboardHero } from "@/components/ui/heart-dashboard-hero";
 import { createPortal } from "react-dom";
 import { useUser } from "./user-context";
@@ -315,6 +316,7 @@ function Top({ title, go }: { title?: string; go:(s:Screen)=>void }) {
 
 /* ─── HomePage ──────────────────────────────────────────────────── */
 function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
+  const user = useUser();
   const pageRef = useScreenTransition("home");
   const dashRef = useRef<HTMLDivElement>(null);
   const streakRef = useRef<HTMLDivElement>(null);
@@ -349,6 +351,7 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
   return (
     <div className="page home-page" ref={pageRef}>
       <Top go={go} />
+      <FirstExperienceCard go={go} userId={user.id} />
       <div className="dash" ref={dashRef}>
         <HeartDashboardHero
           onContinue={() => go("study")}
@@ -1172,6 +1175,7 @@ export default function SemioLab() {
       <PwaOnboarding userId={user.id} />
       <ProUpgradeModal userId={user.id} />
       <DailyLimitInfoModal />
+      <FirstExperience userId={user.id} screen={screen} go={go} />
     </main>
   );
 }

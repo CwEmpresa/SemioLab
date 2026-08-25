@@ -150,6 +150,9 @@ export default function PatientExperience({
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const user = useUser();
   const { summary: learning } = useLearningSummary();
+  // Só verdadeiro na primeira consulta real do aluno (nenhuma atividade
+  // concluída ainda) — o roteiro guiado nunca aparece depois disso.
+  const isFirstConsultation = (learning?.stats?.activities ?? 0) === 0;
   const sessionStorageKey = patientSessionKey(user.id);
   const historyStorageKey = patientHistoryKey(user.id);
 
@@ -914,6 +917,24 @@ export default function PatientExperience({
             <p>“{caseInfo?.receptionReason || "Não informado"}.”</p>
           </span>
         </div>
+        {isFirstConsultation && (
+          <details className="first-consult-checklist" open>
+            <summary>Roteiro sugerido para sua primeira consulta</summary>
+            <ul>
+              <li>Investigue início e evolução</li>
+              <li>Pergunte doenças, alergias e medicamentos</li>
+              <li>Realize exame físico</li>
+              <li>Solicite exames se necessário</li>
+              <li>Registre hipótese e finalize</li>
+            </ul>
+            <p className="first-consult-hint">Sugestões de pergunta — clique para preencher, você decide se envia:</p>
+            <div className="first-consult-suggestions">
+              {["Quando os sintomas começaram?", "Você tem alguma doença ou alergia conhecida?", "Está usando algum medicamento?"].map((q) => (
+                <button key={q} type="button" onClick={() => setInput(q)}>{q}</button>
+              ))}
+            </div>
+          </details>
+        )}
         {messages.map((m, i) => (
           <div key={i} className={`msg ${m.who}`}>
             <i>

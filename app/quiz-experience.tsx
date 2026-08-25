@@ -120,7 +120,12 @@ export default function QuizExperience({
 }) {
   const [mode, setMode] = useState<Mode>("home");
   const [topic, setTopic] = useState("Todos");
-  const [amount, setAmount] = useState(10);
+  const [amount, setAmount] = useState(() => {
+    if (typeof window === "undefined") return 10;
+    const firstQuiz = sessionStorage.getItem("semiolab:first-quiz-amount");
+    if (firstQuiz) { sessionStorage.removeItem("semiolab:first-quiz-amount"); return Number(firstQuiz) || 10; }
+    return 10;
+  });
   const [active, setActive] = useState<{ id: string; topic: string; difficulty: string; text: string; options: string[] }[]>([]);
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);

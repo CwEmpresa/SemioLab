@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { firstExperienceCompletionAcknowledged } from "./first-experience";
 
 /** Trava o scroll da página e some com a bottom-nav enquanto qualquer
  * modal PWA estiver aberto — restaura tudo ao fechar/desmontar. */
@@ -107,11 +108,25 @@ export function NotificationSettingsPanel() {
 }
 
 export default function PwaOnboarding({ userId }: { userId: string }) {
-  const [step, setStep] = useState<"hidden" | "notifications" | "install">(() => {
-    if (typeof window === "undefined" || isStandalone()) return "hidden"; // já instalado, sem onboarding
-    return localStorage.getItem(`semiolab:${userId}:pwa-onboarding-seen`) ? "hidden" : "notifications";
-  });
+  const [step, setStep] = useState<"hidden" | "notifications" | "install">("hidden");
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
+
+  useEffect(() => {
+    // Só pode aparecer sozinho depois da 1ª atividade concluída (nunca no
+    // primeiro login) — reavalia também quando essa condição muda, sem
+    // precisar recarregar a página. Abrir manualmente pelo Perfil
+    // (NotificationSettingsPanel) continua sempre disponível, sem essa
+    // trava.
+    const check = () => {
+      if (isStandalone()) return;
+      if (localStorage.getItem(`semiolab:${userId}:pwa-onboarding-seen`)) return;
+      if (!firstExperienceCompletionAcknowledged(userId)) return;
+      setStep("notifications");
+    };
+    check();
+    window.addEventListener("semiolab:first-experience-completed", check);
+    return () => window.removeEventListener("semiolab:first-experience-completed", check);
+  }, [userId]);
 
   useEffect(() => {
     const onPrompt = (e: Event) => { e.preventDefault(); setDeferredPrompt(e); };
