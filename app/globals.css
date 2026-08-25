@@ -10172,3 +10172,31 @@ body.pwa-modal-open { overflow: hidden; }
     max-height: calc(100dvh - max(40px, env(safe-area-inset-top)) - (58px + max(14px, env(safe-area-inset-bottom)) + 20px));
   }
 }
+
+/* ── Admin dashboard ────────────────────────────────────────────── */
+.admin-page { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; color: var(--ink, #eafdf8); }
+.admin-header h1 { font-size: 22px; margin-bottom: 20px; }
+.admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 28px; }
+.admin-grid article { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.admin-grid small { display: block; color: var(--muted); font-size: 11px; margin-bottom: 6px; }
+.admin-grid b { font-size: 18px; }
+.admin-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+.admin-toolbar input { flex: 1; min-width: 220px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: inherit; }
+.admin-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.admin-filters button { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-size: 12px; }
+.admin-filters button.active { background: var(--mint); color: #04211c; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.admin-table th { text-align: left; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.admin-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.admin-table tr:hover td { background: rgba(53,201,177,.06); }
+.admin-tier { padding: 2px 8px; border-radius: 999px; font-size: 11px; text-transform: uppercase; }
+.admin-tier-free { background: #33221a; color: #e0a06a; }
+.admin-tier-trial { background: #1a2a33; color: #6db7e8; }
+.admin-tier-pro { background: #12332f; color: #35c9b1; }
+.admin-pagination { display: flex; align-items: center; gap: 12px; margin-top: 14px; font-size: 12px; color: var(--muted); }
+.admin-detail-modal, .admin-confirm-modal { max-width: 420px; }
+.admin-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+.admin-detail-grid span { display: flex; flex-direction: column; gap: 2px; }
+.admin-detail-grid small { color: var(--muted); font-size: 11px; }
+.admin-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.admin-action-message { margin-top: 10px; font-size: 13px; color: var(--mint); }

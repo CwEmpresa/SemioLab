@@ -796,6 +796,10 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
   const user = useUser();
   const defaultProfile = { name:user.name, role:defaultRole, email:user.email };
   const [panel, setPanel] = useState<ProfilePanel>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    fetch("/api/admin/is-admin").then((r) => (r.ok ? r.json() : null)).then((d) => setIsAdmin(!!d?.isAdmin)).catch(() => {});
+  }, []);
   useEffect(() => {
     if (!panel) return;
     document.body.classList.add("pwa-modal-open");
@@ -985,6 +989,7 @@ function Profile({ go, logout, theme, setTheme }: { go:(s:Screen)=>void; logout:
               <details><summary>Meu progresso não atualizou</summary><p>Conclua a atividade até a tela final. O XP é registrado somente após a conclusão.</p></details>
               <details><summary>Minha foto não aparece</summary><p>Escolha JPG, PNG ou WebP, com até 2 MB. A imagem fica salva na sua conta, não no dispositivo.</p></details>
               <a className="profile-dialog-primary" href="https://mail.google.com/mail/?view=cm&fs=1&to=suporte.semiolab@gmail.com&su=Suporte%20SemioLab" target="_blank" rel="noopener noreferrer"><Mail /> Falar com o suporte</a>
+              {isAdmin && <a className="profile-dialog-primary" href="/admin">Painel administrativo</a>}
             </>}
           </section>
         </div>,
