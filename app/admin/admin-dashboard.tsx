@@ -33,8 +33,13 @@ const FILTERS = [
 ] as const;
 
 function fmtDate(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+  if (!iso) return null;
+  return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
+}
+function tierOf(u: UserDetail): "free" | "trial" | "pro" {
+  if (u.subscription?.status === "active") return "pro";
+  if (u.trialStartedAt && Date.now() - new Date(u.trialStartedAt).getTime() < 7 * 24 * 60 * 60 * 1000) return "trial";
+  return "free";
 }
 function fmtUsd(n: number) {
   return `$${n.toFixed(4)}`;
@@ -124,11 +129,11 @@ export default function AdminDashboard() {
               <tr key={u.id} onClick={() => openDetail(u.id)}>
                 <td>{u.name || "—"}</td>
                 <td>{u.email}</td>
-                <td>{fmtDate(u.created_at)}</td>
+                <td>{fmtDate(u.created_at) ?? "—"}</td>
                 <td>{u.email_confirmed_at ? "Sim" : "Não"}</td>
-                <td>{fmtDate(u.last_sign_in_at)}</td>
+                <td>{fmtDate(u.last_sign_in_at) ?? "—"}</td>
                 <td><span className={`admin-tier admin-tier-${u.tier}`}>{u.tier}</span></td>
-                <td>{fmtDate(u.trial_started_at)}</td>
+                <td>{fmtDate(u.trial_started_at) ?? "—"}</td>
                 <td>{u.xp}</td>
               </tr>
             ))}
@@ -145,25 +150,67 @@ export default function AdminDashboard() {
         <div className="overlay pwa-modal-overlay" onMouseDown={() => setSelected(null)}>
           <section className="clinical-modal admin-detail-modal" onMouseDown={(e) => e.stopPropagation()}>
             <button className="close" onClick={() => setSelected(null)}>×</button>
-            <h2>{selected.name || "Sem nome"}</h2>
-            <p>{selected.email}</p>
-            <div className="admin-detail-grid">
-              <span><small>Cadastro</small><b>{fmtDate(selected.createdAt)}</b></span>
-              <span><small>Confirmado</small><b>{fmtDate(selected.emailConfirmedAt)}</b></span>
-              <span><small>Último login</small><b>{fmtDate(selected.lastSignInAt)}</b></span>
-              <span><small>Trial desde</small><b>{fmtDate(selected.trialStartedAt)}</b></span>
-              <span><small>Assinatura</small><b>{selected.subscription ? `${selected.subscription.plan} (${selected.subscription.status})` : "—"}</b></span>
-              <span><small>XP</small><b>{selected.xp}</b></span>
-              <span><small>Streak</small><b>{selected.streakDays} dias</b></span>
-              <span><small>Quiz / Simulado / Paciente</small><b>{selected.quizAttempts} / {selected.simuladoAttempts} / {selected.patientAttempts}</b></span>
-              <span><small>Custo IA total</small><b>{fmtUsd(selected.aiCostTotal)}</b></span>
-              <span><small>Notificações ativas</small><b>{selected.pushSubscriptions}</b></span>
+            <header className="admin-detail-head">
+              <h2>{selected.name || "Sem nome"}</h2>
+              <div className="admin-detail-email">
+                <span>{selected.email}</span>
+                <button
+                  className="admin-copy-btn"
+                  onClick={() => { navigator.clipboard?.writeText(selected.email); setActionMessage("E-mail copiado."); window.setTimeout(() => setActionMessage(""), 1800); }}
+                >
+                  Copiar
+                </button>
+              </div>
+              <div className="admin-badges">
+                <span className={selected.emailConfirmedAt ? "admin-badge admin-badge-ok" : "admin-badge admin-badge-warn"}>
+                  {selected.emailConfirmedAt ? "E-mail confirmado" : "E-mail pendente"}
+                </span>
+                <span className={`admin-badge admin-tier-${tierOf(selected)}`}>{tierOf(selected) === "free" ? "Free" : tierOf(selected) === "trial" ? "Trial" : "Pro"}</span>
+              </div>
+            </header>
+
+            <div className="admin-detail-block">
+              <h3>Conta</h3>
+              <div className="admin-detail-grid">
+                <span><small>Cadastro</small><b>{fmtDate(selected.createdAt) ?? "Data indisponível"}</b></span>
+                <span><small>Confirmado</small><b>{fmtDate(selected.emailConfirmedAt) ?? "Não confirmado"}</b></span>
+                <span><small>Último login</small><b>{fmtDate(selected.lastSignInAt) ?? "Nunca acessou"}</b></span>
+              </div>
             </div>
-            <div className="admin-actions">
-              <button disabled={!!selected.emailConfirmedAt} onClick={() => setConfirmAction("resend")}>Reenviar confirmação</button>
-              <button disabled={!selected.emailConfirmedAt} onClick={() => setConfirmAction("reset")}>Enviar recuperação de senha</button>
+
+            <div className="admin-detail-block">
+              <h3>Plano</h3>
+              <div className="admin-detail-grid">
+                <span><small>Trial desde</small><b>{fmtDate(selected.trialStartedAt) ?? "Sem período de teste"}</b></span>
+                <span><small>Assinatura</small><b>{selected.subscription ? `${selected.subscription.plan} (${selected.subscription.status})` : "Nenhuma assinatura"}</b></span>
+              </div>
             </div>
-            {actionMessage && <p className="admin-action-message">{actionMessage}</p>}
+
+            <div className="admin-detail-block">
+              <h3>Atividade</h3>
+              <div className="admin-detail-grid">
+                <span><small>XP</small><b>{selected.xp}</b></span>
+                <span><small>Streak</small><b>{selected.streakDays > 0 ? `${selected.streakDays} dias` : "Streak: 0 dias"}</b></span>
+                <span><small>Quiz / Simulado / Paciente</small><b>{selected.quizAttempts} / {selected.simuladoAttempts} / {selected.patientAttempts}</b></span>
+                <span><small>Custo IA total</small><b>{fmtUsd(selected.aiCostTotal)}</b></span>
+                <span><small>Notificações</small><b>{selected.pushSubscriptions > 0 ? `${selected.pushSubscriptions} dispositivo${selected.pushSubscriptions > 1 ? "s" : ""} ativo${selected.pushSubscriptions > 1 ? "s" : ""}` : "Nenhum dispositivo ativo"}</b></span>
+              </div>
+            </div>
+
+            <div className="admin-detail-block">
+              <h3>Suporte</h3>
+              <div className="admin-actions">
+                <button className="admin-action-btn admin-action-resend" disabled={!!selected.emailConfirmedAt} onClick={() => setConfirmAction("resend")}>
+                  Reenviar confirmação
+                </button>
+                {!selected.emailConfirmedAt ? null : <small className="admin-action-hint">E-mail já confirmado — reenvio não disponível.</small>}
+                <button className="admin-action-btn admin-action-reset" disabled={!selected.emailConfirmedAt} onClick={() => setConfirmAction("reset")}>
+                  Enviar recuperação de senha
+                </button>
+                {!selected.emailConfirmedAt && <small className="admin-action-hint">Disponível após a confirmação do e-mail.</small>}
+              </div>
+              {actionMessage && <p className="admin-action-message" role="status">{actionMessage}</p>}
+            </div>
           </section>
         </div>
       )}

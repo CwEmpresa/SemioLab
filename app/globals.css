@@ -10200,3 +10200,36 @@ body.pwa-modal-open { overflow: hidden; }
 .admin-detail-grid small { color: var(--muted); font-size: 11px; }
 .admin-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .admin-action-message { margin-top: 10px; font-size: 13px; color: var(--mint); }
+
+/* ── Modal de detalhes do usuário (admin) — largura/contraste/blocos ── */
+.admin-detail-modal { max-width: 620px; padding: 32px; }
+.admin-detail-head { margin-bottom: 22px; }
+.admin-detail-head h2 { font-size: 22px; margin-bottom: 8px; }
+.admin-detail-email { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.admin-detail-email span { color: #cfe8e2; font-size: 14px; word-break: break-all; }
+.admin-copy-btn { flex-shrink: 0; background: transparent; border: 1px solid var(--line); color: #cfe8e2; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+.admin-copy-btn:hover { background: #12332f; }
+.admin-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.admin-badge { padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.admin-badge-ok { background: #123a2f; color: #4ee6a8; }
+.admin-badge-warn { background: #3a2612; color: #f0a84e; }
+.admin-detail-block { padding: 18px 0; border-top: 1px solid var(--line); }
+.admin-detail-block:first-of-type { border-top: none; padding-top: 0; }
+.admin-detail-block h3 { font-size: 13px; color: var(--mint); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.admin-detail-block .admin-detail-grid { margin: 0; }
+.admin-detail-block .admin-detail-grid b { font-size: 14px; color: #f7fffd; }
+.admin-action-btn {
+  width: 100%; padding: 12px 16px; border-radius: 12px; font-weight: 700; font-size: 14px;
+  border: 1px solid transparent; background: transparent;
+}
+.admin-action-resend { background: linear-gradient(145deg, #2dc4ae, #078071); color: #04211c; }
+.admin-action-resend:disabled { background: transparent; border-color: var(--line); color: var(--muted); opacity: .7; }
+.admin-action-reset { background: transparent; border-color: #46d6c1; color: #cfe8e2; }
+.admin-action-reset:hover:not(:disabled) { background: #12332f; }
+.admin-action-reset:disabled { border-color: var(--line); color: var(--muted); opacity: .7; }
+.admin-action-hint { color: var(--muted); font-size: 11px; margin: -2px 0 4px; }
+.admin-action-message { padding: 10px 12px; border-radius: 10px; background: #12332f; }
+@media (max-width: 480px) {
+  .admin-detail-modal { padding: 20px; max-height: calc(100dvh - 40px); overflow-y: auto; }
+  .admin-detail-grid { grid-template-columns: 1fr; }
+}
