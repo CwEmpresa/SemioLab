@@ -14,7 +14,7 @@ import RankingExperience, { HomeRankCard } from "./ranking-experience";
 import PwaOnboarding, { NotificationSettingsPanel } from "./pwa-onboarding";
 import ProUpgradeModal, { openProUpgradeModal, DailyLimitInfoModal } from "./pro-upgrade-modal";
 import Avatar from "./avatar";
-import FirstExperience, { FirstExperienceCard } from "./first-experience";
+import FirstMicrocase, { type Step as MicrocaseStep } from "./first-microcase";
 import { HeartDashboardHero } from "@/components/ui/heart-dashboard-hero";
 import { createPortal } from "react-dom";
 import { useUser } from "./user-context";
@@ -316,7 +316,6 @@ function Top({ title, go }: { title?: string; go:(s:Screen)=>void }) {
 
 /* ─── HomePage ──────────────────────────────────────────────────── */
 function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
-  const user = useUser();
   const pageRef = useScreenTransition("home");
   const dashRef = useRef<HTMLDivElement>(null);
   const streakRef = useRef<HTMLDivElement>(null);
@@ -351,7 +350,6 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
   return (
     <div className="page home-page" ref={pageRef}>
       <Top go={go} />
-      <FirstExperienceCard go={go} userId={user.id} />
       <div className="dash" ref={dashRef}>
         <HeartDashboardHero
           onContinue={() => go("study")}
@@ -1101,6 +1099,13 @@ export default function SemioLab() {
   const [checkin, setCheckin] = useState(true);
   const [theme, setThemeState] = useState<AppTheme>("light");
   const user = useUser();
+  const [microcaseState, setMicrocaseState] = useState<{ loading: boolean; eligible: boolean; step: MicrocaseStep }>({ loading: true, eligible: false, step: "intro" });
+  useEffect(() => {
+    fetch("/api/first-experience/state")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setMicrocaseState({ loading: false, eligible: !!data?.eligible, step: (data?.step as MicrocaseStep) ?? "intro" }))
+      .catch(() => setMicrocaseState({ loading: false, eligible: false, step: "intro" }));
+  }, []);
 
   // A sidebar reserva 248px (aberta) de largura fixa no conteúdo. Em telas
   // médias (mesmo breakpoint já usado pelo grid do dashboard, <=1100px),
@@ -1165,6 +1170,22 @@ export default function SemioLab() {
     screen==="achievements" ? <Achievements go={go} /> :
                               <Profile go={go} logout={logout} theme={theme} setTheme={setThemeState} />;
 
+  if (microcaseState.loading) {
+    return <div className="fmc-boot-skeleton" aria-label="Carregando" />;
+  }
+  if (microcaseState.eligible) {
+    return (
+      <FirstMicrocase
+        initialStep={microcaseState.step}
+        onComplete={() => {
+          localStorage.setItem(`semiolab:${user.id}:first-exp-completion-shown`, "1");
+          window.dispatchEvent(new Event("semiolab:first-experience-completed"));
+          setMicrocaseState((s) => ({ ...s, eligible: false }));
+        }}
+      />
+    );
+  }
+
   return (
     <main className={`app screen-${screen}`}>
       <Navigation screen={screen} go={go} open={navOpen} setOpen={setNavOpen} />
@@ -1175,7 +1196,6 @@ export default function SemioLab() {
       <PwaOnboarding userId={user.id} />
       <ProUpgradeModal userId={user.id} />
       <DailyLimitInfoModal />
-      <FirstExperience userId={user.id} screen={screen} go={go} />
     </main>
   );
 }

@@ -10352,3 +10352,71 @@ body.pwa-modal-open { overflow: hidden; }
 .first-consult-suggestions { display: flex; flex-wrap: wrap; gap: 6px; }
 .first-consult-suggestions button { background: transparent; border: 1px solid var(--mint); color: #cfe8e2; font-size: 11px; padding: 5px 10px; border-radius: 999px; }
 .first-consult-suggestions button:hover { background: #12332f; }
+
+/* ── Microcaso guiado (primeira experiência) ───────────────────── */
+.fmc-boot-skeleton { position: fixed; inset: 0; background: #04141a; display: grid; place-items: center; }
+.fmc-boot-skeleton::after { content: ""; width: 48px; height: 48px; border-radius: 50%; border: 3px solid #12332f; border-top-color: var(--mint); animation: fmc-spin 0.9s linear infinite; }
+@keyframes fmc-spin { to { transform: rotate(360deg); } }
+.fmc-shell { position: fixed; inset: 0; z-index: 500; background: linear-gradient(160deg, #051920, #030d11); color: #eafdf8; overflow-y: auto; display: flex; flex-direction: column; }
+.fmc-progress { position: sticky; top: 0; height: 4px; background: rgba(255,255,255,.06); z-index: 2; }
+.fmc-progress i { display: block; height: 100%; background: linear-gradient(90deg, #2dc4ae, #078071); transition: width .4s ease; }
+.fmc-intro, .fmc-stage, .fmc-completion { max-width: 560px; width: 100%; margin: auto; padding: 48px 24px; animation: fmc-fade .4s ease both; }
+@keyframes fmc-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.fmc-intro small { color: var(--mint); letter-spacing: .12em; font-size: 12px; font-weight: 700; }
+.fmc-intro h1 { font-size: 26px; line-height: 1.35; margin: 14px 0 16px; font-weight: 700; }
+.fmc-intro p { color: var(--muted); font-size: 15px; line-height: 1.6; margin-bottom: 28px; }
+.fmc-cta { display: inline-flex; align-items: center; gap: 8px; padding: 14px 22px; border-radius: 14px; font-weight: 700; font-size: 15px; }
+.fmc-stage h2 { font-size: 19px; margin-bottom: 18px; }
+.fmc-patient-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.fmc-avatar { width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(145deg, #315b63, #17363e); display: grid; place-items: center; font-weight: 800; flex-shrink: 0; }
+.fmc-patient-header small { color: var(--muted); font-size: 12px; }
+.fmc-bubble { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; font-size: 15px; line-height: 1.6; margin-bottom: 14px; min-height: 1.6em; }
+.fmc-caret { display: inline-block; width: 2px; height: 1em; background: var(--mint); vertical-align: middle; margin-left: 2px; animation: fmc-blink 1s step-end infinite; }
+@keyframes fmc-blink { 50% { opacity: 0; } }
+.fmc-questions { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.fmc-questions button { text-align: left; background: transparent; border: 1px solid #46d6c1; color: #cfe8e2; padding: 12px 16px; border-radius: 12px; font-size: 14px; }
+.fmc-questions button:hover { background: #12332f; }
+.fmc-vitals { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin: 18px 0; }
+.fmc-vital { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; animation: fmc-fade .35s ease both; }
+.fmc-vital small { display: block; color: var(--muted); font-size: 11px; margin-bottom: 6px; }
+.fmc-vital b { font-size: 20px; }
+.fmc-vital-audio { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.fmc-vital-audio button { display: flex; align-items: center; gap: 6px; background: var(--mint); color: #04211c; border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 13px; }
+.fmc-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.fmc-options button { text-align: left; background: var(--surface); border: 1px solid var(--line); color: #eafdf8; padding: 14px 16px; border-radius: 12px; font-size: 14px; }
+.fmc-options button.selected { border-color: var(--mint); background: #12332f; }
+.fmc-hint, .fmc-processing { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+.fmc-feedback-ok { color: #4ee6a8; font-size: 14px; margin-bottom: 16px; }
+.fmc-feedback-info { color: #f0a84e; font-size: 14px; margin-bottom: 16px; }
+
+.fmc-xray-stage { max-width: 640px; }
+.fmc-xray-frame { position: relative; width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 16px; overflow: hidden; margin-bottom: 12px; touch-action: none; }
+.fmc-xray-frame img { width: 100%; height: 100%; object-fit: contain; user-select: none; transition: transform .1s ease; }
+.fmc-xray-skeleton { width: 100%; height: 100%; background: linear-gradient(100deg, #0a1c21 30%, #123138 50%, #0a1c21 70%); background-size: 200% 100%; animation: fmc-shimmer 1.4s infinite; }
+@keyframes fmc-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.fmc-xray-fallback { padding: 20px; color: #cfe8e2; font-size: 13px; line-height: 1.7; }
+.fmc-xray-marker { position: absolute; width: 70px; height: 50px; border: 2px solid #f0a84e; border-radius: 10px; transform: translate(-50%, -50%); animation: fmc-fade .4s ease both; }
+.fmc-xray-caption { color: var(--mint); font-size: 13px; margin-bottom: 14px; }
+.fmc-xray-controls { display: flex; gap: 8px; margin-bottom: 18px; }
+.fmc-xray-controls button { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); color: #cfe8e2; }
+
+.fmc-completion { text-align: center; }
+.fmc-ring { width: 96px; height: 96px; border-radius: 50%; border: 4px solid var(--mint); display: grid; place-items: center; margin: 0 auto 16px; animation: fmc-fade .5s ease both; }
+.fmc-ring span { font-size: 20px; font-weight: 800; color: var(--mint); }
+.fmc-badge { display: inline-block; background: #12332f; color: #4ee6a8; padding: 6px 14px; border-radius: 999px; font-size: 12px; margin-bottom: 14px; }
+.fmc-completion h1 { font-size: 22px; margin-bottom: 20px; }
+.fmc-checklist { list-style: none; padding: 0; margin: 0 0 20px; text-align: left; display: inline-flex; flex-direction: column; gap: 8px; }
+.fmc-checklist li { font-size: 13px; color: #cfe8e2; padding-left: 22px; position: relative; }
+.fmc-checklist li::before { content: "✓"; position: absolute; left: 0; color: var(--mint); font-weight: 800; }
+.fmc-note { color: var(--muted); font-size: 13px; line-height: 1.6; margin-bottom: 22px; }
+.fmc-secondary { display: block; margin: 10px auto 0; background: transparent; border: 0; color: var(--muted); font-size: 13px; text-decoration: underline; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fmc-shell, .fmc-intro, .fmc-stage, .fmc-completion, .fmc-vital, .fmc-xray-marker, .fmc-ring, .fmc-boot-skeleton::after, .fmc-xray-skeleton, .fmc-caret {
+    animation: none !important; transition: none !important;
+  }
+}
+@media (max-width: 480px) {
+  .fmc-intro, .fmc-stage, .fmc-completion { padding: 32px 18px; }
+  .fmc-intro h1 { font-size: 21px; }
+}

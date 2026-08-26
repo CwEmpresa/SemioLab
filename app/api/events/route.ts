@@ -5,7 +5,10 @@ import { createServiceClient } from "@/lib/supabase/service";
 export const dynamic = "force-dynamic";
 
 // Só estes — nunca evento arbitrário do cliente.
-const ALLOWED_EVENTS = ["checkout_clicked", "onboarding_started", "onboarding_skipped", "onboarding_completed"] as const;
+const ALLOWED_EVENTS = [
+  "checkout_clicked", "onboarding_started", "onboarding_skipped", "onboarding_completed",
+  "first_experience_viewed", "first_challenge_started", "first_question_answered", "first_challenge_completed", "next_activity_selected",
+] as const;
 
 const BodySchema = z.object({
   eventName: z.enum(ALLOWED_EVENTS),
@@ -15,6 +18,7 @@ const BodySchema = z.object({
   safeMetadata: z.object({
     plan: z.enum(["monthly", "annual"]).optional(),
     reason: z.string().max(40).optional(),
+    step: z.string().max(40).optional(),
   }).strict().optional(),
 });
 
