@@ -2,7 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
-export type AdminIdentity = { userId: string; role: "admin" | "super_admin" };
+export type AdminIdentity = { userId: string; role: "admin" | "super_admin"; email: string | null };
 
 /** Confirma que o usuário autenticado é admin. Nunca confia em nada vindo
  * do cliente — deriva tudo da sessão real e consulta admin_users via
@@ -17,7 +17,7 @@ export async function requireAdmin(): Promise<AdminIdentity | null> {
   const service = createServiceClient();
   const { data } = await service.from("admin_users").select("role").eq("user_id", user.id).maybeSingle();
   if (!data) return null;
-  return { userId: user.id, role: data.role as "admin" | "super_admin" };
+  return { userId: user.id, role: data.role as "admin" | "super_admin", email: user.email ?? null };
 }
 
 /** Registra uma ação administrativa — nunca inclui senha, token, segredo,
