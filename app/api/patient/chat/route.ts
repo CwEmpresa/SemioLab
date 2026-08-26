@@ -90,6 +90,49 @@ export async function POST(request: Request) {
   }
 
   const service = createServiceClient();
+
+  // Reserva atômica da pergunta ANTES de qualquer insert/streaming/chamada
+  // ao provedor: compare-and-swap — só avança message_count se o valor
+  // lido ainda for o mesmo (ninguém mais reservou nesse meio-tempo).
+  // Corrige uma corrida real (leitura/checagem/escrita não-atômicas
+  // permitiam múltiplas requisições concorrentes passarem no limite).
+  const questionsUsed = session.message_count + 1;
+  const { data: claimedSession } = await service
+    .from("patient_sessions")
+    .update({ message_count: questionsUsed })
+    .eq("id", sessionId)
+    .eq("status", "active")
+    .eq("message_count", session.message_count)
+    .select("id, case_id, message_count")
+    .maybeSingle();
+
+  if (!claimedSession) {
+    // Perdeu a corrida: relê o estado real para responder corretamente
+    // (limite atingido pela concorrente, ou só pede para tentar de novo).
+    const { data: latestSession } = await service
+      .from("patient_sessions")
+      .select("status, message_count")
+      .eq("id", sessionId)
+      .maybeSingle();
+
+    if (!latestSession || latestSession.status !== "active") {
+      return Response.json({ error: "Sessão inválida ou já encerrada.", code: "SESSION_NOT_ACTIVE" }, { status: 404 });
+    }
+    if (latestSession.message_count >= MAX_STUDENT_MESSAGES_PER_SESSION) {
+      return Response.json(
+        {
+          error: `Você atingiu o limite de ${MAX_STUDENT_MESSAGES_PER_SESSION} perguntas desta consulta. Finalize o atendimento.`,
+          limitReached: true,
+          code: "QUESTION_LIMIT_REACHED",
+          questionsUsed: latestSession.message_count,
+          questionsLimit: MAX_STUDENT_MESSAGES_PER_SESSION,
+        },
+        { status: 429 },
+      );
+    }
+    return Response.json({ error: "A sessão foi atualizada por outra requisição. Tente novamente.", code: "SESSION_UPDATED" }, { status: 409 });
+  }
+
   const [{ data: caseDetails }, { data: caseRow }] = await Promise.all([
     service.from("patient_case_details").select("hidden_case").eq("case_id", session.case_id).single(),
     service.from("patient_cases").select("opening_line").eq("id", session.case_id).single(),
@@ -97,10 +140,8 @@ export async function POST(request: Request) {
   if (!caseDetails) return Response.json({ error: "Caso clínico indisponível.", code: "CASE_NOT_FOUND" }, { status: 500 });
   const hidden = caseDetails.hidden_case as HiddenCase;
 
-  const questionsUsed = session.message_count + 1;
-
   // Defesa contra prompt injection: bloqueia ANTES de chamar o provedor.
-  // A pergunta recusada TAMBÉM conta no limite do atendimento.
+  // A pergunta recusada TAMBÉM conta no limite (já reservado acima).
   if (looksLikePromptInjection(message)) {
     await service.from("patient_messages").insert({ session_id: sessionId, role: "student", content: message });
     const { data: deflectionMessage } = await service
@@ -108,7 +149,6 @@ export async function POST(request: Request) {
       .insert({ session_id: sessionId, role: "patient", content: INJECTION_DEFLECTION })
       .select("id")
       .single();
-    await service.from("patient_sessions").update({ message_count: questionsUsed }).eq("id", sessionId);
     return new Response(deflectionMessage?.id ? `${INJECTION_DEFLECTION}\u0000MSGID:${deflectionMessage.id}` : INJECTION_DEFLECTION, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
@@ -170,8 +210,9 @@ export async function POST(request: Request) {
           const cutShort = shouldRetry(first);
           if (cutShort) {
             // No máximo 1 nova tentativa, com orçamento maior. NÃO consome
-            // outra pergunta do aluno (message_count já fixado abaixo), mas
-            // AMBAS as chamadas aparecem no log de custo.
+            // outra pergunta do aluno (message_count já foi reservado
+            // atomicamente no início da requisição), mas AMBAS as chamadas
+            // aparecem no log de custo.
             console.error("[patient/chat] etapa=retry status=aplicado", { motivo: first.finishReason });
             const retry = await runResponseStream(
               client,
@@ -200,7 +241,6 @@ export async function POST(request: Request) {
           // fixados antes do corpo do stream começar a ser gerado. O
           // cliente remove esse marcador antes de exibir o texto.
           if (savedMessage?.id) controller.enqueue(encoder.encode(`\u0000MSGID:${savedMessage.id}`));
-          await service.from("patient_sessions").update({ message_count: questionsUsed }).eq("id", sessionId);
           for (const usage of usageLog.length ? usageLog : [ZERO_USAGE]) {
             await logAiUsage(service, { userId: user.id, sessionId, operation: "chat", model: OPENAI_MODEL, usage });
           }
