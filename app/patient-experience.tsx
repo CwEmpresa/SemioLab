@@ -368,6 +368,18 @@ export default function PatientExperience({
       setLoadError("Não foi possível conectar ao servidor. Tente novamente.");
     }
   }
+
+  useEffect(() => {
+    // Vindo da Primeira Experiência: inicia a consulta real sem exigir
+    // novo clique. Reaproveita a MESMA start() (mesmo gate de Free já
+    // existente) — nunca duplica lógica nem pula a validação do backend.
+    if (sessionStorage.getItem("semiolab:auto-start-patient")) {
+      sessionStorage.removeItem("semiolab:auto-start-patient");
+      window.setTimeout(() => start(), 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function resetToWaitDueToInvalidSession(message: string) {
     // O servidor é a fonte de verdade: se a sessão não pertence mais ao
     // usuário autenticado ou já foi encerrada, descarta o estado local
