@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronRight, Stethoscope, Volume2, ZoomIn, ZoomOut, RotateCcw, Sun, Contrast } from "lucide-react";
-import { useLearningSummary } from "./use-learning-summary";
 import { useUser } from "./user-context";
 import { safeDisplayName } from "@/lib/level";
 import { BlurFade } from "@/components/ui/blur-fade";
@@ -34,10 +33,8 @@ const COMMUNICATION_OPTIONS = [
 ];
 
 export default function FirstMicrocase({ initialStep, onComplete }: { initialStep: Step; onComplete: () => void }) {
-  const { summary } = useLearningSummary();
   const user = useUser();
   const doctorName = safeDisplayName(user.name, user.email);
-  const tier: "free" | "trial" | "pro" = (summary?.pro?.tier as "free" | "trial" | "pro") ?? "trial";
   const [step, setStep] = useState<Step>(initialStep === "completed" ? "intro" : initialStep);
   const [messages, setMessages] = useState<{ from: "doctor" | "patient"; text: string; time: string }[]>([]);
   const [typing, setTyping] = useState(false);
@@ -53,8 +50,6 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
   const [hypothesisResult, setHypothesisResult] = useState<"correct" | "incorrect" | null>(null);
   const [communicationChoice, setCommunicationChoice] = useState<string | null>(null);
   const [xpAwarded, setXpAwarded] = useState(false);
-  const [confettiFired, setConfettiFired] = useState(false);
-  const [showInstallModal, setShowInstallModal] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -147,10 +142,13 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
     } catch { /* segue mesmo se a rede falhar momentaneamente */ }
   };
 
+  const confettiFiredRef = useRef(false);
   useEffect(() => {
-    if (step !== "completed" || confettiFired) return;
+    if (step !== "completed" || confettiFiredRef.current) return;
     const startTimer = window.setTimeout(() => {
-      setConfettiFired(true);
+      // Ref, não state: marcar aqui não pode disparar um re-render que
+      // re-executa este efeito e cancela a própria animação recém-iniciada.
+      confettiFiredRef.current = true;
       if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
       const duration = 1200;
       const end = Date.now() + duration;
@@ -163,9 +161,7 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
       rafRef.current = requestAnimationFrame(frame);
     }, 0);
     return () => { window.clearTimeout(startTimer); if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [step, confettiFired]);
-
-  const nextActivityHref = "patient";
+  }, [step]);
 
   if (typeof document === "undefined") return null;
 
@@ -345,85 +341,61 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
 
       {step === "completed" && (
         <section className="fmc-completion fmc-report">
-          <div className="fmc-ring"><span>{xpAwarded ? "+25" : "✓"}</span></div>
-          <b className="fmc-badge">Primeiro atendimento concluído</b>
-          <h1>Você acabou de transformar teoria em decisão clínica.</h1>
+          <BlurFade delay={0.08}>
+            <div className="fmc-ring"><span>{xpAwarded ? "+25" : "✓"}</span></div>
+          </BlurFade>
 
-          <div className="fmc-report-block">
-            <h3>Resumo do caso</h3>
-            <p>Ana Maria, 34 anos — febre, tosse produtiva, dor ventilatório-dependente à direita e dispneia há 3 dias. Ausculta com estertores na base direita; radiografia com consolidação na base pulmonar direita. Hipótese final registrada: <b>{hypothesisChoice}</b>.</p>
-          </div>
+          <BlurFade delay={0.2}>
+            <b className="fmc-badge">Primeiro atendimento concluído</b>
+            <h1>Você acabou de transformar teoria em decisão clínica.</h1>
+          </BlurFade>
 
-          <div className="fmc-report-block">
-            <h3>Pontos fortes</h3>
-            <ul className="fmc-checklist">
-              <li>Conduziu a anamnese e o exame físico</li>
-              <li>Solicitou o exame de imagem correto</li>
-              {interpretationFeedback === "correct" && <li>Interpretou corretamente a radiografia</li>}
-              {hypothesisResult === "correct" && <li>Chegou à hipótese correta{hypothesisAttempts > 1 ? " após revisar" : ""}</li>}
-              {communicationChoice === COMMUNICATION_OPTIONS[0] && <li>Comunicou o resultado de forma clara e humana</li>}
-            </ul>
-          </div>
+          <BlurFade delay={0.32}>
+            <div className="fmc-report-card">
+              <h3>Resumo do caso</h3>
+              <p>Ana Maria, 34 anos — febre, tosse produtiva, dor ventilatório-dependente à direita e dispneia há 3 dias. Ausculta com estertores na base direita; radiografia com consolidação na base pulmonar direita. Hipótese final registrada: <b>{hypothesisChoice}</b>.</p>
+            </div>
+          </BlurFade>
 
-          {(interpretationFeedback === "wrong" || hypothesisResult === "incorrect" || (communicationChoice && communicationChoice !== COMMUNICATION_OPTIONS[0])) && (
-            <div className="fmc-report-block">
-              <h3>Ponto para revisar</h3>
-              <ul className="fmc-checklist fmc-checklist-warn">
-                {interpretationFeedback === "wrong" && <li>Releia os sinais radiológicos de consolidação na base pulmonar direita</li>}
-                {hypothesisResult === "incorrect" && <li>Revise os critérios diagnósticos de pneumonia adquirida na comunidade</li>}
-                {communicationChoice && communicationChoice !== COMMUNICATION_OPTIONS[0] && <li>Pratique uma comunicação mais clara e humana com o paciente</li>}
+          <BlurFade delay={0.44}>
+            <div className="fmc-report-card">
+              <h3>Pontos fortes</h3>
+              <ul className="fmc-checklist">
+                <li>Conduziu a anamnese e o exame físico</li>
+                <li>Solicitou o exame de imagem correto</li>
+                {interpretationFeedback === "correct" && <li>Interpretou corretamente a radiografia</li>}
+                {hypothesisResult === "correct" && <li>Chegou à hipótese correta{hypothesisAttempts > 1 ? " após revisar" : ""}</li>}
+                {communicationChoice === COMMUNICATION_OPTIONS[0] && <li>Comunicou o resultado de forma clara e humana</li>}
               </ul>
             </div>
+          </BlurFade>
+
+          {(interpretationFeedback === "wrong" || hypothesisResult === "incorrect" || (communicationChoice && communicationChoice !== COMMUNICATION_OPTIONS[0])) && (
+            <BlurFade delay={0.56}>
+              <div className="fmc-report-card">
+                <h3>Ponto para revisar</h3>
+                <ul className="fmc-checklist fmc-checklist-warn">
+                  {interpretationFeedback === "wrong" && <li>Releia os sinais radiológicos de consolidação na base pulmonar direita</li>}
+                  {hypothesisResult === "incorrect" && <li>Revise os critérios diagnósticos de pneumonia adquirida na comunidade</li>}
+                  {communicationChoice && communicationChoice !== COMMUNICATION_OPTIONS[0] && <li>Pratique uma comunicação mais clara e humana com o paciente</li>}
+                </ul>
+              </div>
+            </BlurFade>
           )}
 
-          <p className="fmc-note">E isso foi apenas um atendimento guiado. No Paciente IA, cada conversa e decisão muda de acordo com o caso.</p>
-
-          <button
-            className="primary fmc-cta fmc-cta-centered"
-            onClick={() => {
-              logEvent("next_activity_selected", "first_microcase", nextActivityHref);
-              if (tier !== "free") sessionStorage.setItem("semiolab:auto-start-patient", "1");
-              onComplete();
-            }}
-          >
-            Atender meu primeiro paciente <ChevronRight />
-          </button>
-          <button className="fmc-secondary" onClick={() => setShowInstallModal(true)}>Instalar e explorar o SemioLab</button>
+          <BlurFade delay={0.68}>
+            <button
+              className="primary fmc-cta fmc-cta-centered"
+              onClick={() => {
+                logEvent("next_activity_selected", "first_microcase", "dashboard");
+                onComplete();
+              }}
+            >
+              Começar no SemioLab <ChevronRight />
+            </button>
+          </BlurFade>
         </section>
       )}
-
-      {showInstallModal && <InstallOnlyModal onClose={() => { setShowInstallModal(false); onComplete(); }} />}
-    </div>,
-    document.body,
-  );
-}
-
-function InstallOnlyModal({ onClose }: { onClose: () => void }) {
-  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
-  const isIos = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
-
-  useEffect(() => {
-    const onPrompt = (e: Event) => { e.preventDefault(); setDeferredPrompt(e); };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
-  }, []);
-
-  return createPortal(
-    <div className="overlay pwa-modal-overlay" onMouseDown={onClose}>
-      <section className="clinical-modal fmc-install-modal" onMouseDown={(e) => e.stopPropagation()}>
-        <h2>Instalar o SemioLab</h2>
-        {isIos ? (
-          <p>No iPhone/iPad: toque em <b>Compartilhar</b> na barra do Safari e depois em <b>Adicionar à Tela de Início</b>.</p>
-        ) : deferredPrompt ? (
-          <p>Instale o app para acesso rápido, direto da tela inicial do seu dispositivo.</p>
-        ) : (
-          <p>Use o menu do navegador e escolha <b>Instalar app</b> (ou <b>Adicionar à tela inicial</b>).</p>
-        )}
-        {!isIos && deferredPrompt && (
-          <button className="primary fmc-cta" onClick={async () => { (deferredPrompt as unknown as { prompt: () => void }).prompt(); onClose(); }}>Instalar agora</button>
-        )}
-        <button className="fmc-secondary" onClick={onClose}>{isIos ? "Continuar no navegador" : "Continuar sem instalar"}</button>
-      </section>
     </div>,
     document.body,
   );

@@ -107,25 +107,38 @@ export function NotificationSettingsPanel() {
   );
 }
 
+export function pwaInstallPending(userId: string): boolean {
+  if (typeof window === "undefined") return false;
+  if (isStandalone()) return false;
+  if (localStorage.getItem(`semiolab:${userId}:pwa-install-seen`)) return false;
+  return firstExperienceCompletionAcknowledged(userId);
+}
+
 export default function PwaOnboarding({ userId }: { userId: string }) {
-  const [step, setStep] = useState<"hidden" | "notifications" | "install">("hidden");
+  const [step, setStep] = useState<"hidden" | "install" | "notifications">("hidden");
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
 
   useEffect(() => {
-    // Só pode aparecer sozinho depois da 1ª atividade concluída (nunca no
-    // primeiro login) — reavalia também quando essa condição muda, sem
-    // precisar recarregar a página. Abrir manualmente pelo Perfil
-    // (NotificationSettingsPanel) continua sempre disponível, sem essa
-    // trava.
-    const check = () => {
-      if (isStandalone()) return;
-      if (localStorage.getItem(`semiolab:${userId}:pwa-onboarding-seen`)) return;
-      if (!firstExperienceCompletionAcknowledged(userId)) return;
-      setStep("notifications");
+    // Prioridade exclusiva: 1) instalação, 2) notificações só depois da
+    // instalação confirmada (na próxima abertura do PWA já instalado),
+    // 3) nunca os dois juntos. Reavalia sem precisar recarregar a página.
+    const checkInstall = () => {
+      if (pwaInstallPending(userId)) setStep("install");
     };
-    check();
-    window.addEventListener("semiolab:first-experience-completed", check);
-    return () => window.removeEventListener("semiolab:first-experience-completed", check);
+    const checkNotifications = () => {
+      if (!isStandalone()) return; // nunca pede fora do PWA instalado
+      if (!localStorage.getItem(`semiolab:${userId}:pwa-notif-pending`)) return;
+      if (typeof Notification === "undefined" || Notification.permission !== "default") {
+        // já decidido (concedido/negado) por outro caminho — nunca pede de novo
+        localStorage.removeItem(`semiolab:${userId}:pwa-notif-pending`);
+        return;
+      }
+      setStep((s) => (s === "install" ? s : "notifications"));
+    };
+    checkInstall();
+    checkNotifications();
+    window.addEventListener("semiolab:first-experience-completed", checkInstall);
+    return () => window.removeEventListener("semiolab:first-experience-completed", checkInstall);
   }, [userId]);
 
   useEffect(() => {
@@ -134,33 +147,52 @@ export default function PwaOnboarding({ userId }: { userId: string }) {
     return () => window.removeEventListener("beforeinstallprompt", onPrompt);
   }, []);
 
-  const finish = () => {
-    localStorage.setItem(`semiolab:${userId}:pwa-onboarding-seen`, "1");
+  const finishInstall = (accepted: boolean) => {
+    localStorage.setItem(`semiolab:${userId}:pwa-install-seen`, "1");
+    if (accepted) {
+      // Não pede notificação agora — só marca pendente para a próxima
+      // abertura já dentro do PWA instalado (display-mode: standalone).
+      localStorage.setItem(`semiolab:${userId}:pwa-notif-pending`, "1");
+    }
     setStep("hidden");
+    // Libera outros popups (ex.: Pro diário) que ficaram bloqueados
+    // esperando a instalação ser resolvida.
+    window.dispatchEvent(new Event("semiolab:pwa-install-resolved"));
   };
+  const finishNotifications = () => setStep("hidden");
 
   useModalBodyLock(step !== "hidden");
   if (step === "hidden") return null;
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="overlay pwa-modal-overlay" onMouseDown={finish}>
+    <div className="overlay pwa-modal-overlay" onMouseDown={() => (step === "install" ? finishInstall(false) : finishNotifications())}>
       <section className="clinical-modal pwa-onboarding-modal" onMouseDown={(e) => e.stopPropagation()}>
-        {step === "notifications" ? (
-          <>
-            <h2>Ativar notificações?</h2>
-            <p>Avisamos quando um novo paciente ou simulado estiver disponível, e lembramos você antes de perder o streak — no máximo 2 avisos por dia.</p>
-            <button className="primary" onClick={async () => { await enablePushNotifications(); setStep("install"); }}>Ativar notificações</button>
-            <button onClick={() => setStep("install")}>Agora não</button>
-          </>
-        ) : (
+        {step === "install" ? (
           <>
             <h2>Instale o SemioLab</h2>
             <InstallSteps />
             {!isIos() && deferredPrompt && (
-              <button className="primary" onClick={async () => { (deferredPrompt as unknown as { prompt: () => void }).prompt(); finish(); }}>Instalar agora</button>
+              <button
+                className="primary"
+                onClick={async () => {
+                  const promptEvent = deferredPrompt as unknown as { prompt: () => void; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
+                  promptEvent.prompt();
+                  const choice = await promptEvent.userChoice.catch(() => ({ outcome: "dismissed" as const }));
+                  finishInstall(choice.outcome === "accepted");
+                }}
+              >
+                Instalar o SemioLab
+              </button>
             )}
-            <button onClick={finish}>Concluir</button>
+            <button onClick={() => finishInstall(isStandalone())}>{isIos() || !deferredPrompt ? "Continuar no navegador" : "Agora não"}</button>
+          </>
+        ) : (
+          <>
+            <h2>Ativar notificações?</h2>
+            <p>Avisamos quando um novo paciente ou simulado estiver disponível, e lembramos você antes de perder o streak — no máximo 2 avisos por dia.</p>
+            <button className="primary" onClick={async () => { await enablePushNotifications(); finishNotifications(); }}>Ativar notificações</button>
+            <button onClick={finishNotifications}>Agora não</button>
           </>
         )}
       </section>

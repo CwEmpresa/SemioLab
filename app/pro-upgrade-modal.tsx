@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { pwaInstallPending } from "./pwa-onboarding";
 import { createPortal } from "react-dom";
 import { ArrowLeft, Check, HeartPulse, ShieldCheck, Sparkles, X } from "lucide-react";
 import { useLearningSummary } from "./use-learning-summary";
@@ -70,6 +71,7 @@ export function DailyLimitInfoModal() {
 export default function ProUpgradeModal({ userId }: { userId: string }) {
   const { summary: learning } = useLearningSummary();
   const [reason, setReason] = useState<ProUpgradeReason | null>(null);
+  const [installResolvedTick, setInstallResolvedTick] = useState(0);
   const [plan, setPlan] = useState<"monthly" | "annual">("annual");
   const [checkoutLoading, setCheckoutLoading] = useState<"monthly" | "annual" | null>(null);
 
@@ -87,6 +89,9 @@ export default function ProUpgradeModal({ userId }: { userId: string }) {
   // usuário, via localStorage — nunca compartilhado entre contas.
   useEffect(() => {
     if (!learning?.pro || reason) return;
+    // Nunca junto com o modal de instalação — instalação sempre vem
+    // primeiro, na ordem exclusiva de popups.
+    if (pwaInstallPending(userId)) return;
     const tier = learning.pro.tier;
     const eligible = tier === "free" || (tier === "trial" && (learning.pro.trialDaysLeft ?? 7) <= 5);
     if (!eligible) return;
@@ -95,7 +100,15 @@ export default function ProUpgradeModal({ userId }: { userId: string }) {
     localStorage.setItem(key, "1");
     const timer = window.setTimeout(() => setReason("daily"), 0);
     return () => window.clearTimeout(timer);
-  }, [learning?.pro, userId, reason]);
+  }, [learning?.pro, userId, reason, installResolvedTick]);
+
+  useEffect(() => {
+    // Reavalia o gatilho diário assim que a instalação for resolvida —
+    // sem isso, ficaria bloqueado até o próximo recarregamento.
+    const bump = () => setInstallResolvedTick((n) => n + 1);
+    window.addEventListener("semiolab:pwa-install-resolved", bump);
+    return () => window.removeEventListener("semiolab:pwa-install-resolved", bump);
+  }, []);
 
   useEffect(() => {
     if (!reason) return;
