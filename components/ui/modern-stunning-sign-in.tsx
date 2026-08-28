@@ -171,7 +171,7 @@ const SignIn1 = ({ onSignIn, initialMode = "signin" }: SignIn1Props) => {
 
   if (awaitingConfirmation) {
     return (
-      <main className="relative flex min-h-dvh w-full items-center justify-center overflow-x-hidden overflow-y-auto bg-[#041216] px-4 py-6 font-sans text-white sm:px-6 sm:py-8">
+      <main className="relative flex min-h-screen min-h-dvh w-full items-center justify-center overflow-x-hidden overflow-y-auto bg-[#041216] px-4 py-6 font-sans text-white sm:px-6 sm:py-8">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(53,201,177,0.22),transparent_32%),radial-gradient(circle_at_86%_85%,rgba(29,137,122,0.18),transparent_31%),linear-gradient(145deg,#041216,#08272c_52%,#06231f)]" />
         <div className="relative z-10 w-full max-w-md rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.11] via-white/[0.055] to-white/[0.025] p-6 text-center shadow-[0_30px_90px_rgba(0,0,0,0.5)] backdrop-blur-2xl sm:p-8">
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#6ee7d2]/20 bg-[#00110d]/80 shadow-[0_12px_35px_rgba(53,201,177,0.2)]">
@@ -214,7 +214,7 @@ const SignIn1 = ({ onSignIn, initialMode = "signin" }: SignIn1Props) => {
   }
 
   return (
-    <main className="relative flex min-h-dvh w-full items-center justify-center overflow-x-hidden overflow-y-auto bg-[#041216] px-4 py-6 font-sans text-white sm:px-6 sm:py-8">
+    <main className="relative flex min-h-screen min-h-dvh w-full items-center justify-center overflow-x-hidden overflow-y-auto bg-[#041216] px-4 py-6 font-sans text-white sm:px-6 sm:py-8">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(53,201,177,0.22),transparent_32%),radial-gradient(circle_at_86%_85%,rgba(29,137,122,0.18),transparent_31%),linear-gradient(145deg,#041216,#08272c_52%,#06231f)]" />
       <div className="pointer-events-none absolute -left-32 -top-40 h-96 w-96 rounded-full border border-[#6ee7d2]/10 shadow-[0_0_0_80px_rgba(53,201,177,0.025),0_0_0_160px_rgba(53,201,177,0.018)]" />
       <div className="pointer-events-none absolute -bottom-44 -right-36 h-96 w-96 rounded-full border border-[#6ee7d2]/10 shadow-[0_0_0_80px_rgba(53,201,177,0.025),0_0_0_160px_rgba(53,201,177,0.018)]" />

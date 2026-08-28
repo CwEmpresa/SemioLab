@@ -22,6 +22,13 @@ export default function LoginGate() {
     return () => window.clearTimeout(t);
   }, []);
 
+  useEffect(() => {
+    // Cada estágio é uma "página" nova — nunca herda posição de rolagem
+    // do estágio anterior (ex.: clicar em "Já tenho uma conta" perto do
+    // fim de uma apresentação rolada não pode deixar o login já rolado).
+    window.scrollTo(0, 0);
+  }, [stage]);
+
   if (stage === "checking") return <div className="onboarding-checking" aria-hidden />;
   if (stage === "splash") return <SplashScreen onDone={() => setStage("presentation")} />;
   if (stage === "presentation") {

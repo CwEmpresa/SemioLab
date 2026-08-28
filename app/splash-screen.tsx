@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export const SPLASH_STORAGE_KEY = "semiolab:first-open-splash:v2";
+export const SPLASH_STORAGE_KEY = "semiolab:first-open-splash:v3";
 
 export default function SplashScreen({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<"in" | "hold" | "out">("in");
@@ -32,7 +32,7 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
   return (
     <div className="splash-screen">
       <img
-        src="/semiolab-logo.png"
+        src="/brand/semiolab-neon-logo.png"
         alt="SemioLab"
         className={`splash-logo splash-${reducedMotion ? "static" : phase}`}
       />
