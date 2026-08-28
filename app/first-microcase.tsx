@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronRight, Stethoscope, Volume2, ZoomIn, ZoomOut, RotateCcw, Sun, Contrast } from "lucide-react";
 import { useLearningSummary } from "./use-learning-summary";
+import { useUser } from "./user-context";
+import { safeDisplayName } from "@/lib/level";
 
 export type Step = "intro" | "conversation" | "exam" | "xray_request" | "xray_viewer" | "interpretation" | "hypothesis" | "completed";
 
@@ -26,6 +28,8 @@ const HYPOTHESIS_OPTIONS = ["Pneumonia adquirida na comunidade", "Embolia pulmon
 
 export default function FirstMicrocase({ initialStep, onComplete }: { initialStep: Step; onComplete: () => void }) {
   const { summary } = useLearningSummary();
+  const user = useUser();
+  const doctorName = safeDisplayName(user.name, user.email);
   const tier: "free" | "trial" | "pro" = (summary?.pro?.tier as "free" | "trial" | "pro") ?? "trial";
   const [step, setStep] = useState<Step>(initialStep === "completed" ? "intro" : initialStep);
   const [typedText, setTypedText] = useState("");
@@ -38,6 +42,8 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
   const [interpretationChoice, setInterpretationChoice] = useState<string | null>(null);
   const [interpretationFeedback, setInterpretationFeedback] = useState<"correct" | "wrong" | null>(null);
   const [hypothesisChoice, setHypothesisChoice] = useState<string | null>(null);
+  const [hypothesisAttempts, setHypothesisAttempts] = useState(0);
+  const [hypothesisResult, setHypothesisResult] = useState<"correct" | "incorrect" | null>(null);
   const [xpAwarded, setXpAwarded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -49,7 +55,7 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
 
   useEffect(() => {
     if (step !== "conversation") return;
-    const opening = "Boa tarde, doutor(a)... obrigada por me atender.";
+    const opening = "Oi, doutor. Não estou muito bem... Estou com falta de ar e um mal-estar forte há alguns dias.";
     let i = 0;
     const timer = window.setInterval(() => {
       i += 1;
@@ -94,6 +100,25 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
     setInterpretationFeedback(option === INTERPRETATION_OPTIONS[0] ? "correct" : "wrong");
   };
 
+  const answerHypothesis = (option: string) => {
+    if (hypothesisResult) return; // já concluiu (acerto ou 2ª tentativa) — trava a escolha
+    setHypothesisChoice(option);
+    const attempt = hypothesisAttempts + 1;
+    setHypothesisAttempts(attempt);
+    const isCorrect = option === HYPOTHESIS_OPTIONS[0];
+    if (isCorrect) {
+      setHypothesisResult("correct");
+      logEvent("first_question_answered", "first_microcase", "hypothesis_correct");
+      return;
+    }
+    if (attempt >= 2) {
+      // Duas erradas: nunca mostra acerto — revela a alternativa certa.
+      setHypothesisResult("incorrect");
+      logEvent("first_question_answered", "first_microcase", "hypothesis_incorrect");
+    }
+    // 1ª errada: não fixa resultado, permite tentar de novo.
+  };
+
   const finish = async () => {
     changeStep("completed");
     logEvent("first_challenge_completed", "first_microcase");
@@ -124,13 +149,16 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
         </section>
       )}
 
-      {step === "conversation" && (
-        <section className="fmc-stage">
+      {(step === "conversation" || step === "exam" || step === "xray_request") && (
+        <section className="fmc-stage fmc-timeline">
           <header className="fmc-patient-header">
             <i className="fmc-avatar">AM</i>
             <span><b>Ana Maria</b><small>34 anos · Motivo informado na recepção: dor no peito e falta de ar</small></span>
           </header>
+
+          <div className="fmc-bubble fmc-bubble-doctor">Oi, Ana Maria! Prazer, sou o Dr. {doctorName}. Tudo bem? O que você está sentindo?</div>
           <div className="fmc-bubble fmc-bubble-patient">{typedText}<i className="fmc-caret" /></div>
+
           {typedText.length >= 30 && (
             <div className="fmc-questions">
               {QUESTIONS.filter((q) => !askedIds.includes(q.id)).map((q) => (
@@ -139,48 +167,50 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
               {lastAnswer !== null && <div className="fmc-bubble fmc-bubble-patient">{lastAnswer}</div>}
             </div>
           )}
-          {askedIds.length >= 2 && (
+
+          {/* Só aparece depois da ÚLTIMA pergunta configurada ser respondida. */}
+          {step === "conversation" && askedIds.length >= QUESTIONS.length && (
             <button className="primary fmc-cta" onClick={() => changeStep("exam")}>Examinar paciente <ChevronRight /></button>
           )}
-        </section>
-      )}
 
-      {step === "exam" && (
-        <section className="fmc-stage">
-          <h2>Exame físico</h2>
-          {examRevealed.length === 0 ? (
-            <button className="primary fmc-cta" onClick={revealExam}><Stethoscope /> Examinar paciente</button>
-          ) : (
-            <div className="fmc-vitals">
-              {examRevealed.includes("temp") && <div className="fmc-vital"><small>Temperatura</small><b>38,6 °C</b></div>}
-              {examRevealed.includes("fr") && <div className="fmc-vital"><small>Frequência respiratória</small><b>26 irpm</b></div>}
-              {examRevealed.includes("spo2") && <div className="fmc-vital"><small>Saturação</small><b>93%</b></div>}
-              {examRevealed.includes("estertores") && (
-                <div className="fmc-vital fmc-vital-audio">
-                  <small>Ausculta pulmonar — base direita</small>
-                  <b>Estertores</b>
-                  <button onClick={() => audioRef.current?.play()}><Volume2 /> Ouvir</button>
-                  <audio ref={audioRef} src="/media/auscultation/f158a62caa3880d4.mp3" preload="none" />
+          {(step === "exam" || step === "xray_request") && (
+            <div className="fmc-timeline-block">
+              <h2>Exame físico</h2>
+              {examRevealed.length === 0 ? (
+                <button className="primary fmc-cta" onClick={revealExam}><Stethoscope /> Examinar paciente</button>
+              ) : (
+                <div className="fmc-vitals">
+                  {examRevealed.includes("temp") && <div className="fmc-vital"><small>Temperatura</small><b>38,6 °C</b></div>}
+                  {examRevealed.includes("fr") && <div className="fmc-vital"><small>Frequência respiratória</small><b>26 irpm</b></div>}
+                  {examRevealed.includes("spo2") && <div className="fmc-vital"><small>Saturação</small><b>93%</b></div>}
+                  {examRevealed.includes("estertores") && (
+                    <div className="fmc-vital fmc-vital-audio">
+                      <small>Ausculta pulmonar — base direita</small>
+                      <b>Estertores</b>
+                      <button onClick={() => audioRef.current?.play()}><Volume2 /> Ouvir</button>
+                      <audio ref={audioRef} src="/media/auscultation/f158a62caa3880d4.mp3" preload="none" />
+                    </div>
+                  )}
                 </div>
+              )}
+              {step === "exam" && examRevealed.includes("estertores") && (
+                <button className="primary fmc-cta" onClick={() => changeStep("xray_request")}>Solicitar exame <ChevronRight /></button>
               )}
             </div>
           )}
-          {examRevealed.includes("estertores") && (
-            <button className="primary fmc-cta" onClick={() => changeStep("xray_request")}>Solicitar exame <ChevronRight /></button>
-          )}
-        </section>
-      )}
 
-      {step === "xray_request" && (
-        <section className="fmc-stage">
-          <h2>Qual exame você solicita?</h2>
-          <div className="fmc-options">
-            {XRAY_OPTIONS.map((o) => (
-              <button key={o} className={xrayChoice === o ? "selected" : ""} onClick={() => chooseXray(o)}>{o}</button>
-            ))}
-          </div>
-          {xrayWrongHint && <p className="fmc-hint">Esse exame não é o mais indicado para este quadro. Pense no que a ausculta sugeriu.</p>}
-          {xrayProcessing && <p className="fmc-processing">Processando radiografia...</p>}
+          {step === "xray_request" && (
+            <div className="fmc-timeline-block">
+              <h2>Qual exame você solicita?</h2>
+              <div className="fmc-options">
+                {XRAY_OPTIONS.map((o) => (
+                  <button key={o} className={xrayChoice === o ? "selected" : ""} onClick={() => chooseXray(o)}>{o}</button>
+                ))}
+              </div>
+              {xrayWrongHint && <p className="fmc-hint">Esse exame não é o mais indicado para este quadro. Pense no que a ausculta sugeriu.</p>}
+              {xrayProcessing && <p className="fmc-processing">Processando radiografia...</p>}
+            </div>
+          )}
         </section>
       )}
 
@@ -210,10 +240,28 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
           <h2>Qual é a principal hipótese clínica?</h2>
           <div className="fmc-options">
             {HYPOTHESIS_OPTIONS.map((o) => (
-              <button key={o} className={hypothesisChoice === o ? "selected" : ""} onClick={() => setHypothesisChoice(o)}>{o}</button>
+              <button
+                key={o}
+                disabled={!!hypothesisResult}
+                className={hypothesisChoice === o ? "selected" : ""}
+                onClick={() => answerHypothesis(o)}
+              >
+                {o}
+              </button>
             ))}
           </div>
-          {hypothesisChoice && <button className="primary fmc-cta" onClick={finish}>Concluir atendimento <ChevronRight /></button>}
+          {!hypothesisResult && hypothesisAttempts === 1 && (
+            <p className="fmc-feedback-info">Não foi essa. Você tem mais uma tentativa.</p>
+          )}
+          {hypothesisResult === "correct" && (
+            <p className="fmc-feedback-ok">Correto — o quadro é compatível com pneumonia adquirida na comunidade.</p>
+          )}
+          {hypothesisResult === "incorrect" && (
+            <p className="fmc-feedback-info">
+              Não foi dessa vez. A hipótese correta é <b>{HYPOTHESIS_OPTIONS[0]}</b> — febre, tosse produtiva, dor ventilatório-dependente e consolidação na base direita formam esse quadro clássico.
+            </p>
+          )}
+          {hypothesisResult && <button className="primary fmc-cta" onClick={finish}>Concluir atendimento <ChevronRight /></button>}
         </section>
       )}
 
