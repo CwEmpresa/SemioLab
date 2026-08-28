@@ -26,6 +26,54 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
   const [error, setError] = React.useState("");
   const [notice, setNotice] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [pendingEmail, setPendingEmail] = React.useState(() =>
+    typeof window === "undefined" ? "" : sessionStorage.getItem("semiolab:pending-confirmation-email") || "",
+  );
+  const [awaitingConfirmation, setAwaitingConfirmation] = React.useState(() =>
+    typeof window === "undefined" ? false : !!sessionStorage.getItem("semiolab:pending-confirmation-email"),
+  );
+  const [resendCooldown, setResendCooldown] = React.useState(0);
+  const [resendStatus, setResendStatus] = React.useState<"idle" | "sending" | "sent" | "error" | "rate-limited">("idle");
+  const [confirmedBanner] = React.useState(() =>
+    typeof window === "undefined" ? false : new URLSearchParams(window.location.search).get("confirmed") === "1",
+  );
+
+  React.useEffect(() => {
+    // Limpa o parâmetro da URL depois de ler — nunca deixa rastro nela.
+    if (confirmedBanner) window.history.replaceState({}, "", window.location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  React.useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setInterval(() => setResendCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
+
+  function maskEmail(value: string) {
+    const [local, domain] = value.split("@");
+    if (!local || !domain) return value;
+    const visible = local.slice(0, Math.min(2, local.length));
+    return `${visible}${"*".repeat(Math.max(1, local.length - visible.length))}@${domain}`;
+  }
+
+  async function resendConfirmation() {
+    if (resendCooldown > 0 || !pendingEmail) return;
+    setResendStatus("sending");
+    const supabase = createClient();
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email: pendingEmail,
+      options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
+    });
+    if (resendError) {
+      setResendStatus(/rate|too many/i.test(resendError.message) ? "rate-limited" : "error");
+      setResendCooldown(60);
+      return;
+    }
+    setResendStatus("sent");
+    setResendCooldown(60);
+  }
 
   const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -92,7 +140,9 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
         return;
       }
       if (!data.session) {
-        setNotice("Enviamos um e-mail de confirmação. Verifique sua caixa de entrada para ativar sua conta.");
+        sessionStorage.setItem("semiolab:pending-confirmation-email", email);
+        setPendingEmail(email);
+        setAwaitingConfirmation(true);
         return;
       }
       onSignIn?.();
@@ -117,6 +167,50 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
     setError("");
     setNotice("");
   };
+
+  if (awaitingConfirmation) {
+    return (
+      <main className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-[#041216] px-4 py-5 font-sans text-white sm:px-6 sm:py-8">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(53,201,177,0.22),transparent_32%),radial-gradient(circle_at_86%_85%,rgba(29,137,122,0.18),transparent_31%),linear-gradient(145deg,#041216,#08272c_52%,#06231f)]" />
+        <div className="relative z-10 w-full max-w-md rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.11] via-white/[0.055] to-white/[0.025] p-6 text-center shadow-[0_30px_90px_rgba(0,0,0,0.5)] backdrop-blur-2xl sm:p-8">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#6ee7d2]/20 bg-[#00110d]/80 shadow-[0_12px_35px_rgba(53,201,177,0.2)]">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#65e5d0" strokeWidth="1.8"><rect x="2" y="4" width="20" height="16" rx="2.5" /><path d="m2 6 10 7 10-7" /></svg>
+          </div>
+          <h1 className="text-2xl font-extrabold">Enviamos um link de confirmação</h1>
+          <p className="mt-3 text-sm text-[#9db3b6]">
+            Enviamos um link para <b className="text-white">{maskEmail(pendingEmail)}</b>. Abra sua caixa de entrada (e a pasta de spam) e clique no link para ativar sua conta.
+          </p>
+
+          <button
+            type="button"
+            disabled={resendCooldown > 0 || resendStatus === "sending"}
+            onClick={resendConfirmation}
+            className="mt-6 h-12 w-full rounded-full bg-gradient-to-r from-[#46d6c1] to-[#22aa98] text-sm font-extrabold text-[#03110f] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {resendCooldown > 0 ? `Reenviar e-mail (${resendCooldown}s)` : resendStatus === "sending" ? "Enviando..." : "Reenviar e-mail"}
+          </button>
+          {resendStatus === "sent" && <p className="mt-3 text-xs font-semibold text-[#65e5d0]">E-mail reenviado com sucesso.</p>}
+          {resendStatus === "rate-limited" && <p className="mt-3 text-xs font-semibold text-[#f0a84e]">Muitas tentativas. Aguarde antes de reenviar.</p>}
+          {resendStatus === "error" && <p className="mt-3 text-xs font-semibold text-[#e0655f]">Não foi possível reenviar agora. Tente novamente.</p>}
+
+          <button
+            type="button"
+            onClick={() => { sessionStorage.removeItem("semiolab:pending-confirmation-email"); setAwaitingConfirmation(false); setMode("signup"); }}
+            className="mt-5 block w-full bg-transparent border-0 text-xs font-semibold text-[#7fe0cd]! underline decoration-[#7fe0cd]/40 underline-offset-4 hover:text-[#a6f0e1]!"
+          >
+            Usei o e-mail errado
+          </button>
+          <button
+            type="button"
+            onClick={() => { sessionStorage.removeItem("semiolab:pending-confirmation-email"); setAwaitingConfirmation(false); setMode("signin"); }}
+            className="mt-2 block w-full bg-transparent border-0 text-xs text-[#73898e]! underline decoration-white/20 underline-offset-4 hover:text-white!"
+          >
+            Voltar para entrar
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-[#041216] px-4 py-5 font-sans text-white sm:px-6 sm:py-8">
@@ -218,6 +312,12 @@ const SignIn1 = ({ onSignIn }: SignIn1Props) => {
               >
                 Esqueci minha senha
               </button>
+            )}
+
+            {confirmedBanner && mode === "signin" && (
+              <div role="status" className="rounded-xl border border-[#2dc9a6]/40 bg-[#123a2f] px-3 py-2.5 text-left text-xs font-semibold text-[#4ee6a8]">
+                E-mail confirmado com sucesso. Entre com seu e-mail e senha para acessar o SemioLab.
+              </div>
             )}
 
             {error && (

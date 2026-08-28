@@ -32,9 +32,9 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
   const doctorName = safeDisplayName(user.name, user.email);
   const tier: "free" | "trial" | "pro" = (summary?.pro?.tier as "free" | "trial" | "pro") ?? "trial";
   const [step, setStep] = useState<Step>(initialStep === "completed" ? "intro" : initialStep);
-  const [typedText, setTypedText] = useState("");
+  const [messages, setMessages] = useState<{ from: "doctor" | "patient"; text: string; time: string }[]>([]);
+  const [typing, setTyping] = useState(false);
   const [askedIds, setAskedIds] = useState<string[]>([]);
-  const [lastAnswer, setLastAnswer] = useState<string | null>(null);
   const [examRevealed, setExamRevealed] = useState<string[]>([]);
   const [xrayChoice, setXrayChoice] = useState<string | null>(null);
   const [xrayWrongHint, setXrayWrongHint] = useState(false);
@@ -46,37 +46,44 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
   const [hypothesisResult, setHypothesisResult] = useState<"correct" | "incorrect" | null>(null);
   const [xpAwarded, setXpAwarded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   const changeStep = (next: Step) => { setStep(next); saveProgress(next); };
+  const nowTime = () => new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
   useEffect(() => {
     logEvent("first_experience_viewed", "first_microcase");
   }, []);
 
   useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, typing]);
+
+  useEffect(() => {
     if (step !== "conversation") return;
-    const opening = "Oi, doutor. Não estou muito bem... Estou com falta de ar e um mal-estar forte há alguns dias.";
-    let i = 0;
-    const timer = window.setInterval(() => {
-      i += 1;
-      setTypedText(opening.slice(0, i));
-      if (i >= opening.length) window.clearInterval(timer);
-    }, 22);
+    const openTimer = window.setTimeout(() => {
+      setMessages([{ from: "doctor", text: `Oi, Ana Maria! Prazer, sou o Dr. ${doctorName}. Tudo bem? O que você está sentindo?`, time: nowTime() }]);
+      setTyping(true);
+    }, 0);
+    const replyTimer = window.setTimeout(() => {
+      setTyping(false);
+      setMessages((m) => [...m, { from: "patient", text: "Oi, doutor. Não estou muito bem... Estou com falta de ar e um mal-estar forte há alguns dias.", time: nowTime() }]);
+    }, 1300);
     logEvent("first_challenge_started", "first_microcase");
-    return () => window.clearInterval(timer);
+    return () => { window.clearTimeout(openTimer); window.clearTimeout(replyTimer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
   const askQuestion = (id: string) => {
     const item = QUESTIONS.find((q) => q.id === id);
     if (!item) return;
-    setLastAnswer(null);
     setAskedIds((prev) => [...prev, id]);
-    let i = 0;
-    const timer = window.setInterval(() => {
-      i += 1;
-      setLastAnswer(item.a.slice(0, i));
-      if (i >= item.a.length) window.clearInterval(timer);
-    }, 16);
+    setMessages((m) => [...m, { from: "doctor", text: item.q, time: nowTime() }]);
+    setTyping(true);
+    window.setTimeout(() => {
+      setTyping(false);
+      setMessages((m) => [...m, { from: "patient", text: item.a, time: nowTime() }]);
+    }, 1100);
     logEvent("first_question_answered", "first_microcase", id);
   };
 
@@ -156,20 +163,33 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
             <span><b>Ana Maria</b><small>34 anos · Motivo informado na recepção: dor no peito e falta de ar</small></span>
           </header>
 
-          <div className="fmc-bubble fmc-bubble-doctor">Oi, Ana Maria! Prazer, sou o Dr. {doctorName}. Tudo bem? O que você está sentindo?</div>
-          <div className="fmc-bubble fmc-bubble-patient">{typedText}<i className="fmc-caret" /></div>
+          <div className="fmc-chat">
+            {messages.map((m, i) => (
+              <div key={i} className={`fmc-msg-row ${m.from === "doctor" ? "fmc-msg-row-me" : "fmc-msg-row-them"}`}>
+                <small className="fmc-msg-label">{m.from === "doctor" ? "Você" : "Ana Maria"}</small>
+                <div className={`fmc-msg-bubble ${m.from === "doctor" ? "fmc-msg-me" : "fmc-msg-them"}`}>{m.text}</div>
+                <time className="fmc-msg-time">{m.time}</time>
+              </div>
+            ))}
+            {typing && (
+              <div className="fmc-msg-row fmc-msg-row-them">
+                <small className="fmc-msg-label">Ana Maria</small>
+                <div className="fmc-msg-bubble fmc-msg-them fmc-typing"><i /><i /><i /></div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
 
-          {typedText.length >= 30 && (
+          {!typing && messages.length >= 2 && askedIds.length < QUESTIONS.length && step === "conversation" && (
             <div className="fmc-questions">
               {QUESTIONS.filter((q) => !askedIds.includes(q.id)).map((q) => (
                 <button key={q.id} onClick={() => askQuestion(q.id)}>{q.q}</button>
               ))}
-              {lastAnswer !== null && <div className="fmc-bubble fmc-bubble-patient">{lastAnswer}</div>}
             </div>
           )}
 
           {/* Só aparece depois da ÚLTIMA pergunta configurada ser respondida. */}
-          {step === "conversation" && askedIds.length >= QUESTIONS.length && (
+          {step === "conversation" && !typing && askedIds.length >= QUESTIONS.length && (
             <button className="primary fmc-cta" onClick={() => changeStep("exam")}>Examinar paciente <ChevronRight /></button>
           )}
 

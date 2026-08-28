@@ -16,6 +16,13 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.verifyOtp({ type, token_hash });
     if (!error) {
       if (type === "recovery") redirect("/auth/update-password");
+      if (type === "signup") {
+        // verifyOtp cria uma sessão local automaticamente ao confirmar —
+        // encerra essa sessão para forçar o login explícito com
+        // e-mail+senha, nunca deixando o usuário "meio autenticado".
+        await supabase.auth.signOut();
+        redirect("/?confirmed=1");
+      }
       redirect(next);
     }
   }
