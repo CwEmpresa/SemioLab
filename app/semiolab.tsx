@@ -14,6 +14,7 @@ import RankingExperience, { HomeRankCard } from "./ranking-experience";
 import PwaOnboarding, { NotificationSettingsPanel } from "./pwa-onboarding";
 import ProUpgradeModal, { openProUpgradeModal, DailyLimitInfoModal } from "./pro-upgrade-modal";
 import Avatar from "./avatar";
+import { BottomNavBar } from "@/components/ui/bottom-nav-bar";
 import FirstMicrocase, { type Step as MicrocaseStep } from "./first-microcase";
 import { HeartDashboardHero } from "@/components/ui/heart-dashboard-hero";
 import { createPortal } from "react-dom";
@@ -176,20 +177,13 @@ function Navigation({ screen, go, open, setOpen }: { screen:Screen; go:(s:Screen
           </button>
         </aside>
       </div>
-      <nav className="bottom-nav">
-        {mobileNav.map((x) => (
-          <button
-            key={x.id}
-            className={screen === x.id ? "active" : ""}
-            aria-label={x.name}
-            title={x.name}
-            onPointerDown={() => warmEmbedded(x.id)}
-            onFocus={() => warmEmbedded(x.id)}
-            onClick={() => go(x.id)}
-          >
-            <x.icon />
-          </button>
-        ))}
+      <nav className="bottom-nav-host">
+        <BottomNavBar
+          items={mobileNav.map((x) => ({ id: x.id, label: x.name, icon: x.icon }))}
+          activeId={screen}
+          onSelect={(id) => go(id as Screen)}
+          stickyBottom
+        />
       </nav>
     </>
   );

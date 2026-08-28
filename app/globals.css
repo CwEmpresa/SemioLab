@@ -10460,3 +10460,11 @@ body.pwa-modal-open { overflow: hidden; }
 .fmc-install-modal { max-width: 380px; text-align: center; }
 .fmc-install-modal h2 { font-size: 19px; margin-bottom: 12px; }
 .fmc-install-modal p { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+
+/* ── Wrapper só de visibilidade pro novo BottomNavBar (pílula flutuante,
+   posicionamento próprio via stickyBottom — nunca duplica caixa visual). */
+.bottom-nav-host { display: none; }
+@media (max-width: 760px) {
+  .bottom-nav-host { display: block; }
+  .bottom-nav-host nav[role="navigation"] { bottom: max(16px, calc(env(safe-area-inset-bottom) + 10px)) !important; }
+}
