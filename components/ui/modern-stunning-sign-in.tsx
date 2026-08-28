@@ -15,10 +15,11 @@ type Mode = "signin" | "signup" | "forgot";
 
 type SignIn1Props = {
   onSignIn?: () => void;
+  initialMode?: Mode;
 };
 
-const SignIn1 = ({ onSignIn }: SignIn1Props) => {
-  const [mode, setMode] = React.useState<Mode>("signin");
+const SignIn1 = ({ onSignIn, initialMode = "signin" }: SignIn1Props) => {
+  const [mode, setMode] = React.useState<Mode>(initialMode);
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");

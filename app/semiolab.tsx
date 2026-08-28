@@ -1097,7 +1097,19 @@ export default function SemioLab() {
   useEffect(() => {
     fetch("/api/first-experience/state")
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => setMicrocaseState({ loading: false, eligible: !!data?.eligible, step: (data?.step as MicrocaseStep) ?? "intro" }))
+      .then((data) => {
+        let step = (data?.step as MicrocaseStep) ?? "intro";
+        // Veio da Primeira Experiência (splash -> apresentação -> cadastro):
+        // a mesma proposta já foi mostrada lá — pula a introdução interna
+        // do microcaso, mas nunca concede XP nem marca nada como iniciado
+        // antes da conversa real começar (isso continua acontecendo só
+        // quando o passo "conversation" de fato roda).
+        if (step === "intro" && sessionStorage.getItem("semiolab:skip-microcase-intro")) {
+          sessionStorage.removeItem("semiolab:skip-microcase-intro");
+          step = "conversation";
+        }
+        setMicrocaseState({ loading: false, eligible: !!data?.eligible, step });
+      })
       .catch(() => setMicrocaseState({ loading: false, eligible: false, step: "intro" }));
   }, []);
 
