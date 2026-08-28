@@ -6,6 +6,10 @@ import { SignIn1 } from "@/components/ui/modern-stunning-sign-in";
 import SplashScreen from "./splash-screen";
 import IntroPresentation from "./intro-presentation";
 import SemioLab from "./semiolab";
+// Captura beforeinstallprompt o mais cedo possível — este é o primeiro
+// componente cliente que sempre monta, antes até da splash. Só o import
+// já dispara a captura (efeito colateral no módulo).
+import "./pwa-install-prompt";
 
 const INTRO_KEY = "semiolab:intro-completed:v1";
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { firstExperienceCompletionAcknowledged } from "./first-experience";
+import { getDeferredInstallPrompt, consumeDeferredInstallPrompt, subscribeInstallPrompt } from "./pwa-install-prompt";
 
 /** Trava o scroll da página e some com a bottom-nav enquanto qualquer
  * modal PWA estiver aberto — restaura tudo ao fechar/desmontar. */
@@ -107,16 +108,26 @@ export function NotificationSettingsPanel() {
   );
 }
 
+const DISMISS_COOLDOWN_MS = 24 * 60 * 60 * 1000; // reaparece depois, nunca em todo reload
+
 export function pwaInstallPending(userId: string): boolean {
   if (typeof window === "undefined") return false;
   if (isStandalone()) return false;
-  if (localStorage.getItem(`semiolab:${userId}:pwa-install-seen`)) return false;
+  if (localStorage.getItem(`semiolab:${userId}:pwa-installed:v2`)) return false;
+  const dismissedUntil = Number(localStorage.getItem(`semiolab:${userId}:pwa-install-dismissed-until:v2`) || 0);
+  if (dismissedUntil && Date.now() < dismissedUntil) return false;
   return firstExperienceCompletionAcknowledged(userId);
 }
 
 export default function PwaOnboarding({ userId }: { userId: string }) {
   const [step, setStep] = useState<"hidden" | "install" | "notifications">("hidden");
-  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
+  // "checking": navegador ainda pode disparar o evento a qualquer momento;
+  // "ready": instalação nativa real disponível; "unavailable": não vai vir
+  // (timeout ou iOS/incompatível) — nunca mostra botão falso de instalar.
+  const [nativeState, setNativeState] = useState<"checking" | "ready" | "unavailable">(() =>
+    isIos() ? "unavailable" : getDeferredInstallPrompt() ? "ready" : "checking",
+  );
+  const [installBusy, setInstallBusy] = useState(false);
 
   useEffect(() => {
     // Prioridade exclusiva: 1) instalação, 2) notificações só depois da
@@ -142,22 +153,50 @@ export default function PwaOnboarding({ userId }: { userId: string }) {
   }, [userId]);
 
   useEffect(() => {
-    const onPrompt = (e: Event) => { e.preventDefault(); setDeferredPrompt(e); };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
-  }, []);
+    // Continua "avaliando instalabilidade" só enquanto o popup de
+    // instalação está de fato aberto — nunca trava a interface: timeout
+    // curto libera "Continuar no navegador" se o evento não vier.
+    if (step !== "install" || nativeState !== "checking") return;
+    if (getDeferredInstallPrompt()) {
+      const already = window.setTimeout(() => setNativeState("ready"), 0); // já tinha chegado antes de abrir
+      return () => window.clearTimeout(already);
+    }
+    const unsubscribe = subscribeInstallPrompt(() => setNativeState("ready"));
+    const timeout = window.setTimeout(() => setNativeState((s) => (s === "ready" ? s : "unavailable")), 1800);
+    return () => { unsubscribe(); window.clearTimeout(timeout); };
+  }, [step, nativeState]);
 
   const finishInstall = (accepted: boolean) => {
-    localStorage.setItem(`semiolab:${userId}:pwa-install-seen`, "1");
     if (accepted) {
+      localStorage.setItem(`semiolab:${userId}:pwa-installed:v2`, "1");
+      localStorage.removeItem(`semiolab:${userId}:pwa-install-dismissed-until:v2`);
       // Não pede notificação agora — só marca pendente para a próxima
       // abertura já dentro do PWA instalado (display-mode: standalone).
       localStorage.setItem(`semiolab:${userId}:pwa-notif-pending`, "1");
+    } else {
+      // Recusou/fechou: reaparece depois, nunca em todo reload nem nunca
+      // mais — nunca marcado como instalado.
+      localStorage.setItem(`semiolab:${userId}:pwa-install-dismissed-until:v2`, String(Date.now() + DISMISS_COOLDOWN_MS));
     }
     setStep("hidden");
     // Libera outros popups (ex.: Pro diário) que ficaram bloqueados
     // esperando a instalação ser resolvida.
     window.dispatchEvent(new Event("semiolab:pwa-install-resolved"));
+  };
+
+  const handleNativeInstall = async () => {
+    const promptEvent = getDeferredInstallPrompt();
+    if (!promptEvent || installBusy) return;
+    setInstallBusy(true);
+    try {
+      // Só chamado por clique real do usuário — nunca automaticamente.
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice.catch(() => ({ outcome: "dismissed" as const }));
+      consumeDeferredInstallPrompt(); // nunca reutilizável
+      finishInstall(choice.outcome === "accepted");
+    } finally {
+      setInstallBusy(false);
+    }
   };
   const finishNotifications = () => setStep("hidden");
 
@@ -171,21 +210,19 @@ export default function PwaOnboarding({ userId }: { userId: string }) {
         {step === "install" ? (
           <>
             <h2>Instale o SemioLab</h2>
-            <InstallSteps />
-            {!isIos() && deferredPrompt && (
-              <button
-                className="primary"
-                onClick={async () => {
-                  const promptEvent = deferredPrompt as unknown as { prompt: () => void; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
-                  promptEvent.prompt();
-                  const choice = await promptEvent.userChoice.catch(() => ({ outcome: "dismissed" as const }));
-                  finishInstall(choice.outcome === "accepted");
-                }}
-              >
-                Instalar o SemioLab
+            {nativeState === "checking" ? (
+              <p className="pwa-install-checking">Preparando instalação...</p>
+            ) : (
+              <InstallSteps />
+            )}
+            {nativeState === "ready" && (
+              <button className="primary" disabled={installBusy} onClick={handleNativeInstall}>
+                {installBusy ? "Abrindo..." : "Instalar o SemioLab"}
               </button>
             )}
-            <button onClick={() => finishInstall(isStandalone())}>{isIos() || !deferredPrompt ? "Continuar no navegador" : "Agora não"}</button>
+            <button onClick={() => finishInstall(isStandalone())}>
+              {nativeState === "ready" ? "Agora não" : "Continuar no navegador"}
+            </button>
           </>
         ) : (
           <>
