@@ -1,21 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SignIn1 } from "@/components/ui/modern-stunning-sign-in";
-import SplashScreen, { shouldSkipSplash } from "./splash-screen";
+import SplashScreen, { SPLASH_STORAGE_KEY } from "./splash-screen";
 import IntroPresentation from "./intro-presentation";
 
-type Stage = "splash" | "presentation" | "auth";
+type Stage = "checking" | "splash" | "presentation" | "auth";
 
 export default function LoginGate() {
   const router = useRouter();
-  const [stage, setStage] = useState<Stage>(() => (shouldSkipSplash() ? "presentation" : "splash"));
+  // "checking": mesmo estado no servidor e no 1º render do cliente — nunca
+  // decide com base em localStorage antes da hidratação, evitando o
+  // descompasso que fazia a splash nunca aparecer.
+  const [stage, setStage] = useState<Stage>("checking");
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
 
-  if (stage === "splash") {
-    return <SplashScreen onDone={() => setStage("presentation")} />;
-  }
+  useEffect(() => {
+    const seen = localStorage.getItem(SPLASH_STORAGE_KEY) === "1";
+    const t = window.setTimeout(() => setStage(seen ? "presentation" : "splash"), 0);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  if (stage === "checking") return <div className="onboarding-checking" aria-hidden />;
+  if (stage === "splash") return <SplashScreen onDone={() => setStage("presentation")} />;
   if (stage === "presentation") {
     return (
       <IntroPresentation
