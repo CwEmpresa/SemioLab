@@ -17,11 +17,10 @@ export async function GET(request: Request) {
     if (!error) {
       if (type === "recovery") redirect("/auth/update-password");
       if (type === "signup") {
-        // verifyOtp cria uma sessão local automaticamente ao confirmar —
-        // encerra essa sessão para forçar o login explícito com
-        // e-mail+senha, nunca deixando o usuário "meio autenticado".
-        await supabase.auth.signOut();
-        redirect("/?confirmed=1");
+        // verifyOtp já criou a sessão real da confirmação — mantém essa
+        // sessão (nunca força novo login) e deixa o AppGate decidir o
+        // destino certo (perfil incompleto / microcaso pendente / conta).
+        redirect("/");
       }
       redirect(next);
     }

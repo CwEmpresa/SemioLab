@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { UserProvider } from "./user-context";
-import LoginGate from "./login-gate";
-import SemioLab from "./semiolab";
+import AppGate from "./app-gate";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -9,7 +8,7 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return <LoginGate />;
+  if (!user) return <AppGate authenticated={false} />;
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -23,10 +22,13 @@ export default async function Home() {
     email: profile?.email || user.email || "",
     xp: profile?.xp ?? 0,
   };
+  // Perfil incompleto = nunca preencheu o nome de verdade (o fallback pro
+  // prefixo do e-mail em currentUser.name é só de exibição, não conta).
+  const profileComplete = !!profile?.name?.trim();
 
   return (
     <UserProvider user={currentUser}>
-      <SemioLab />
+      <AppGate authenticated={true} profileComplete={profileComplete} />
     </UserProvider>
   );
 }
