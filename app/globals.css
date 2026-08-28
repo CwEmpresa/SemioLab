@@ -10366,6 +10366,7 @@ body.pwa-modal-open { overflow: hidden; }
 .fmc-intro h1 { font-size: 26px; line-height: 1.35; margin: 14px 0 16px; font-weight: 700; }
 .fmc-intro p { color: var(--muted); font-size: 15px; line-height: 1.6; margin-bottom: 28px; }
 .fmc-cta { display: inline-flex; align-items: center; gap: 8px; padding: 14px 22px; border-radius: 14px; font-weight: 700; font-size: 15px; }
+.fmc-cta-centered { display: flex; justify-content: center; margin: 0 auto; }
 .fmc-stage h2 { font-size: 19px; margin-bottom: 18px; }
 .fmc-patient-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
 .fmc-avatar { width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(145deg, #315b63, #17363e); display: grid; place-items: center; font-weight: 800; flex-shrink: 0; }

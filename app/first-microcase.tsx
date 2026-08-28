@@ -376,21 +376,10 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
             </div>
           )}
 
-          <div className="fmc-report-block">
-            <h3>Linha do tempo</h3>
-            <ol className="fmc-timeline-list">
-              <li>Anamnese concluída</li>
-              <li>Exame físico e ausculta realizados</li>
-              <li>Radiografia solicitada e interpretada {interpretationFeedback === "correct" ? "corretamente" : "com apoio do laudo"}</li>
-              <li>Hipótese registrada {hypothesisResult === "correct" ? "corretamente" : "com revisão do laudo"}</li>
-              <li>Conduta comunicada à paciente</li>
-            </ol>
-          </div>
-
           <p className="fmc-note">E isso foi apenas um atendimento guiado. No Paciente IA, cada conversa e decisão muda de acordo com o caso.</p>
 
           <button
-            className="primary fmc-cta"
+            className="primary fmc-cta fmc-cta-centered"
             onClick={() => {
               logEvent("next_activity_selected", "first_microcase", nextActivityHref);
               if (tier !== "free") sessionStorage.setItem("semiolab:auto-start-patient", "1");
