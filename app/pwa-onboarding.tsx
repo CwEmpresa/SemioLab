@@ -137,7 +137,10 @@ export default function PwaOnboarding({ userId }: { userId: string }) {
       if (pwaInstallPending(userId)) setStep("install");
     };
     const checkNotifications = () => {
-      if (!isStandalone()) return; // nunca pede fora do PWA instalado
+      // Hoje só sobra pendência aqui para iOS (única plataforma que exige
+      // reabrir já instalado) — não-iOS já resolveu isso na hora, em
+      // finishInstall().
+      if (!isStandalone()) return;
       if (!localStorage.getItem(`semiolab:${userId}:pwa-notif-pending`)) return;
       if (typeof Notification === "undefined" || Notification.permission !== "default") {
         // já decidido (concedido/negado) por outro caminho — nunca pede de novo
@@ -170,18 +173,32 @@ export default function PwaOnboarding({ userId }: { userId: string }) {
     if (accepted) {
       localStorage.setItem(`semiolab:${userId}:pwa-installed:v2`, "1");
       localStorage.removeItem(`semiolab:${userId}:pwa-install-dismissed-until:v2`);
-      // Não pede notificação agora — só marca pendente para a próxima
-      // abertura já dentro do PWA instalado (display-mode: standalone).
-      localStorage.setItem(`semiolab:${userId}:pwa-notif-pending`, "1");
     } else {
       // Recusou/fechou: reaparece depois, nunca em todo reload nem nunca
       // mais — nunca marcado como instalado.
       localStorage.setItem(`semiolab:${userId}:pwa-install-dismissed-until:v2`, String(Date.now() + DISMISS_COOLDOWN_MS));
     }
-    setStep("hidden");
     // Libera outros popups (ex.: Pro diário) que ficaram bloqueados
     // esperando a instalação ser resolvida.
     window.dispatchEvent(new Event("semiolab:pwa-install-resolved"));
+
+    // A maioria dos navegadores (Android/Chrome/Firefox/Edge/desktop) já
+    // suporta pedir notificação numa aba comum, sem precisar instalar o
+    // PWA — só o iOS exige mesmo estar no app instalado. Pedir aqui, na
+    // mesma sessão, elimina a barreira de "fechar e reabrir já instalado"
+    // que fazia quase ninguém nunca ver esse convite. Continua sequencial
+    // (nunca junto com a instalação — um modal fecha antes do outro abrir).
+    const canAskNow = !isIos() && typeof Notification !== "undefined" && Notification.permission === "default";
+    if (canAskNow) {
+      setStep("notifications");
+      return;
+    }
+    if (accepted && isIos()) {
+      // iOS: só funciona mesmo dentro do app instalado — marca pendente
+      // para a próxima abertura já em display-mode: standalone.
+      localStorage.setItem(`semiolab:${userId}:pwa-notif-pending`, "1");
+    }
+    setStep("hidden");
   };
 
   const handleNativeInstall = async () => {
