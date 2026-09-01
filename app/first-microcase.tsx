@@ -32,7 +32,7 @@ const COMMUNICATION_OPTIONS = [
   "Os exames deram alterados, mas isso não costuma significar muita coisa. Vamos esperar e ver como você se sente na próxima semana.",
 ];
 
-export default function FirstMicrocase({ initialStep, onComplete }: { initialStep: Step; onComplete: () => void }) {
+export default function FirstMicrocase({ initialStep, onComplete }: { initialStep: Step; onComplete: (nextScreen?: "patient" | "quiz") => void }) {
   const user = useUser();
   const doctorName = safeDisplayName(user.name, user.email);
   const [step, setStep] = useState<Step>(initialStep === "completed" ? "intro" : initialStep);
@@ -50,6 +50,7 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
   const [hypothesisResult, setHypothesisResult] = useState<"correct" | "incorrect" | null>(null);
   const [communicationChoice, setCommunicationChoice] = useState<string | null>(null);
   const [xpAwarded, setXpAwarded] = useState(false);
+  const [showNextChoice, setShowNextChoice] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -339,7 +340,7 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
         </section>
       )}
 
-      {step === "completed" && (
+      {step === "completed" && !showNextChoice && (
         <section className="fmc-completion fmc-report">
           <BlurFade delay={0.08}>
             <div className="fmc-ring"><span>{xpAwarded ? "+25" : "✓"}</span></div>
@@ -387,13 +388,42 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
             <button
               className="primary fmc-cta fmc-cta-centered"
               onClick={() => {
-                logEvent("next_activity_selected", "first_microcase", "dashboard");
-                onComplete();
+                logEvent("next_activity_selected", "first_microcase", "choice_shown");
+                setShowNextChoice(true);
               }}
             >
               Começar no SemioLab <ChevronRight />
             </button>
           </BlurFade>
+        </section>
+      )}
+
+      {showNextChoice && (
+        <section className="fmc-stage fmc-next-choice">
+          <h2>O que você quer fazer agora?</h2>
+          <p className="fmc-next-choice-sub">Escolha uma atividade real para continuar praticando.</p>
+          <div className="fmc-next-choice-options">
+            <button
+              className="primary fmc-cta"
+              onClick={() => {
+                sessionStorage.setItem("semiolab:auto-start-patient", "1");
+                logEvent("next_activity_selected", "first_microcase", "patient");
+                onComplete("patient");
+              }}
+            >
+              Atender paciente real <ChevronRight />
+            </button>
+            <button
+              className="fmc-next-choice-secondary"
+              onClick={() => {
+                sessionStorage.setItem("semiolab:first-quiz-amount", "5");
+                logEvent("next_activity_selected", "first_microcase", "quiz");
+                onComplete("quiz");
+              }}
+            >
+              Fazer quiz rápido
+            </button>
+          </div>
         </section>
       )}
     </div>,

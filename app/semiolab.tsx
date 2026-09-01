@@ -1183,9 +1183,10 @@ export default function SemioLab() {
     return (
       <FirstMicrocase
         initialStep={microcaseState.step}
-        onComplete={() => {
+        onComplete={(nextScreen) => {
           localStorage.setItem(`semiolab:${user.id}:first-exp-completion-shown`, "1");
           window.dispatchEvent(new Event("semiolab:first-experience-completed"));
+          if (nextScreen) setScreen(nextScreen);
           setMicrocaseState((s) => ({ ...s, eligible: false }));
         }}
       />
