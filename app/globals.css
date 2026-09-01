@@ -10528,11 +10528,3 @@ body.pwa-modal-open { overflow: hidden; }
   .intro-login-link { text-align: left; width: auto; margin-left: 0; }
 }
 
-/* ── Tela de escolha pós-microcaso (o que fazer agora) ─────────── */
-.fmc-next-choice { text-align: center; }
-.fmc-next-choice h2 { font-size: 20px; margin-bottom: 8px; }
-.fmc-next-choice-sub { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
-.fmc-next-choice-options { display: flex; flex-direction: column; gap: 10px; max-width: 360px; margin: 0 auto; }
-.fmc-next-choice-options .fmc-cta { width: 100%; justify-content: center; }
-.fmc-next-choice-secondary { background: transparent; border: 1px solid var(--line); color: #cfe8e2; padding: 14px 16px; border-radius: 14px; font-size: 14px; font-weight: 600; }
-.fmc-next-choice-secondary:hover { background: #12332f; }
