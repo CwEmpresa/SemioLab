@@ -13,7 +13,7 @@ const REASON_COPY: Record<ProUpgradeReason, { small: string; title: string; subt
   patient: { small: "RECURSO PRO", title: "Recurso exclusivo do Pro", subtitle: "O Paciente Virtual é um recurso do plano Pro (ou do período de teste)." },
   simulado: { small: "RECURSO PRO", title: "Recurso exclusivo do Pro", subtitle: "Simulados são um recurso do plano Pro (ou do período de teste)." },
   auscultation: { small: "RECURSO PRO", title: "Recurso exclusivo do Pro", subtitle: "O Laboratório de Ausculta é um recurso do plano Pro (ou do período de teste)." },
-  audio: { small: "RECURSO PRO", title: "Recurso exclusivo do Pro", subtitle: "Perguntar por voz e ouvir o paciente são recursos exclusivos do plano Pro." },
+  audio: { small: "RECURSO PRO", title: "Recurso exclusivo do Pro", subtitle: "Perguntar por voz e ouvir o paciente são recursos do plano Pro (ou do período de teste)." },
   limit: { small: "LIMITE DIÁRIO", title: "Seu limite diário acabou", subtitle: "Volte amanhã ou assine o Pro para continuar agora mesmo." },
   backend: { small: "RECURSO PRO", title: "Recurso exclusivo do Pro", subtitle: "Esse recurso não está disponível no seu plano atual." },
 };

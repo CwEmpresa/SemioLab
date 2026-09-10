@@ -18,7 +18,7 @@ export const SEMIOLAB_NAV_ITEMS: BottomNavItem[] = [
   { id: "profile", label: "Perfil", icon: UserRound },
 ];
 
-const MOBILE_LABEL_WIDTH = 72;
+const MOBILE_LABEL_WIDTH = 60;
 
 type BottomNavBarProps = {
   className?: string;
@@ -47,7 +47,11 @@ export function BottomNavBar({
       role="navigation"
       aria-label="Navegação principal"
       className={cn(
-        "bg-[var(--surface)] border border-[var(--line)] rounded-full flex items-center p-2 shadow-xl space-x-1 min-w-[320px] max-w-[95vw] h-[52px]",
+        // Fundo em vidro fosco (glassmorphism), no estilo da tab bar do
+        // iOS: cor translúcida + blur/saturação por baixo, em vez da caixa
+        // opaca original — o app não tem tema claro, então é sempre a
+        // versão escura desse efeito.
+        "bg-[var(--surface)]/70 backdrop-blur-xl backdrop-saturate-150 border border-white/10 rounded-full flex items-center p-2 shadow-xl space-x-1 min-w-[300px] max-w-[95vw] h-[52px]",
         stickyBottom && "fixed inset-x-0 bottom-4 mx-auto z-20 w-fit",
         className,
       )}
@@ -61,7 +65,7 @@ export function BottomNavBar({
             key={item.id}
             whileTap={{ scale: 0.97 }}
             className={cn(
-              "flex items-center gap-0 px-3 py-2 rounded-full transition-colors duration-200 relative h-10 min-w-[44px] min-h-[40px] max-h-[44px]",
+              "flex items-center gap-0 px-2.5 py-2 rounded-full transition-colors duration-200 relative h-10 min-w-[40px] min-h-[40px] max-h-[44px]",
               isActive
                 ? "bg-[var(--mint)]/10 text-[var(--mint)] gap-2"
                 : "bg-transparent text-[var(--muted)] hover:bg-white/5",
@@ -72,7 +76,7 @@ export function BottomNavBar({
             aria-current={isActive ? "page" : undefined}
             type="button"
           >
-            <Icon size={22} strokeWidth={2} aria-hidden className="transition-colors duration-200" />
+            <Icon size={20} strokeWidth={2} aria-hidden className="transition-colors duration-200" />
 
             <motion.div
               initial={false}
@@ -86,7 +90,7 @@ export function BottomNavBar({
                 opacity: { duration: 0.19 },
                 marginLeft: { duration: 0.19 },
               }}
-              className="overflow-hidden flex items-center max-w-[72px]"
+              className="overflow-hidden flex items-center max-w-[60px]"
             >
               <span
                 className={cn(

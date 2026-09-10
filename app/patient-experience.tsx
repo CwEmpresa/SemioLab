@@ -150,6 +150,10 @@ export default function PatientExperience({
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const user = useUser();
   const { summary: learning } = useLearningSummary();
+  // Consulta por voz (gravar pergunta + ouvir resposta) é liberada para
+  // Pro e para quem ainda está no período de teste — só quem já virou
+  // "free" (trial expirado, sem assinatura) vê o microfone travado.
+  const canUseAudio = learning?.pro?.tier === "pro" || learning?.pro?.tier === "trial";
   // Só verdadeiro na primeira consulta real do aluno (nenhuma atividade
   // concluída ainda) — o roteiro guiado nunca aparece depois disso.
   const isFirstConsultation = (learning?.stats?.activities ?? 0) === 0;
@@ -1046,7 +1050,7 @@ export default function PatientExperience({
               <div className="message-content">
                 <p>{m.text}</p>
                 <time>{messageTime(m.createdAt)}</time>
-                {m.who === "patient" && m.id && learning?.pro?.tier === "pro" && (
+                {m.who === "patient" && m.id && canUseAudio && (
                   <button
                     type="button"
                     className="listen-response-btn"
@@ -1103,7 +1107,7 @@ export default function PatientExperience({
             disabled={typing || transcribing}
             maxLength={500}
           />
-          {learning?.pro?.tier === "pro" ? (
+          {canUseAudio ? (
             <button
               className={`chat-mic ${recording ? "is-recording" : ""}`}
               aria-label={recording ? "Parar gravação" : "Gravar pergunta por voz"}
@@ -1114,11 +1118,11 @@ export default function PatientExperience({
               {recording ? <Square /> : <Mic />}
             </button>
           ) : (
-            // Sempre visível para contas Free/trial (nunca escondido), mas
+            // Sempre visível para contas Free (nunca escondido), mas
             // travado: mostra o aviso de upsell em vez de gravar. Enquanto o
-            // status Pro ainda está carregando, também fica neste estado
-            // travado por padrão — nunca mostra o microfone funcional antes
-            // de confirmar de verdade que a conta é Pro.
+            // status da conta ainda está carregando, também fica neste
+            // estado travado por padrão — nunca mostra o microfone
+            // funcional antes de confirmar de verdade Pro/trial.
             <button
               className="chat-mic is-locked"
               aria-label="Conversa por voz — recurso do plano Pro"

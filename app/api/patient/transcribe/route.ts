@@ -38,10 +38,10 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
 
-  // Recurso exclusivo do plano Pro.
+  // Recurso do plano Pro e do período de teste — não disponível no free.
   const access = await resolveUserAccess(supabase, user.id);
-  if (access.tier !== "pro") {
-    return Response.json({ error: "A pergunta por voz é exclusiva do plano Pro.", code: "PRO_REQUIRED" }, { status: 403 });
+  if (access.tier !== "pro" && access.tier !== "trial") {
+    return Response.json({ error: "A pergunta por voz é exclusiva do plano Pro e do período de teste.", code: "PRO_REQUIRED" }, { status: 403 });
   }
 
   const form = await request.formData().catch(() => null);

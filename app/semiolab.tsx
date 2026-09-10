@@ -64,7 +64,7 @@ const nav = [
   { id:"profile" as Screen, name:"Perfil",         icon:UserRound },
 ];
 
-const mobileNav = nav.filter((item) => item.id !== "auscultation");
+const mobileNav = nav;
 const drawerNav = [
   ...nav,
   { id:"progress" as Screen, name:"Progresso", icon:BarChart3 },

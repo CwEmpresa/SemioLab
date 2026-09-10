@@ -14,9 +14,10 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
 
+  // Recurso do plano Pro e do período de teste — não disponível no free.
   const access = await resolveUserAccess(supabase, user.id);
-  if (access.tier !== "pro") {
-    return Response.json({ error: "Ouvir a resposta do paciente é exclusivo do plano Pro.", code: "PRO_REQUIRED" }, { status: 403 });
+  if (access.tier !== "pro" && access.tier !== "trial") {
+    return Response.json({ error: "Ouvir a resposta do paciente é exclusivo do plano Pro e do período de teste.", code: "PRO_REQUIRED" }, { status: 403 });
   }
 
   const body = (await request.json().catch(() => ({}))) as { sessionId?: string; messageId?: string };
