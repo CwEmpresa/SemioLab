@@ -14,6 +14,7 @@ import {
   FileHeart,
   Lightbulb,
   LockKeyhole,
+  MessageSquareText,
   Mic,
   NotebookPen,
   Plus,
@@ -114,6 +115,10 @@ export default function PatientExperience({
     [recording, setRecording] = useState(false),
     [transcribing, setTranscribing] = useState(false),
     [micError, setMicError] = useState(""),
+    // "text": digita ou grava só para revisar antes de enviar (como hoje).
+    // "audio": grava e envia direto, sem passo de revisão, e toca a
+    // resposta do paciente sozinha — conversa por voz de verdade.
+    [chatMode, setChatMode] = useState<"text" | "audio">("text"),
     [playingMessageId, setPlayingMessageId] = useState<string | null>(null),
     [loadingAudioMessageId, setLoadingAudioMessageId] = useState<string | null>(null),
     [examText, setExamText] = useState(""),
@@ -396,11 +401,11 @@ export default function PatientExperience({
     setPhase("wait");
     setLoadError(message);
   }
-  async function send() {
-    const question = input.trim();
+  async function send(overrideText?: string) {
+    const question = (overrideText ?? input).trim();
     if (!question || !sessionId || typing) return;
     setMessages((m) => [...m, { who: "student", text: question, createdAt: Date.now() }]);
-    setInput("");
+    if (overrideText === undefined) setInput("");
     setTyping(true);
     try {
       const response = await fetch("/api/patient/chat", {
@@ -457,6 +462,11 @@ export default function PatientExperience({
         if (last && last.who === "patient" && last.createdAt === createdAt) next[next.length - 1] = { ...last, text: finalText, id: messageId };
         return next;
       });
+      // Modo áudio: a resposta toca sozinha, sem precisar tocar em "ouvir
+      // resposta" — é uma conversa por voz, não um chat com áudio opcional.
+      if (chatMode === "audio" && canUseAudio && messageId) {
+        playPatientAudio({ who: "patient", text: finalText, id: messageId, createdAt });
+      }
     } catch {
       setMessages((m) => [...m, { who: "patient", text: "Desculpa, tive um problema para responder.", createdAt: Date.now() }]);
     } finally {
@@ -526,9 +536,17 @@ export default function PatientExperience({
             setMicError(data.error || "Não foi possível transcrever o áudio.");
             return;
           }
-          // A transcrição só preenche o campo para revisão — não envia
-          // sozinha, e não consome nenhuma das 20 perguntas ainda.
-          setInput((current) => (current ? `${current} ${data.transcript}`.trim() : data.transcript || ""));
+          const transcript = (data.transcript || "").trim();
+          if (chatMode === "audio") {
+            // Modo áudio: envia direto, sem mostrar/editar a transcrição —
+            // é uma conversa falada, não uma gravação para revisar depois.
+            if (transcript) send(transcript);
+            else setMicError("Não consegui entender o áudio. Tente de novo.");
+          } else {
+            // Modo mensagem: a transcrição só preenche o campo para revisão
+            // — não envia sozinha, e não consome nenhuma das 20 perguntas.
+            setInput((current) => (current ? `${current} ${transcript}`.trim() : transcript));
+          }
         } catch {
           setMicError("Não foi possível transcrever o áudio agora. Digite sua pergunta.");
         } finally {
@@ -1056,10 +1074,10 @@ export default function PatientExperience({
                     className="listen-response-btn"
                     onClick={() => playPatientAudio(m)}
                     disabled={loadingAudioMessageId === m.id}
-                    aria-label="Ouvir resposta gerada por inteligência artificial"
+                    aria-label="Ouvir resposta do paciente"
                   >
                     <Volume2 />
-                    {loadingAudioMessageId === m.id ? "Gerando áudio..." : playingMessageId === m.id ? "Tocando..." : "Ouvir resposta (voz por IA)"}
+                    {loadingAudioMessageId === m.id ? "Gerando áudio..." : playingMessageId === m.id ? "Tocando..." : "Ouvir resposta"}
                   </button>
                 )}
               </div>
@@ -1095,47 +1113,85 @@ export default function PatientExperience({
           </button>
           <span>Consulta educacional</span>
         </div>
-        <label>
-          <button className="chat-attach" aria-label="Solicitar exame" onClick={() => setExamOpen(true)}>
-            <Plus />
-          </button>
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !typing && send()}
-            placeholder={transcribing ? "Transcrevendo áudio..." : typing ? "Aguardando resposta do paciente..." : "Faça uma pergunta ao paciente..."}
-            disabled={typing || transcribing}
-            maxLength={500}
-          />
-          {canUseAudio ? (
-            <button
-              className={`chat-mic ${recording ? "is-recording" : ""}`}
-              aria-label={recording ? "Parar gravação" : "Gravar pergunta por voz"}
+        {canUseAudio && (
+          <div className="chat-mode-toggle" role="tablist" aria-label="Modo de consulta">
+            <button type="button" role="tab" aria-selected={chatMode === "text"} className={chatMode === "text" ? "active" : ""} onClick={() => setChatMode("text")}>
+              <MessageSquareText size={14} /> Mensagem
+            </button>
+            <button type="button" role="tab" aria-selected={chatMode === "audio"} className={chatMode === "audio" ? "active" : ""} onClick={() => setChatMode("audio")}>
+              <Mic size={14} /> Áudio
+            </button>
+          </div>
+        )}
+        {chatMode === "audio" && canUseAudio ? (
+          <div className="chat-audio-bar">
+            <button className="chat-attach" aria-label="Solicitar exame" onClick={() => setExamOpen(true)} type="button">
+              <Plus />
+            </button>
+            <div className="chat-audio-center">
+              <button
+                type="button"
+                className={`chat-audio-record ${recording ? "is-recording" : ""}`}
+                disabled={typing || transcribing}
+                onClick={recording ? stopRecording : startRecording}
+                aria-label={recording ? "Parar e enviar a pergunta" : "Toque para perguntar"}
+              >
+                {recording ? <Square size={24} /> : <Mic size={24} />}
+              </button>
+              <span className="chat-audio-status">
+                {transcribing
+                  ? "Ouvindo sua pergunta..."
+                  : recording
+                    ? "Toque para enviar"
+                    : typing
+                      ? "Aguardando resposta do paciente..."
+                      : "Toque no microfone para perguntar"}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <label>
+            <button className="chat-attach" aria-label="Solicitar exame" onClick={() => setExamOpen(true)}>
+              <Plus />
+            </button>
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !typing && send()}
+              placeholder={transcribing ? "Transcrevendo áudio..." : typing ? "Aguardando resposta do paciente..." : "Faça uma pergunta ao paciente..."}
               disabled={typing || transcribing}
-              onClick={recording ? stopRecording : startRecording}
-              type="button"
-            >
-              {recording ? <Square /> : <Mic />}
+              maxLength={500}
+            />
+            {canUseAudio ? (
+              <button
+                className={`chat-mic ${recording ? "is-recording" : ""}`}
+                aria-label={recording ? "Parar gravação" : "Gravar pergunta por voz"}
+                disabled={typing || transcribing}
+                onClick={recording ? stopRecording : startRecording}
+                type="button"
+              >
+                {recording ? <Square /> : <Mic />}
+              </button>
+            ) : (
+              // Sempre visível para contas Free (nunca escondido), mas
+              // travado: mostra o aviso de upsell em vez de gravar. Enquanto o
+              // status da conta ainda está carregando, também fica neste
+              // estado travado por padrão — nunca mostra o microfone
+              // funcional antes de confirmar de verdade Pro/trial.
+              <button
+                className="chat-mic is-locked"
+                aria-label="Conversa por voz — recurso do plano Pro"
+                onClick={() => openProUpgradeModal("audio")}
+                type="button"
+              >
+                <Mic /><LockKeyhole className="chat-mic-lock-badge" />
+              </button>
+            )}
+            <button aria-label="Enviar pergunta" disabled={!input.trim() || typing || transcribing} onClick={() => send()}>
+              <Send />
             </button>
-          ) : (
-            // Sempre visível para contas Free (nunca escondido), mas
-            // travado: mostra o aviso de upsell em vez de gravar. Enquanto o
-            // status da conta ainda está carregando, também fica neste
-            // estado travado por padrão — nunca mostra o microfone
-            // funcional antes de confirmar de verdade Pro/trial.
-            <button
-              className="chat-mic is-locked"
-              aria-label="Conversa por voz — recurso do plano Pro"
-              onClick={() => openProUpgradeModal("audio")}
-              type="button"
-            >
-              <Mic /><LockKeyhole className="chat-mic-lock-badge" />
-            </button>
-          )}
-          <button aria-label="Enviar pergunta" disabled={!input.trim() || typing || transcribing} onClick={send}>
-            <Send />
-          </button>
-        </label>
+          </label>
+        )}
         {micError && <div role="alert" className="patient-load-error">{micError}</div>}
       </footer>
       {physicalOpen && (

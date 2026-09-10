@@ -7245,6 +7245,8 @@ button.avatar:hover {
   .consult-tools > span { display: none; }
   .consult > footer label { min-height: 46px; }
   .consult > footer input { font-size: 12px; }
+  .consult > footer .chat-audio-bar { min-height: 46px; }
+  .consult > footer .chat-audio-status { font-size: 11px; }
   .consult .imaging-result img { height: 235px; }
 }
 
@@ -7335,6 +7337,79 @@ button.avatar:hover {
   color: #a5a5aa;
   background: #e5e5ea;
   cursor: default;
+}
+
+/* ── Modo de consulta: mensagem (padrão) vs. áudio (conversa por voz,
+   grava e envia direto, sem passo de revisão) ────────────────────── */
+.consult > footer .chat-mode-toggle {
+  display: flex;
+  gap: 4px;
+  width: fit-content;
+  margin: 0 auto 8px;
+  padding: 3px;
+  background: #f2f2f7;
+  border-radius: 999px;
+}
+.consult > footer .chat-mode-toggle button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  color: #6a8387;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 700;
+  box-shadow: none;
+}
+.consult > footer .chat-mode-toggle button.active {
+  color: #087f70;
+  background: #fff;
+  box-shadow: 0 1px 4px #0000001a;
+}
+.consult > footer .chat-mode-toggle svg { width: 13px; height: 13px; }
+
+.consult > footer .chat-audio-bar {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid #d1d1d6;
+  border-radius: 24px;
+  box-shadow: 0 1px 3px #0000000a;
+}
+.consult > footer .chat-audio-center {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 4px 14px 4px 0;
+}
+.consult > footer .chat-audio-record {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  color: #fff;
+  background: linear-gradient(145deg, #2dc4ae, #078071);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 4px 14px #0780711a;
+}
+.consult > footer .chat-audio-record:hover { filter: brightness(1.05); }
+.consult > footer .chat-audio-record:disabled { color: #fff; background: #b9c4c6; box-shadow: none; }
+.consult > footer .chat-audio-record.is-recording {
+  background: #e0453f;
+  animation: mic-pulse 1.2s ease infinite;
+}
+.consult > footer .chat-audio-status {
+  color: #6a8387;
+  font-size: 12px;
+  font-weight: 600;
 }
 .notes-modal textarea {
   width: 100%;
