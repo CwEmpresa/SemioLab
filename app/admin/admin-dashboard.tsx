@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import {
+  LayoutDashboard, Wallet, Users, TrendingUp, Settings, ShieldCheck, BookOpen,
+  ArrowUpRight, ArrowDownRight, Activity, Stethoscope, ClipboardCheck,
+  RefreshCw, Menu, X, Crown,
+} from "lucide-react";
 import Avatar from "../avatar";
+import { useScreenTransition, useStaggerReveal, useCountUp, usePulseGlow } from "@/components/animations";
 
 type Overview = {
   totalUsers: number; confirmedUsers: number; pendingUsers: number;
@@ -40,6 +46,23 @@ type Operations = {
   aiCost: { today: number; month: number };
 };
 type AuditLog = { id: string; action: string; result: string; created_at: string; actor_email: string | null; target_email: string | null };
+type Revenue = {
+  mrr: number; arr: number; arpu: number;
+  activeCount: number; monthlyPlanCount: number; annualPlanCount: number;
+  trialCount: number; pastDueCount: number; pausedCount: number;
+  canceledCount: number; refundedCount: number; chargebackCount: number; expiredCount: number;
+  newMrr30d: number; churnedMrr30d: number; new30dCount: number; churned30dCount: number;
+  statusBreakdown: { status: string; count: number }[];
+  recentEvents: { event: string; status: string; received_at: string; customer_email: string | null; plan: string | null }[];
+  series: { month: string; mrr: number }[];
+};
+type ContentStats = {
+  patientCases: { total: number; active: number };
+  simuladoQuestions: { published: number; draft: number; rejected: number };
+  errorNotebookEntries: number;
+  topTopics: { topic: string; questions: number; consultations: number; total: number }[];
+  weeklyRankTop: { rank: number; xp: number; name: string | null; email: string | null }[];
+};
 
 const STAGE_LABELS: Record<string, string> = {
   pending_email: "E-mail pendente",
@@ -50,6 +73,19 @@ const STAGE_LABELS: Record<string, string> = {
   returned: "Retornou",
   clicked_pro: "Clicou no Pro",
   pro: "Pro",
+};
+const SUB_STATUS_LABELS: Record<string, string> = {
+  pending: "Pendente", active: "Ativa", trial: "Trial", past_due: "Inadimplente",
+  paused: "Pausada", canceled: "Cancelada", expired: "Expirada", refunded: "Reembolsada", chargeback: "Chargeback",
+};
+const EVENT_LABELS: Record<string, string> = {
+  purchase_approved: "Compra aprovada", subscription_created: "Assinatura criada",
+  subscription_renewed: "Assinatura renovada", subscription_renewal_refused: "Renovação recusada",
+  subscription_paused: "Assinatura pausada", subscription_resumed: "Assinatura retomada",
+  subscription_canceled: "Assinatura cancelada", refund: "Reembolso", chargeback: "Chargeback",
+  initiate_checkout: "Checkout iniciado", checkout_abandonment: "Checkout abandonado",
+  purchase_refused: "Compra recusada", pix_gerado: "Pix gerado", boleto_gerado: "Boleto gerado",
+  picpay_gerado: "PicPay gerado", openfinance_nubank_gerado: "Open Finance gerado",
 };
 const FUNNEL_STEPS: { key: keyof Funnel; label: string }[] = [
   { key: "signups", label: "Cadastrados" },
@@ -71,11 +107,13 @@ const FILTERS = [
   { id: "recent", label: "Cadastro recente" },
 ] as const;
 const SECTIONS = [
-  { id: "overview", label: "Visão geral" },
-  { id: "users", label: "Usuários" },
-  { id: "activation", label: "Ativação" },
-  { id: "operations", label: "Operação" },
-  { id: "audit", label: "Auditoria" },
+  { id: "overview", label: "Visão geral", icon: LayoutDashboard },
+  { id: "revenue", label: "Receita", icon: Wallet },
+  { id: "users", label: "Usuários", icon: Users },
+  { id: "activation", label: "Ativação", icon: TrendingUp },
+  { id: "content", label: "Conteúdo", icon: BookOpen },
+  { id: "operations", label: "Operação", icon: Settings },
+  { id: "audit", label: "Auditoria", icon: ShieldCheck },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]["id"];
 
@@ -85,6 +123,9 @@ function fmtDate(iso: string | null) {
 }
 function fmtDateShort(iso: string) {
   return new Date(`${iso}T12:00:00Z`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" });
+}
+function fmtMonthShort(month: string) {
+  return new Date(`${month}-01T12:00:00Z`).toLocaleDateString("pt-BR", { month: "short", year: "2-digit", timeZone: "America/Sao_Paulo" }).replace(".", "");
 }
 function tierOf(u: UserDetail): "free" | "trial" | "pro" {
   if (u.subscription?.status === "active") return "pro";
@@ -100,8 +141,11 @@ function trialEndsLabel(trialStartedAt: string | null) {
 function fmtUsd(n: number) {
   return `$${n.toFixed(4)}`;
 }
+function fmtBRL(n: number) {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
-function LineChartCard({ title, points, formatValue, color = "#35c9b1" }: { title: string; points: { label: string; value: number }[]; formatValue: (n: number) => string; color?: string }) {
+function LineChartCard({ title, points, formatValue, color = "#35c9b1", badge }: { title: string; points: { label: string; value: number }[]; formatValue: (n: number) => string; color?: string; badge?: string }) {
   const max = Math.max(...points.map((p) => p.value), 0.0001);
   const w = 600, h = 140, pad = 8;
   const stepX = points.length > 1 ? (w - pad * 2) / (points.length - 1) : 0;
@@ -111,13 +155,20 @@ function LineChartCard({ title, points, formatValue, color = "#35c9b1" }: { titl
   const total = points.reduce((s, p) => s + p.value, 0);
   return (
     <article className="admin-chart-card">
-      <header><h3>{title}</h3><b>{formatValue(total)}</b></header>
+      <header><h3>{title}</h3><b>{badge ?? formatValue(points[points.length - 1]?.value ?? total)}</b></header>
       {points.length === 0 || total === 0 ? (
         <div className="admin-chart-empty">Sem dados neste período ainda</div>
       ) : (
         <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="admin-chart-svg">
-          <path d={areaPath} fill={color} fillOpacity="0.14" stroke="none" />
+          <defs>
+            <linearGradient id={`grad-${title.replace(/\s+/g, "")}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={areaPath} fill={`url(#grad-${title.replace(/\s+/g, "")})`} stroke="none" />
           <path d={linePath} fill="none" stroke={color} strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
+          {coords.length > 0 && <circle cx={coords[coords.length - 1][0]} cy={coords[coords.length - 1][1]} r="4" fill={color} />}
         </svg>
       )}
       <footer><span>{points[0]?.label}</span><span>{points[points.length - 1]?.label}</span></footer>
@@ -156,6 +207,62 @@ function ActivityBarsCard({ points }: { points: { label: string; quiz: number; s
   );
 }
 
+function HeroStat({
+  icon: Icon, label, value, sub, delta, accent, glow, countTarget,
+}: {
+  icon: React.ComponentType<{ size?: number }>; label: string; value: string; sub?: string;
+  delta?: { positive: boolean; label: string } | null; accent?: "mint" | "gold" | "blue";
+  glow?: boolean; countTarget?: number;
+}) {
+  const cardRef = useRef<HTMLElement>(null);
+  usePulseGlow(cardRef, "#35c9b1");
+  const countRef = useCountUp(countTarget ?? 0, "", 0);
+  return (
+    <article className={`admin-hero-card admin-hero-card-${accent ?? "mint"}${glow ? " admin-hero-glow" : ""}`} ref={glow ? cardRef : undefined}>
+      <i className="admin-hero-icon"><Icon size={18} /></i>
+      <small>{label}</small>
+      <b ref={countTarget !== undefined ? countRef : undefined}>{countTarget === undefined ? value : null}</b>
+      <div className="admin-hero-foot">
+        {sub && <span className="admin-hero-sub">{sub}</span>}
+        {delta && (
+          <span className={`admin-hero-delta ${delta.positive ? "up" : "down"}`}>
+            {delta.positive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}{delta.label}
+          </span>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function SkeletonGrid({ count = 4, height = 92 }: { count?: number; height?: number }) {
+  return (
+    <div className="admin-skel-grid">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="admin-skel-card" style={{ height, animationDelay: `${i * 0.08}s` }} />
+      ))}
+    </div>
+  );
+}
+
+function StatusBarList({ items }: { items: { status: string; count: number }[] }) {
+  const max = Math.max(...items.map((i) => i.count), 1);
+  const colorFor = (status: string) =>
+    status === "active" ? "#35c9b1" : status === "trial" ? "#6db7e8" : status === "past_due" || status === "paused" ? "#f0a84e" : "#e05a5a";
+  return (
+    <div className="admin-status-bars">
+      {items.length === 0 ? (
+        <div className="admin-chart-empty">Nenhuma assinatura ainda</div>
+      ) : items.map((it) => (
+        <div className="admin-status-row" key={it.status}>
+          <span>{SUB_STATUS_LABELS[it.status] || it.status}</span>
+          <div className="admin-status-track"><i style={{ width: `${(it.count / max) * 100}%`, background: colorFor(it.status) }} /></div>
+          <b>{it.count}</b>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: string; adminRole: string }) {
   const [section, setSection] = useState<SectionId>("overview");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -177,13 +284,24 @@ export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: 
   const [funnelDays, setFunnelDays] = useState<7 | 30>(7);
   const [funnel7, setFunnel7] = useState<Funnel | null>(null);
   const [funnel30, setFunnel30] = useState<Funnel | null>(null);
+  const [revenue, setRevenue] = useState<Revenue | null>(null);
+  const [content, setContent] = useState<ContentStats | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const sectionRef = useScreenTransition(section);
+  const staggerRef = useStaggerReveal(".admin-hero-card, .admin-kpi, .admin-chart-card, .admin-ops-card, .admin-funnel-step", [section, overview, revenue, content, operations, funnel7, funnel30, funnelDays]);
+  const setSectionNode = useCallback((node: HTMLDivElement | null) => {
+    sectionRef.current = node;
+    staggerRef.current = node;
+  }, [sectionRef, staggerRef]);
 
   useEffect(() => {
     fetch("/api/admin/funnel?days=7").then((r) => (r.ok ? r.json() : null)).then(setFunnel7).catch(() => {});
     fetch("/api/admin/funnel?days=30").then((r) => (r.ok ? r.json() : null)).then(setFunnel30).catch(() => {});
     fetch("/api/admin/time-series").then((r) => (r.ok ? r.json() : null)).then(setSeries).catch(() => {});
     fetch("/api/admin/operations").then((r) => (r.ok ? r.json() : null)).then(setOperations).catch(() => {});
+    fetch("/api/admin/revenue").then((r) => (r.ok ? r.json() : null)).then(setRevenue).catch(() => {});
+    fetch("/api/admin/content").then((r) => (r.ok ? r.json() : null)).then(setContent).catch(() => {});
   }, []);
 
   const loadOverview = useCallback(() => {
@@ -208,6 +326,10 @@ export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: 
   }, [auditPage]);
   useEffect(() => { if (section === "audit") loadAudit(); }, [loadAudit, section]);
 
+  const loadRevenue = useCallback(() => {
+    fetch("/api/admin/revenue").then((r) => (r.ok ? r.json() : null)).then((data) => { if (data) setRevenue(data); }).catch(() => {});
+  }, []);
+
   const openDetail = (id: string) => {
     setActionMessage("");
     fetch(`/api/admin/users/${id}`).then((r) => (r.ok ? r.json() : null)).then(setSelected).catch(() => {});
@@ -231,20 +353,26 @@ export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: 
   };
 
   const activeFunnel = funnelDays === 7 ? funnel7 : funnel30;
-  const sectionLabel = SECTIONS.find((s) => s.id === section)?.label ?? "";
+  const activeSection = SECTIONS.find((s) => s.id === section);
+  const sectionLabel = activeSection?.label ?? "";
+  const netMrr30d = revenue ? revenue.newMrr30d - revenue.churnedMrr30d : 0;
+  const maxTopic = Math.max(...(content?.topTopics.map((t) => t.total) ?? [1]), 1);
 
   return (
     <div className="admin-shell">
-      <button className="admin-mobile-nav-trigger" onClick={() => setMobileNavOpen(true)} aria-label="Abrir menu">☰</button>
+      <button className="admin-mobile-nav-trigger" onClick={() => setMobileNavOpen(true)} aria-label="Abrir menu"><Menu size={20} /></button>
       {mobileNavOpen && <div className="overlay admin-mobile-nav-overlay" onMouseDown={() => setMobileNavOpen(false)} />}
       <aside className={`admin-sidebar ${mobileNavOpen ? "open" : ""}`}>
         <div className="admin-sidebar-brand">
           <span className="admin-sidebar-logo">S</span>
           <b>SemioLab</b>
+          <button className="admin-sidebar-close" onClick={() => setMobileNavOpen(false)} aria-label="Fechar menu"><X size={16} /></button>
         </div>
         <nav className="admin-sidebar-nav">
           {SECTIONS.map((s) => (
-            <button key={s.id} className={section === s.id ? "active" : ""} onClick={() => { setSection(s.id); setMobileNavOpen(false); }}>{s.label}</button>
+            <button key={s.id} className={section === s.id ? "active" : ""} onClick={() => { setSection(s.id); setMobileNavOpen(false); }}>
+              <s.icon size={16} /><span>{s.label}</span>
+            </button>
           ))}
         </nav>
         <Link className="admin-sidebar-back" href="/">← Voltar ao app</Link>
@@ -253,23 +381,32 @@ export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: 
       <main className="admin-main">
         <header className="admin-topbar">
           <div>
-            <h1>{sectionLabel}</h1>
+            <h1>{activeSection && <activeSection.icon size={20} />}{sectionLabel}</h1>
             <small>{lastUpdated ? `Atualizado às ${lastUpdated.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })}` : "Carregando..."}</small>
           </div>
-          <button className="admin-refresh" onClick={() => { loadOverview(); if (section === "users") loadUsers(); if (section === "audit") loadAudit(); }}>Atualizar</button>
+          <button className="admin-refresh" onClick={() => { loadOverview(); loadRevenue(); if (section === "users") loadUsers(); if (section === "audit") loadAudit(); }}>
+            <RefreshCw size={14} /> Atualizar
+          </button>
           <div className="admin-identity"><i>{adminEmail ? adminEmail[0]?.toUpperCase() : "A"}</i><span><b>{adminEmail || "Administrador"}</b><small>{adminRole === "super_admin" ? "Super admin" : "Admin"}</small></span></div>
         </header>
 
+        <div ref={setSectionNode}>
         {section === "overview" && (
           <>
             {!overview ? (
-              <div className="admin-loading">Carregando visão geral...</div>
+              <SkeletonGrid count={4} height={110} />
             ) : (
               <>
+                <section className="admin-hero-grid">
+                  <HeroStat icon={Wallet} label="MRR — receita recorrente mensal" value={fmtBRL(revenue?.mrr ?? 0)} sub={revenue ? `ARR ${fmtBRL(revenue.arr)}` : undefined} accent="mint" glow
+                    delta={revenue ? { positive: netMrr30d >= 0, label: `${netMrr30d >= 0 ? "+" : ""}${fmtBRL(netMrr30d)} em 30d` } : null} />
+                  <HeroStat icon={Users} label="Usuários totais" value={String(overview.totalUsers)} countTarget={overview.totalUsers} sub={`${overview.confirmedUsers} confirmados`} accent="blue" />
+                  <HeroStat icon={Activity} label="Ativos hoje" value={String(overview.activeToday)} countTarget={overview.activeToday} sub={`${overview.signups7d} cadastros em 7d`} accent="gold" />
+                  <HeroStat icon={Crown} label="Assinantes Pro" value={String(overview.proCount)} countTarget={overview.proCount} sub={`${overview.trialCount} em trial · ${overview.freeCount} free`} accent="mint" />
+                </section>
+
                 <section className="admin-kpi-grid">
-                  <article className="admin-kpi"><small>Usuários totais</small><b>{overview.totalUsers}</b><span>Base completa</span></article>
                   <article className="admin-kpi"><small>Confirmados</small><b>{overview.confirmedUsers}</b><span>{overview.pendingUsers} pendentes</span></article>
-                  <article className="admin-kpi"><small>Ativos hoje</small><b>{overview.activeToday}</b><span>{overview.signups7d} cadastros em 7d</span></article>
                   <article className="admin-kpi"><small>Free / Trial / Pro</small><b>{overview.freeCount} / {overview.trialCount} / {overview.proCount}</b><span>Distribuição atual</span></article>
                   <article className="admin-kpi"><small>Custo IA hoje</small><b>{fmtUsd(overview.aiCostToday)}</b><span>{fmtUsd(overview.aiCostMonth)} no mês</span></article>
                   <article className="admin-kpi"><small>Atividade total</small><b>{overview.consultationsTotal + overview.quizAttemptsTotal + overview.simuladoAttemptsTotal}</b><span>{overview.quizAttemptsTotal} quiz · {overview.simuladoAttemptsTotal} simulado · {overview.consultationsTotal} paciente</span></article>
@@ -277,11 +414,63 @@ export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: 
 
                 {series && (
                   <section className="admin-charts-grid">
-                    <LineChartCard title="Cadastros — últimos 30 dias" points={series.signups30d.map((p) => ({ label: fmtDateShort(p.date), value: p.count }))} formatValue={(n) => `${n} cadastros`} color="#35c9b1" />
-                    <LineChartCard title="Custo de IA — últimos 30 dias" points={series.aiCost30d.map((p) => ({ label: fmtDateShort(p.date), value: p.cost }))} formatValue={(n) => fmtUsd(n)} color="#f0a84e" />
+                    {revenue && <LineChartCard title="MRR — últimos 12 meses" points={revenue.series.map((p) => ({ label: fmtMonthShort(p.month), value: p.mrr }))} formatValue={fmtBRL} color="#35c9b1" />}
+                    <LineChartCard title="Cadastros — últimos 30 dias" points={series.signups30d.map((p) => ({ label: fmtDateShort(p.date), value: p.count }))} formatValue={(n) => `${n} cadastros`} color="#6db7e8" badge={`${overview.signups30d} no total`} />
                     <ActivityBarsCard points={series.activity7d.map((p) => ({ label: fmtDateShort(p.date), quiz: p.quiz, simulado: p.simulado, patient: p.patient }))} />
                   </section>
                 )}
+              </>
+            )}
+          </>
+        )}
+
+        {section === "revenue" && (
+          <>
+            {!revenue ? (
+              <SkeletonGrid count={4} height={110} />
+            ) : (
+              <>
+                <section className="admin-hero-grid">
+                  <HeroStat icon={Wallet} label="MRR atual" value={fmtBRL(revenue.mrr)} sub={`ARR ${fmtBRL(revenue.arr)}`} accent="mint" glow
+                    delta={{ positive: netMrr30d >= 0, label: `${netMrr30d >= 0 ? "+" : ""}${fmtBRL(netMrr30d)} em 30d` }} />
+                  <HeroStat icon={Users} label="Assinantes ativos" value={String(revenue.activeCount)} countTarget={revenue.activeCount} sub={`${revenue.monthlyPlanCount} mensal · ${revenue.annualPlanCount} anual`} accent="blue" />
+                  <HeroStat icon={TrendingUp} label="ARPU" value={fmtBRL(revenue.arpu)} sub="Receita média por assinante" accent="gold" />
+                  <HeroStat icon={ArrowUpRight} label="Novo MRR (30d)" value={fmtBRL(revenue.newMrr30d)} sub={`${revenue.new30dCount} novas assinaturas`} accent="mint" />
+                </section>
+
+                <section className="admin-charts-grid">
+                  <LineChartCard title="MRR — últimos 12 meses" points={revenue.series.map((p) => ({ label: fmtMonthShort(p.month), value: p.mrr }))} formatValue={fmtBRL} color="#35c9b1" />
+                  <article className="admin-chart-card">
+                    <header><h3>Assinaturas por status</h3><b>{revenue.activeCount + revenue.trialCount + revenue.pastDueCount + revenue.pausedCount + revenue.canceledCount + revenue.expiredCount + revenue.refundedCount + revenue.chargebackCount}</b></header>
+                    <StatusBarList items={revenue.statusBreakdown} />
+                  </article>
+                  <article className="admin-chart-card">
+                    <header><h3>Churn — últimos 30 dias</h3><b className="admin-text-warn">{fmtBRL(revenue.churnedMrr30d)}</b></header>
+                    <div className="admin-detail-grid">
+                      <span><small>Cancelamentos</small><b>{revenue.churned30dCount}</b></span>
+                      <span><small>MRR perdido</small><b>{fmtBRL(revenue.churnedMrr30d)}</b></span>
+                      <span><small>Inadimplentes</small><b>{revenue.pastDueCount}</b></span>
+                      <span><small>Pausadas</small><b>{revenue.pausedCount}</b></span>
+                    </div>
+                  </article>
+                </section>
+
+                <section className="admin-ops-card admin-events-card">
+                  <h3>Eventos recentes de pagamento</h3>
+                  {revenue.recentEvents.length === 0 ? (
+                    <div className="admin-chart-empty">Nenhum evento registrado ainda</div>
+                  ) : (
+                    <ul className="admin-ops-list">
+                      {revenue.recentEvents.map((e, i) => (
+                        <li key={i}>
+                          <span>{EVENT_LABELS[e.event] || e.event}{e.customer_email ? ` · ${e.customer_email}` : ""}{e.plan && e.plan !== "unknown" ? ` (${e.plan === "monthly" ? "mensal" : "anual"})` : ""}</span>
+                          <em className={e.status === "error" ? "admin-badge-warn" : "admin-badge-ok"}>{e.status}</em>
+                          <small>{fmtDate(e.received_at)}</small>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
               </>
             )}
           </>
@@ -294,7 +483,7 @@ export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: 
               <button className={funnelDays === 30 ? "active" : ""} onClick={() => setFunnelDays(30)}>30 dias</button>
             </div>
             {!activeFunnel ? (
-              <div className="admin-loading">Carregando funil...</div>
+              <SkeletonGrid count={9} height={92} />
             ) : (
               <div className="admin-funnel-steps">
                 {FUNNEL_STEPS.map((step, idx) => {
@@ -314,6 +503,49 @@ export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: 
               </div>
             )}
           </section>
+        )}
+
+        {section === "content" && (
+          <>
+            {!content ? (
+              <SkeletonGrid count={3} height={100} />
+            ) : (
+              <>
+                <section className="admin-kpi-grid">
+                  <article className="admin-kpi admin-kpi-icon"><i><Stethoscope size={16} /></i><small>Casos clínicos ativos</small><b>{content.patientCases.active}/{content.patientCases.total}</b><span>Simulador de paciente com IA</span></article>
+                  <article className="admin-kpi admin-kpi-icon"><i><ClipboardCheck size={16} /></i><small>Questões publicadas</small><b>{content.simuladoQuestions.published}</b><span>{content.simuladoQuestions.draft} rascunho · {content.simuladoQuestions.rejected} rejeitadas</span></article>
+                  <article className="admin-kpi admin-kpi-icon"><i><BookOpen size={16} /></i><small>Caderno de erros</small><b>{content.errorNotebookEntries}</b><span>Entradas registradas pelos usuários</span></article>
+                </section>
+
+                <section className="admin-charts-grid">
+                  <article className="admin-chart-card">
+                    <header><h3>Tópicos mais praticados</h3></header>
+                    {content.topTopics.length === 0 ? <div className="admin-chart-empty">Sem dados ainda</div> : (
+                      <div className="admin-topic-bars">
+                        {content.topTopics.map((t) => (
+                          <div className="admin-topic-row" key={t.topic}>
+                            <span>{t.topic}</span>
+                            <div className="admin-topic-track"><i style={{ width: `${(t.total / maxTopic) * 100}%` }} /></div>
+                            <b>{t.total}</b>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </article>
+                  <article className="admin-chart-card">
+                    <header><h3>Top do ranking semanal</h3></header>
+                    {content.weeklyRankTop.length === 0 ? <div className="admin-chart-empty">Sem ranking calculado ainda</div> : (
+                      <ul className="admin-ops-list">
+                        {content.weeklyRankTop.map((u) => (
+                          <li key={u.rank}><span>#{u.rank} {u.name || u.email || "—"}</span><b>{u.xp} XP</b></li>
+                        ))}
+                      </ul>
+                    )}
+                  </article>
+                </section>
+              </>
+            )}
+          </>
         )}
 
         {section === "users" && (
@@ -361,7 +593,7 @@ export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: 
         {section === "operations" && (
           <section className="admin-ops-grid">
             {!operations ? (
-              <div className="admin-loading">Carregando operação...</div>
+              <SkeletonGrid count={4} height={140} />
             ) : (
               <>
                 <article className="admin-ops-card">
@@ -432,6 +664,7 @@ export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: 
             </div>
           </section>
         )}
+        </div>
       </main>
 
       {selected && (
