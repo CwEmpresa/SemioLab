@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   LayoutDashboard, Wallet, Users, TrendingUp, Settings, ShieldCheck, BookOpen,
   ArrowUpRight, ArrowDownRight, Activity, Stethoscope, ClipboardCheck,
-  RefreshCw, Menu, X, Crown,
+  RefreshCw, Menu, X, Crown, Compass,
 } from "lucide-react";
 import Avatar from "../avatar";
 import { useScreenTransition, useStaggerReveal, useCountUp, usePulseGlow } from "@/components/animations";
@@ -63,6 +63,13 @@ type ContentStats = {
   topTopics: { topic: string; questions: number; consultations: number; total: number }[];
   weeklyRankTop: { rank: number; xp: number; name: string | null; email: string | null }[];
 };
+type Engagement = {
+  featureUsage: { feature: string; label: string; attempts30d: number; uniqueUsers30d: number }[];
+  patientSessions: { total: number; finished: number; notFinished: number; avgMessagesFinished: number; avgMessagesNotFinished: number };
+  simulado: { started: number; completed: number };
+  dormancy: { bucket: string; count: number }[];
+};
+type ActivationDay = { date: string; signups: number; activated: number; dau: number };
 
 const STAGE_LABELS: Record<string, string> = {
   pending_email: "E-mail pendente",
@@ -111,6 +118,7 @@ const SECTIONS = [
   { id: "revenue", label: "Receita", icon: Wallet },
   { id: "users", label: "Usuários", icon: Users },
   { id: "activation", label: "Ativação", icon: TrendingUp },
+  { id: "engagement", label: "Uso do produto", icon: Compass },
   { id: "content", label: "Conteúdo", icon: BookOpen },
   { id: "operations", label: "Operação", icon: Settings },
   { id: "audit", label: "Auditoria", icon: ShieldCheck },
@@ -143,6 +151,9 @@ function fmtUsd(n: number) {
 }
 function fmtBRL(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+function fmtPct(n: number) {
+  return `${n.toFixed(0)}%`;
 }
 
 function LineChartCard({ title, points, formatValue, color = "#35c9b1", badge }: { title: string; points: { label: string; value: number }[]; formatValue: (n: number) => string; color?: string; badge?: string }) {
@@ -286,10 +297,12 @@ export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: 
   const [funnel30, setFunnel30] = useState<Funnel | null>(null);
   const [revenue, setRevenue] = useState<Revenue | null>(null);
   const [content, setContent] = useState<ContentStats | null>(null);
+  const [engagement, setEngagement] = useState<Engagement | null>(null);
+  const [activationDaily, setActivationDaily] = useState<ActivationDay[] | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const sectionRef = useScreenTransition(section);
-  const staggerRef = useStaggerReveal(".admin-hero-card, .admin-kpi, .admin-chart-card, .admin-ops-card, .admin-funnel-step", [section, overview, revenue, content, operations, funnel7, funnel30, funnelDays]);
+  const staggerRef = useStaggerReveal(".admin-hero-card, .admin-kpi, .admin-chart-card, .admin-ops-card, .admin-funnel-step", [section, overview, revenue, content, engagement, activationDaily, operations, funnel7, funnel30, funnelDays]);
   const setSectionNode = useCallback((node: HTMLDivElement | null) => {
     sectionRef.current = node;
     staggerRef.current = node;
@@ -302,6 +315,8 @@ export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: 
     fetch("/api/admin/operations").then((r) => (r.ok ? r.json() : null)).then(setOperations).catch(() => {});
     fetch("/api/admin/revenue").then((r) => (r.ok ? r.json() : null)).then(setRevenue).catch(() => {});
     fetch("/api/admin/content").then((r) => (r.ok ? r.json() : null)).then(setContent).catch(() => {});
+    fetch("/api/admin/engagement").then((r) => (r.ok ? r.json() : null)).then(setEngagement).catch(() => {});
+    fetch("/api/admin/activation-daily?days=14").then((r) => (r.ok ? r.json() : null)).then(setActivationDaily).catch(() => {});
   }, []);
 
   const loadOverview = useCallback(() => {
@@ -477,32 +492,107 @@ export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: 
         )}
 
         {section === "activation" && (
-          <section className="admin-funnel-panel">
-            <div className="admin-funnel-toggle">
-              <button className={funnelDays === 7 ? "active" : ""} onClick={() => setFunnelDays(7)}>7 dias</button>
-              <button className={funnelDays === 30 ? "active" : ""} onClick={() => setFunnelDays(30)}>30 dias</button>
-            </div>
-            {!activeFunnel ? (
-              <SkeletonGrid count={9} height={92} />
-            ) : (
-              <div className="admin-funnel-steps">
-                {FUNNEL_STEPS.map((step, idx) => {
-                  const value = activeFunnel[step.key] as number;
-                  const prevValue = idx === 0 ? null : (activeFunnel[FUNNEL_STEPS[idx - 1].key] as number);
-                  const pctPrev = prevValue && prevValue > 0 ? Math.round((value / prevValue) * 100) : null;
-                  const pctTotal = activeFunnel.signups > 0 ? Math.round((value / activeFunnel.signups) * 100) : null;
-                  return (
-                    <div className="admin-funnel-step" key={step.key}>
-                      <small>{step.label}</small>
-                      <b>{value}</b>
-                      <div className="admin-funnel-bar"><i style={{ width: `${pctTotal ?? 0}%` }} /></div>
-                      <span>{pctPrev !== null ? `${pctPrev}% da etapa anterior` : "—"} · {pctTotal !== null ? `${pctTotal}% do total` : "—"}</span>
-                    </div>
-                  );
-                })}
+          <>
+            <section className="admin-funnel-panel">
+              <div className="admin-funnel-toggle">
+                <button className={funnelDays === 7 ? "active" : ""} onClick={() => setFunnelDays(7)}>7 dias</button>
+                <button className={funnelDays === 30 ? "active" : ""} onClick={() => setFunnelDays(30)}>30 dias</button>
               </div>
+              {!activeFunnel ? (
+                <SkeletonGrid count={9} height={92} />
+              ) : (
+                <div className="admin-funnel-steps">
+                  {FUNNEL_STEPS.map((step, idx) => {
+                    const value = activeFunnel[step.key] as number;
+                    const prevValue = idx === 0 ? null : (activeFunnel[FUNNEL_STEPS[idx - 1].key] as number);
+                    const pctPrev = prevValue && prevValue > 0 ? Math.round((value / prevValue) * 100) : null;
+                    const pctTotal = activeFunnel.signups > 0 ? Math.round((value / activeFunnel.signups) * 100) : null;
+                    return (
+                      <div className="admin-funnel-step" key={step.key}>
+                        <small>{step.label}</small>
+                        <b>{value}</b>
+                        <div className="admin-funnel-bar"><i style={{ width: `${pctTotal ?? 0}%` }} /></div>
+                        <span>{pctPrev !== null ? `${pctPrev}% da etapa anterior` : "—"} · {pctTotal !== null ? `${pctTotal}% do total` : "—"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <h3 className="admin-subheading">Dia a dia — últimos 14 dias</h3>
+            {!activationDaily ? (
+              <SkeletonGrid count={3} height={160} />
+            ) : (
+              <>
+                <section className="admin-charts-grid">
+                  <LineChartCard title="Cadastros por dia" points={activationDaily.map((d) => ({ label: fmtDateShort(d.date), value: d.signups }))} formatValue={(n) => `${n} cadastros`} color="#6db7e8" />
+                  <LineChartCard title="Usuários ativos por dia (DAU)" points={activationDaily.map((d) => ({ label: fmtDateShort(d.date), value: d.dau }))} formatValue={(n) => `${n} ativos`} color="#35c9b1" />
+                  <LineChartCard title="Taxa de ativação por dia" points={activationDaily.map((d) => ({ label: fmtDateShort(d.date), value: d.signups > 0 ? (d.activated / d.signups) * 100 : 0 }))} formatValue={fmtPct} color="#f0a84e" />
+                </section>
+                <p className="admin-hero-sub admin-note">A taxa de ativação é medida com o estágio atual de cada cadastro — dias mais recentes tendem a aparecer mais baixos porque ainda não tiveram tempo de ativar.</p>
+              </>
             )}
-          </section>
+          </>
+        )}
+
+        {section === "engagement" && (
+          <>
+            {!engagement ? (
+              <SkeletonGrid count={3} height={100} />
+            ) : (
+              <>
+                <section className="admin-kpi-grid">
+                  <article className="admin-kpi">
+                    <small>Sessões com Paciente IA</small>
+                    <b>{engagement.patientSessions.finished}/{engagement.patientSessions.total}</b>
+                    <span>concluídas · {engagement.patientSessions.notFinished} não concluídas</span>
+                  </article>
+                  <article className="admin-kpi">
+                    <small>Simulados concluídos</small>
+                    <b>{engagement.simulado.completed}/{engagement.simulado.started}</b>
+                    <span>{engagement.simulado.started > 0 ? fmtPct((engagement.simulado.completed / engagement.simulado.started) * 100) : "—"} de conclusão</span>
+                  </article>
+                  <article className="admin-kpi">
+                    <small>Mensagens até concluir</small>
+                    <b>{engagement.patientSessions.avgMessagesFinished}</b>
+                    <span>{engagement.patientSessions.avgMessagesNotFinished} nas sessões não concluídas</span>
+                  </article>
+                </section>
+
+                <section className="admin-charts-grid">
+                  <article className="admin-chart-card">
+                    <header><h3>Onde o usuário mais usa (últimos 30 dias)</h3></header>
+                    <div className="admin-topic-bars">
+                      {engagement.featureUsage.map((f) => (
+                        <div className="admin-topic-row" key={f.feature}>
+                          <span>{f.label}</span>
+                          <div className="admin-topic-track"><i style={{ width: `${(f.attempts30d / Math.max(...engagement.featureUsage.map((x) => x.attempts30d), 1)) * 100}%` }} /></div>
+                          <b>{f.attempts30d}</b>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="admin-hero-sub admin-note">
+                      {engagement.featureUsage.map((f) => `${f.label}: ${f.uniqueUsers30d} usuários únicos`).join(" · ")}
+                    </p>
+                  </article>
+                  <article className="admin-chart-card">
+                    <header><h3>Inatividade da base</h3></header>
+                    <div className="admin-topic-bars admin-topic-bars-wide">
+                      {engagement.dormancy.map((d) => (
+                        <div className="admin-topic-row" key={d.bucket}>
+                          <span>{d.bucket}</span>
+                          <div className="admin-topic-track"><i style={{ width: `${(d.count / Math.max(...engagement.dormancy.map((x) => x.count), 1)) * 100}%` }} /></div>
+                          <b>{d.count}</b>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="admin-hero-sub admin-note">Quanto mais usuários em &quot;Sumiu há 30+ dias&quot; ou &quot;Nunca voltou&quot;, maior o sinal de abandono da base.</p>
+                  </article>
+                </section>
+              </>
+            )}
+          </>
         )}
 
         {section === "content" && (
