@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useLearningSummary } from "./use-learning-summary";
+import { useLearningSummary, peekQueuedQuizLaunch, peekQueuedQuizView, clearQueuedQuizLaunch } from "./use-learning-summary";
 import { openProUpgradeModal, openDailyLimitInfo } from "./pro-upgrade-modal";
 import {
   ArrowLeft,
@@ -13,6 +13,7 @@ import {
   ClipboardCheck,
   Clock3,
   FileText,
+  Sparkles,
   Target,
   X,
   Zap,
@@ -118,9 +119,13 @@ export default function QuizExperience({
 }: {
   go: (screen: "home" | "study" | "profile" | "quiz") => void;
 }) {
-  const [mode, setMode] = useState<Mode>("home");
-  const [topic, setTopic] = useState("Todos");
+  const [mode, setMode] = useState<Mode>(() => (typeof window === "undefined" ? "home" : peekQueuedQuizView() ?? "home"));
+  // Veio de uma tarefa da missão diária ou de um atalho de tema: já abre
+  // o treino pedido, sem passar pela tela de configuração.
+  const [pendingLaunch] = useState(() => (typeof window === "undefined" ? null : peekQueuedQuizLaunch()));
+  const [topic, setTopic] = useState(pendingLaunch?.topic ?? "Todos");
   const [amount, setAmount] = useState(() => {
+    if (pendingLaunch) return pendingLaunch.amount;
     if (typeof window === "undefined") return 10;
     const firstQuiz = sessionStorage.getItem("semiolab:first-quiz-amount");
     if (firstQuiz) { sessionStorage.removeItem("semiolab:first-quiz-amount"); return Number(firstQuiz) || 10; }
@@ -167,6 +172,8 @@ export default function QuizExperience({
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => { if (data) setTopicCounts(data.byTopic || {}); })
       .catch(() => {});
+    clearQueuedQuizLaunch();
+    if (pendingLaunch) startQuiz(pendingLaunch.topic, pendingLaunch.amount);
   }, []);
   const maxAmount = Math.min(20, topic === "Todos" ? Object.values(topicCounts).reduce((a, b) => a + b, 0) : topicCounts[topic] ?? 0);
   const score = quizResults.filter((r) => r.correct).length;
@@ -491,6 +498,20 @@ export default function QuizExperience({
         <div className="quiz-config">
           <h1>{simuladoResult.correct} de {simuladoResult.total} corretas</h1>
           <p>Aproveitamento de {simuladoResult.score}%.</p>
+          {simuladoAttemptId && (
+            <a className="smart-review-cta" href={`/revisao-inteligente/${simuladoAttemptId}`}>
+              <i><Sparkles /></i>
+              <span>
+                <b>{simuladoResult.correct === simuladoResult.total ? "Ver minha revisão de desempenho" : "Revisar meus erros"}</b>
+                <small>
+                  {simuladoResult.correct === simuladoResult.total
+                    ? "Veja seu desempenho por assunto e o próximo passo recomendado."
+                    : "Transforme seus erros deste simulado em uma revisão visual personalizada."}
+                </small>
+              </span>
+              <ChevronRight />
+            </a>
+          )}
           <button className="primary" onClick={() => { setMode("home"); setSimuladoMode("config"); }}>Voltar ao início <ChevronRight /></button>
         </div>
       </div>
