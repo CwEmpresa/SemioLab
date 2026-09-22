@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
-import { resolveUserAccess } from "@/lib/user-access";
+import { limitWindowStart, resolveUserAccess } from "@/lib/user-access";
 import { brasiliaDateKey, startOfBrasiliaDayUtc } from "@/lib/ai-usage";
 import { getWebPush, DEEP_LINKS, NOTIFICATION_MESSAGES } from "@/lib/push";
 import { MAX_SESSIONS_PER_DAY } from "@/lib/patient-ai-rules";
@@ -24,14 +24,16 @@ async function pickMessage(
   const startOfDay = startOfBrasiliaDayUtc();
 
   if (slot === "morning") {
-    if (access.tier === "free") return "streak"; // Free nunca recebe convite a recurso bloqueado
-    const consultationLimit = Math.min(MAX_SESSIONS_PER_DAY, access.limits.consultationsPerDay);
-    const { count: sessionsToday } = await service
+    // Convida para a consulta só se ainda houver uma disponível na janela do
+    // plano (o gratuito tem 1 por semana).
+    const consultationLimit = Math.min(MAX_SESSIONS_PER_DAY, access.limits.consultations);
+    const { count: sessionsInWindow } = await service
       .from("patient_sessions")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
-      .gte("started_at", startOfDay);
-    if ((sessionsToday ?? 0) < consultationLimit) return "patient";
+      .gte("started_at", limitWindowStart(access.limits.consultationWindow));
+    if ((sessionsInWindow ?? 0) < consultationLimit) return "patient";
+    if (access.tier === "free") return "streak"; // Free nunca recebe convite a recurso bloqueado
 
     const { count: simuladosToday } = await service
       .from("simulado_attempts")

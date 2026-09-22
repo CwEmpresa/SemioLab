@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { ArrowLeft, Check, HeartPulse, ShieldCheck, Sparkles, X } from "lucide-react";
 import { useLearningSummary } from "./use-learning-summary";
 
-export type ProUpgradeReason = "daily" | "patient" | "simulado" | "auscultation" | "audio" | "limit" | "backend";
+export type ProUpgradeReason = "daily" | "patient" | "simulado" | "auscultation" | "audio" | "limit" | "weekly" | "exams" | "flashcards" | "backend";
 
 const REASON_COPY: Record<ProUpgradeReason, { small: string; title: string; subtitle: string }> = {
   daily: { small: "SEMIOLAB PRO", title: "Desbloqueie o SemioLab Pro", subtitle: "Aprenda, pratique e evolua todos os dias." },
@@ -15,6 +15,9 @@ const REASON_COPY: Record<ProUpgradeReason, { small: string; title: string; subt
   auscultation: { small: "RECURSO PRO", title: "Recurso exclusivo do Pro", subtitle: "O Laboratório de Ausculta é um recurso do plano Pro (ou do período de teste)." },
   audio: { small: "RECURSO PRO", title: "Recurso exclusivo do Pro", subtitle: "Perguntar por voz e ouvir o paciente são recursos do plano Pro (ou do período de teste)." },
   limit: { small: "LIMITE DIÁRIO", title: "Seu limite diário acabou", subtitle: "Volte amanhã ou assine o Pro para continuar agora mesmo." },
+  weekly: { small: "CONSULTA DA SEMANA", title: "Você já atendeu seu paciente da semana", subtitle: "No plano gratuito é 1 consulta por semana. No Pro são 3 por dia, com voz e exames ilimitados." },
+  exams: { small: "LIMITE DE EXAMES", title: "Peça quantos exames precisar", subtitle: "No plano gratuito são 2 exames por consulta. No Pro, exames ilimitados em todo atendimento." },
+  flashcards: { small: "FLASHCARDS DE HOJE", title: "Você revisou as 20 cartas de hoje", subtitle: "Amanhã tem mais. No Pro, revise quantas cartas quiser, todos os dias." },
   backend: { small: "RECURSO PRO", title: "Recurso exclusivo do Pro", subtitle: "Esse recurso não está disponível no seu plano atual." },
 };
 
@@ -148,6 +151,7 @@ export default function ProUpgradeModal({ userId }: { userId: string }) {
             <span><i><Check /></i>Exames ilimitados por atendimento</span>
             <span><i><Check /></i>Pergunte por voz e ouça a resposta do paciente</span>
             <span><i><Check /></i>Laboratório de Ausculta liberado</span>
+            <span><i><Check /></i>Flashcards sem limite e 10 pesquisas por tema por dia</span>
           </div>
           <div className="pro-plans" role="radiogroup" aria-label="Escolha o plano">
             <button className={plan === "monthly" ? "selected" : ""} onClick={() => setPlan("monthly")} role="radio" aria-checked={plan === "monthly"}>

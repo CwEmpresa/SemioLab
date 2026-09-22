@@ -135,7 +135,7 @@ export default function PatientExperience({
     [caseInfo, setCaseInfo] = useState<{ title: string; specialty: string; receptionReason: string; patientName: string; patientAge: number } | null>(null),
     [loadError, setLoadError] = useState(""),
     [finishing, setFinishing] = useState(false),
-    [quota, setQuota] = useState<{ questionsUsed: number; questionsLimit: number; sessionsUsedToday: number; sessionsLimitToday: number } | null>(null),
+    [quota, setQuota] = useState<{ questionsUsed: number; questionsLimit: number; sessionsUsedToday: number; sessionsLimitToday: number; weekly?: boolean } | null>(null),
     [serverEvaluation, setServerEvaluation] = useState<{
       score: number; historyScore: number; physicalScore: number; examsScore: number; reasoningScore: number;
       strengths: string[]; gaps: string[]; examLearning: string[]; feedback: string; correctDiagnosis: string;
@@ -317,12 +317,8 @@ export default function PatientExperience({
             ? "Alguns dados importantes ficaram de fora."
             : "A consulta terminou antes de reunir dados essenciais.";
   async function start() {
-    // Free nunca chega a chamar a API: nem cria sessão, nem gasta o
-    // atendimento — só abre o modal compartilhado.
-    if (learning?.pro?.tier === "free") {
-      openProUpgradeModal("patient");
-      return;
-    }
+    // O gratuito tem 1 consulta por semana: o limite é conferido no backend,
+    // que devolve limitReached quando ela já foi usada.
     setTyping(false);
     setPhysical(false);
     setExamOrder("");
@@ -340,7 +336,7 @@ export default function PatientExperience({
       if (response.status === 403 && data.limitReached) {
         setPhase("wait");
         if (learning?.pro?.tier === "pro") openDailyLimitInfo();
-        else openProUpgradeModal("limit");
+        else openProUpgradeModal(data.consultationWindow === "semana" ? "weekly" : "limit");
         return;
       }
       if (!response.ok) {
@@ -360,6 +356,7 @@ export default function PatientExperience({
         questionsLimit: data.questionsLimit ?? 20,
         sessionsUsedToday: data.sessionsUsedToday ?? 1,
         sessionsLimitToday: data.sessionsLimitToday ?? 3,
+        weekly: data.consultationWindow === "semana",
       });
       setMessages([{ who: "patient", text: data.openingLine, createdAt: Date.now() }]);
     } catch {
@@ -592,6 +589,7 @@ export default function PatientExperience({
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         setMessages((m) => [...m, { who: "patient", text: data.error || "Não foi possível liberar o exame.", createdAt: Date.now() }]);
+        if (response.status === 403 && data.limitReached && data.tier === "free") openProUpgradeModal("exams");
         return;
       }
       setMessages((m) => [...m, { who: "exam", text: "RESULTADOS LIBERADOS", report: data.report, createdAt: Date.now() }]);
@@ -933,7 +931,9 @@ export default function PatientExperience({
           <b>{patientName}</b>
           <small>
             {quota
-              ? `Pergunta ${quota.questionsUsed} de ${quota.questionsLimit} · ${quota.sessionsUsedToday} de ${quota.sessionsLimitToday} atendimentos usados hoje`
+              ? quota.weekly
+                ? `Pergunta ${quota.questionsUsed} de ${quota.questionsLimit} · Consulta grátis da semana`
+                : `Pergunta ${quota.questionsUsed} de ${quota.questionsLimit} · ${quota.sessionsUsedToday} de ${quota.sessionsLimitToday} atendimentos usados hoje`
               : "Consulta simulada · Atendimento em andamento"}
           </small>
         </section>

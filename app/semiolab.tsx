@@ -386,11 +386,13 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
   const generalMastery = homeAvailableScores.length ? Math.round(homeAvailableScores.reduce((sum, value) => sum + value, 0) / homeAvailableScores.length) : null;
   const priorityTopics = prioritizeTopics(learning?.mastery).slice(0, 3);
   const tier = learning?.pro?.tier;
-  const patientLocked = tier === "free";
+  // O gratuito tem 1 consulta por semana, então o Paciente IA nunca aparece
+  // travado; o limite é tratado ao iniciar a consulta.
+  const patientLocked = false;
   const labLocked = tier === "free";
   const patientSubtitle =
     tier === "trial" ? `Teste grátis · ${learning?.pro?.trialDaysLeft ?? 0}d restantes` :
-    tier === "free" ? "Consulta completa com IA" :
+    tier === "free" ? "1 consulta grátis por semana" :
     "Consulta sem pistas · 8–12 min";
 
   const runMissionAction = (action: MissionAction) => {

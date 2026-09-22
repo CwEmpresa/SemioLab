@@ -1,11 +1,18 @@
 import type { createClient } from "@/lib/supabase/server";
 import { isProActive } from "@/lib/pro";
-import { getAccessTier, trialDaysLeft, TIER_LIMITS, type AccessTier } from "@/lib/access-tier";
+import { startOfBrasiliaDayUtc } from "@/lib/ai-usage";
+import { getAccessTier, trialDaysLeft, TIER_LIMITS, type AccessTier, type TierLimits } from "@/lib/access-tier";
+
+/** Início da janela de um limite: meia-noite de Brasília (dia) ou os
+ * últimos 7 dias corridos (semana). */
+export function limitWindowStart(window: "dia" | "semana"): string {
+  return window === "dia" ? startOfBrasiliaDayUtc() : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+}
 
 export type UserAccess = {
   tier: AccessTier;
   trialDaysLeft: number;
-  limits: (typeof TIER_LIMITS)[AccessTier];
+  limits: TierLimits;
 };
 
 export async function resolveUserAccess(

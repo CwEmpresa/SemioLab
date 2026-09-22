@@ -1,9 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { CAKTO_CHECKOUT_URLS } from "@/lib/pro";
-import { resolveUserAccess } from "@/lib/user-access";
+import { limitWindowStart, resolveUserAccess } from "@/lib/user-access";
 import { MAX_SESSIONS_PER_DAY, MAX_STUDENT_MESSAGES_PER_SESSION } from "@/lib/patient-ai-rules";
-import { startOfBrasiliaDayUtc } from "@/lib/ai-usage";
 
 export const dynamic = "force-dynamic";
 
@@ -16,18 +15,18 @@ export async function POST() {
 
   const access = await resolveUserAccess(supabase, user.id);
 
-  // Limite diário aplicado no BACKEND, sempre a partir do usuário
-  // autenticado e de dados do Supabase — nunca do frontend/localStorage.
-  // Vale o menor entre o teto global de atendimentos por dia e o limite do
-  // plano do usuário. Reinicia à meia-noite de Brasília e não acumula.
-  const dailyLimit = Math.min(MAX_SESSIONS_PER_DAY, access.limits.consultationsPerDay);
-  const startOfDay = startOfBrasiliaDayUtc();
-  const { count: todayCount } = await supabase
+  // Limite aplicado no BACKEND, sempre a partir do usuário autenticado e de
+  // dados do Supabase — nunca do frontend/localStorage. Vale o menor entre o
+  // teto global de atendimentos e o limite do plano. Pro e trial contam por
+  // dia (reinicia à meia-noite de Brasília); o gratuito, nos últimos 7 dias.
+  const { consultationWindow } = access.limits;
+  const dailyLimit = Math.min(MAX_SESSIONS_PER_DAY, access.limits.consultations);
+  const { count: windowCount } = await supabase
     .from("patient_sessions")
     .select("id", { count: "exact", head: true })
     .eq("user_id", user.id)
-    .gte("started_at", startOfDay);
-  const sessionsUsedToday = todayCount ?? 0;
+    .gte("started_at", limitWindowStart(consultationWindow));
+  const sessionsUsedToday = windowCount ?? 0;
 
   if (sessionsUsedToday >= dailyLimit) {
     return Response.json(
@@ -35,11 +34,12 @@ export async function POST() {
         error:
           dailyLimit === 0
             ? "O Paciente Virtual é um recurso exclusivo do plano Pro (ou do período de teste). Assine o Pro para começar a atender."
-            : access.tier === "free"
-              ? `Você atingiu o limite diário de ${dailyLimit} atendimento${dailyLimit > 1 ? "s" : ""} do plano básico. Volte amanhã ou assine o Pro.`
+            : consultationWindow === "semana"
+              ? "Você já usou a consulta grátis desta semana. No Pro são 3 atendimentos por dia."
               : `Você atingiu o limite diário de ${dailyLimit} atendimentos. O limite reinicia à meia-noite (horário de Brasília).`,
         limitReached: true,
-        code: "DAILY_LIMIT_REACHED",
+        code: consultationWindow === "semana" ? "WEEKLY_LIMIT_REACHED" : "DAILY_LIMIT_REACHED",
+        consultationWindow,
         tier: access.tier,
         trialDaysLeft: access.trialDaysLeft,
         sessionsUsedToday,
@@ -91,6 +91,7 @@ export async function POST() {
     questionsLimit: MAX_STUDENT_MESSAGES_PER_SESSION,
     sessionsUsedToday: sessionsUsedToday + 1,
     sessionsLimitToday: dailyLimit,
+    consultationWindow,
   });
 }
 

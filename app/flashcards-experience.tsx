@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Check, ChevronRight, Layers, NotebookPen, RotateCcw, Search } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, Layers, NotebookPen, RotateCcw, Search, Sparkles } from "lucide-react";
+import { openProUpgradeModal } from "./pro-upgrade-modal";
 
 type Deck = { id: string; title: string; quizTopic: string | null; kind: "semiologia" | "erros" | "pesquisa"; total: number; due: number; fresh: number };
 type SessionCard = { id: string; deck: string; front: string; back: string; isNew: boolean };
 type Grade = 0 | 1 | 2 | 3;
+/** Limite diário do plano gratuito; nulo no Pro e no período de teste. */
+type Daily = { used: number; limit: number } | null;
 
 const DECK_KEY = "semiolab:flashcards-deck";
 
@@ -42,6 +45,8 @@ export default function FlashcardsExperience({ onQuiz }: { onQuiz: (topic: strin
   const [nextDue, setNextDue] = useState<string | null>(null);
   const [loadingSession, setLoadingSession] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [daily, setDaily] = useState<Daily>(null);
+  const [limitHit, setLimitHit] = useState(false);
 
   const loadDecks = useCallback(() => {
     return fetch("/api/flashcards")
@@ -49,6 +54,7 @@ export default function FlashcardsExperience({ onQuiz }: { onQuiz: (topic: strin
       .then((data) => {
         const list: Deck[] = data?.decks ?? [];
         setDecks(list);
+        setDaily(data?.daily ?? null);
         return list;
       })
       .catch(() => {
@@ -63,11 +69,14 @@ export default function FlashcardsExperience({ onQuiz }: { onQuiz: (topic: strin
     setIndex(0);
     setFlipped(false);
     setTally({ 0: 0, 1: 0, 2: 0, 3: 0 });
+    setLimitHit(false);
     fetch(`/api/flashcards?deck=${encodeURIComponent(target.id)}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         setCards(data?.cards ?? []);
         setNextDue(data?.nextDue ?? null);
+        setDaily(data?.daily ?? null);
+        setLimitHit(!!data?.limitedOut);
       })
       .catch(() => setCards([]))
       .finally(() => setLoadingSession(false));
@@ -93,9 +102,21 @@ export default function FlashcardsExperience({ onQuiz }: { onQuiz: (topic: strin
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ cardId: card.id, grade }),
       })
-        .catch(() => {})
-        .finally(() => {
+        .then(async (r) => {
+          const data = r.status === 403 ? await r.json().catch(() => ({})) : null;
+          return data?.limitReached ? (data as { daily?: Daily }) : null;
+        })
+        .catch(() => null)
+        .then((limit) => {
           setSaving(false);
+          if (limit) {
+            // Limite diário do gratuito: encerra a sessão e mostra o fim.
+            setLimitHit(true);
+            setDaily(limit.daily ?? null);
+            setIndex(cards.length);
+            openProUpgradeModal("flashcards");
+            return;
+          }
           setTally((t) => ({ ...t, [grade]: t[grade] + 1 }));
           // "Errei" devolve a carta ao fim desta mesma sessão.
           if (grade === 0) setCards((list) => [...list, { ...card, isNew: false }]);
@@ -103,7 +124,7 @@ export default function FlashcardsExperience({ onQuiz }: { onQuiz: (topic: strin
           setIndex((i) => i + 1);
         });
     },
-    [card, saving],
+    [card, saving, cards.length],
   );
 
   // Atalhos só durante a sessão: espaço vira a carta, 1–4 responde.
@@ -144,9 +165,11 @@ export default function FlashcardsExperience({ onQuiz }: { onQuiz: (topic: strin
         ) : finished ? (
           <section className="fc-done">
             <span className="fc-done-icon"><Check /></span>
-            <h1>{reviewed ? "Sessão concluída" : "Nada para revisar agora"}</h1>
+            <h1>{limitHit ? "Cartas de hoje concluídas" : reviewed ? "Sessão concluída" : "Nada para revisar agora"}</h1>
             <p>
-              {reviewed
+              {limitHit
+                ? `Você revisou as ${daily?.limit ?? 20} cartas do plano gratuito hoje. Amanhã tem mais, ou revise sem limite no Pro.`
+                : reviewed
                 ? `Você revisou ${reviewed} ${reviewed === 1 ? "carta" : "cartas"}. As mais difíceis voltam antes.`
                 : nextDue
                   ? `A próxima revisão deste baralho é em ${new Date(nextDue).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}.`
@@ -158,7 +181,8 @@ export default function FlashcardsExperience({ onQuiz }: { onQuiz: (topic: strin
               </ul>
             )}
             <div className="study-actions">
-              <button className="study-btn primary" onClick={backToDecks}><Layers /> Outro baralho</button>
+              {limitHit && <button className="study-btn primary" onClick={() => openProUpgradeModal("flashcards")}><Sparkles /> Revisar sem limite</button>}
+              <button className={`study-btn ${limitHit ? "ghost" : "primary"}`} onClick={backToDecks}><Layers /> Outro baralho</button>
               {deck.quizTopic && <button className="study-btn ghost" onClick={() => onQuiz(deck.quizTopic!)}>Testar com quiz <ChevronRight /></button>}
             </div>
           </section>
@@ -212,6 +236,14 @@ export default function FlashcardsExperience({ onQuiz }: { onQuiz: (topic: strin
               ? `${totalDue} ${totalDue === 1 ? "carta espera" : "cartas esperam"} revisão hoje. As que você erra voltam mais cedo.`
               : "Repetição espaçada: cada carta volta no momento certo para você não esquecer."}
         </p>
+        {daily && (
+          <p className="fc-daily">
+            {daily.used >= daily.limit
+              ? `Você revisou as ${daily.limit} cartas de hoje do plano gratuito.`
+              : `${daily.limit - daily.used} de ${daily.limit} cartas restantes hoje no plano gratuito.`}{" "}
+            <button onClick={() => openProUpgradeModal("flashcards")}>Revisar sem limite</button>
+          </p>
+        )}
       </header>
       <div className="deck-grid">
         {(decks ?? []).map((d) => {

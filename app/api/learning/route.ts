@@ -306,7 +306,12 @@ export async function GET(request: Request) {
     0,
   );
   const consultationsToday = patientAttempts.filter((a) => isToday(a.created_at)).length;
-  const canConsult = (pro.limits?.consultationsPerDay ?? 0) > 0;
+  // O gratuito tem 1 consulta por semana: a tarefa aparece enquanto ela
+  // estiver disponível (ou se já foi feita hoje, para contar como concluída).
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const consultationsThisWeek = patientAttempts.filter((a) => new Date(a.created_at).getTime() >= weekAgo).length;
+  const canConsult = (pro.limits?.consultations ?? 0) > 0
+    && (pro.limits?.consultationWindow !== "semana" || consultationsToday > 0 || consultationsThisWeek < (pro.limits?.consultations ?? 0));
 
   const missionTasks: MissionTask[] = [
     {

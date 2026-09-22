@@ -49,6 +49,8 @@
 .study-hero { margin-bottom: 20px; }
 .study-hero h1 { margin: 0; font-size: clamp(26px, 3vw, 34px); letter-spacing: -.03em; }
 .study-hero p { max-width: 620px; margin: 6px 0 0; color: var(--st-sub); font-size: 14.5px; line-height: 1.55; }
+.study-hero .fc-daily { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 10px; padding: 6px 12px; border-radius: 999px; color: var(--st-gold); background: var(--st-gold-bg); font-size: 13px; font-weight: 600; }
+.fc-daily button { min-height: 28px; padding: 0; color: var(--st-accent); background: none; font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
 
 .study-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
 .study-back {
