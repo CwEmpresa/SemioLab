@@ -29,3 +29,9 @@ next-env.d.ts
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Arquivo temporário do `vercel env pull` (contém segredos)
+.env.vercel-production
+
+.vercel
+.env*
