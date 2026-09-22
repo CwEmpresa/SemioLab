@@ -1,6 +1,5 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
 
 @source "../components/**/*.{ts,tsx}";
 @source "./**/*.{ts,tsx}";
@@ -846,7 +845,7 @@ em {
   border-radius: 22px;
   padding: 24px;
 }
-.home-page .dash > section:not(.heart-dashboard-hero) {
+.home-page .dash > section:not(.mission-hero):not(.rhythm-card) {
   color: #17363d;
   background: #ffffffec;
   border-color: #dce9eb;
@@ -6382,7 +6381,7 @@ button.avatar:hover {
 [data-semiolab-theme="dark"] .home-page .priorities b,
 [data-semiolab-theme="dark"] .home-page .rank-card h3 { color: #edf8f6; }
 [data-semiolab-theme="dark"] .home-page .top button,
-[data-semiolab-theme="dark"] .home-page .dash > section:not(.heart-dashboard-hero),
+[data-semiolab-theme="dark"] .home-page .dash > section:not(.mission-hero):not(.rhythm-card),
 [data-semiolab-theme="dark"] .home-page .next-patient,
 [data-semiolab-theme="dark"] .home-page .quick > div button,
 [data-semiolab-theme="dark"] .home-page .priorities button {
@@ -7340,17 +7339,30 @@ button.avatar:hover {
 }
 
 /* ── Modo de consulta: mensagem (padrão) vs. áudio (conversa por voz,
-   grava e envia direto, sem passo de revisão) ────────────────────── */
-.consult > footer .chat-mode-toggle {
+   grava e envia direto, sem passo de revisão). O seletor fica fixo no
+   topo do chat (sticky dentro do <main> rolável) — nenhum recálculo de
+   altura de header/main/footer necessário. ─────────────────────────── */
+.consult-mode-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  margin: 0 0 14px;
+  padding: 8px 0;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+}
+.chat-mode-toggle {
   display: flex;
   gap: 4px;
   width: fit-content;
-  margin: 0 auto 8px;
   padding: 3px;
   background: #f2f2f7;
   border-radius: 999px;
 }
-.consult > footer .chat-mode-toggle button {
+.chat-mode-toggle button {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -7363,12 +7375,44 @@ button.avatar:hover {
   font-weight: 700;
   box-shadow: none;
 }
-.consult > footer .chat-mode-toggle button.active {
+.chat-mode-toggle button.active {
   color: #087f70;
   background: #fff;
   box-shadow: 0 1px 4px #0000001a;
 }
-.consult > footer .chat-mode-toggle svg { width: 13px; height: 13px; }
+.chat-mode-toggle svg { width: 13px; height: 13px; }
+
+/* ── Painel de "chamada de voz" (substitui as bolhas de texto no modo
+   Áudio — só resultados de exame, que são visuais por natureza,
+   continuam aparecendo). ─────────────────────────────────────────── */
+.voice-call-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 36px 20px;
+  text-align: center;
+}
+.voice-call-avatar {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  color: #fff;
+  background: linear-gradient(145deg,#83dfca,#087f72);
+  border-radius: 50%;
+  font-size: 26px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px #087f7226;
+  transition: box-shadow .25s ease;
+}
+.voice-call-avatar.is-listening { box-shadow: 0 0 0 10px #e0453f14, 0 8px 24px #087f7226; }
+.voice-call-avatar.is-speaking { animation: voice-speaking-pulse 1.3s ease-in-out infinite; }
+@keyframes voice-speaking-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 #087f7224, 0 8px 24px #087f7226; }
+  50% { box-shadow: 0 0 0 12px #087f7200, 0 8px 24px #087f7226; }
+}
+.voice-call-status { max-width: 280px; color: #6a8387; font-size: 12px; font-weight: 600; line-height: 1.5; }
 
 .consult > footer .chat-audio-bar {
   display: flex;

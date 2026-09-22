@@ -12,7 +12,7 @@ declare global {
 let gsapLoaded = false;
 let gsapPromise: Promise<void> | null = null;
 
-function loadGSAP(): Promise<void> {
+export function loadGSAP(): Promise<void> {
   if (gsapLoaded) return Promise.resolve();
   if (gsapPromise) return gsapPromise;
   gsapPromise = new Promise((resolve) => {
@@ -27,8 +27,11 @@ function loadGSAP(): Promise<void> {
         gsapLoaded = true;
         resolve();
       };
+      // Falha ao carregar: resolve mesmo assim; quem usa checa window.gsap.
+      st.onerror = () => resolve();
       document.head.appendChild(st);
     };
+    core.onerror = () => resolve();
     document.head.appendChild(core);
   });
   return gsapPromise;

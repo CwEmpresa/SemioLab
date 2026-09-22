@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState, useRef, useEffect } from "react";
 import {
-  Activity, Award, BarChart3, Bell, BookOpen, Brain, Check,
+  Activity, Award, BarChart3, Bell, BookOpenCheck, Brain, Check, Layers, NotebookPen, ScanLine,
   BadgeCheck, Camera, ChevronRight, CircleAlert, ClipboardCheck, Clock3, CreditCard, FileText, Flame, HeartPulse,
   AudioLines, HelpCircle, Mail, MessageCircle, Palette,
   Home, LibraryBig, LockKeyhole, LogOut, Menu, MessageSquareText,
@@ -10,24 +10,27 @@ import {
 } from "lucide-react";
 import PatientExperience from "./patient-experience";
 import QuizExperience from "./quiz-experience";
+import SemiologyExperience, { queueSemiologyModule } from "./semiology-experience";
+import ResearchExperience, { queueResearchQuery } from "./research-experience";
+import FlashcardsExperience, { queueFlashcardDeck } from "./flashcards-experience";
 import RankingExperience, { HomeRankCard } from "./ranking-experience";
 import PwaOnboarding, { NotificationSettingsPanel } from "./pwa-onboarding";
 import ProUpgradeModal, { openProUpgradeModal, DailyLimitInfoModal } from "./pro-upgrade-modal";
 import Avatar from "./avatar";
 import { BottomNavBar } from "@/components/ui/bottom-nav-bar";
 import FirstMicrocase, { type Step as MicrocaseStep } from "./first-microcase";
-import { HeartDashboardHero } from "@/components/ui/heart-dashboard-hero";
+import { MissionHero } from "@/components/ui/mission-hero";
+import { WeekRhythm } from "@/components/ui/week-rhythm";
 import { createPortal } from "react-dom";
 import { useUser } from "./user-context";
 import { createClient } from "@/lib/supabase/client";
 import { levelFromXp, safeDisplayName } from "@/lib/level";
-import { useLearningSummary } from "./use-learning-summary";
+import { useLearningSummary, queueQuizLaunch, queueQuizView, type MasteryRecord, type MissionAction, type QuizView } from "./use-learning-summary";
 import {
-  useScreenTransition, useStaggerReveal, useCountUp, useMasteryBars,
-  useStreakPop, useModalEntrance, usePulseGlow, useSidebarReveal, useChartBars,
+  useScreenTransition, useStaggerReveal, useModalEntrance, useSidebarReveal,
 } from "@/components/animations";
 
-type Screen = "home"|"study"|"auscultation"|"patient"|"quiz"|"profile"|"progress"|"ranking"|"achievements";
+type Screen = "home"|"study"|"auscultation"|"patient"|"quiz"|"profile"|"progress"|"ranking"|"achievements"|"semiology"|"flashcards"|"research";
 
 /* ─── Data ─────────────────────────────────────────────────────── */
 const systems = [
@@ -70,6 +73,9 @@ const drawerNav = [
   { id:"progress" as Screen, name:"Progresso", icon:BarChart3 },
   { id:"ranking" as Screen, name:"Ranking", icon:Trophy },
   { id:"achievements" as Screen, name:"Conquistas", icon:Award },
+  { id:"semiology" as Screen, name:"Semiologia", icon:BookOpenCheck },
+  { id:"flashcards" as Screen, name:"Flashcards", icon:Layers },
+  { id:"research" as Screen, name:"Pesquisa por tema", icon:Search },
 ];
 
 const embeddedRoutes: Partial<Record<Screen, string>> = {
@@ -138,6 +144,9 @@ function Navigation({ screen, go, open, setOpen }: { screen:Screen; go:(s:Screen
           ))}
         </nav>
         <div className="side-extra">
+          <button className={screen === "semiology" ? "active" : ""} onClick={() => go("semiology")}><BookOpenCheck /><span>Semiologia</span></button>
+          <button className={screen === "flashcards" ? "active" : ""} onClick={() => go("flashcards")}><Layers /><span>Flashcards</span></button>
+          <button className={screen === "research" ? "active" : ""} onClick={() => go("research")}><Search /><span>Pesquisa</span></button>
           <button className={screen === "progress" ? "active" : ""} onClick={() => go("progress")}><BarChart3 /><span>Progresso</span></button>
           <button className={screen === "ranking"  ? "active" : ""} onClick={() => go("ranking")}><Trophy /><span>Ranking</span></button>
         </div>
@@ -308,72 +317,156 @@ function Top({ title, go }: { title?: string; go:(s:Screen)=>void }) {
   );
 }
 
+/* ─── Domínio por tema (Home e Progresso) ─────────────────────── */
+/** Uma linha de tema com avanço real: porcentagem quando o tema já foi
+ * medido, ou as evidências que faltam para medir. Clicar abre um treino de
+ * 5 questões naquele tema. */
+function TopicRow({ topic, record, onTrain }: { topic:string; record?:MasteryRecord; onTrain:(topic:string)=>void }) {
+  const system = systems.find((item) => item.name === topic)!;
+  const target = record?.evidenceTarget ?? 5;
+  const evidence = Math.min(target, record?.evidenceCount ?? 0);
+  const measured = record?.score !== null && record?.score !== undefined;
+  const missing = target - evidence;
+  return (
+    <button className={`topic-row ${measured ? "measured" : "calibrating"}`} onClick={() => onTrain(topic)}>
+      <i className={`topic-row-icon ${system.color}`}><system.icon /></i>
+      <span className="topic-row-copy">
+        <b>{topic}</b>
+        <small>
+          {measured
+            ? `${record!.status} · ${record!.evidenceCount} respostas avaliadas`
+            : evidence === 0
+              ? "Ainda não praticado · treine 5 questões"
+              : `Faltam ${missing} ${missing === 1 ? "resposta" : "respostas"} para medir`}
+        </small>
+      </span>
+      {measured ? (
+        <span className="topic-row-score">
+          <i><em style={{ width:`${record!.score}%` }} /></i>
+          <b>{record!.score}%</b>
+        </span>
+      ) : (
+        <span className="topic-row-pips" aria-label={`${evidence} de ${target} respostas`}>
+          {Array.from({ length: target }, (_, index) => <i key={index} className={index < evidence ? "on" : ""} />)}
+          <b>{evidence}/{target}</b>
+        </span>
+      )}
+      <ChevronRight className="topic-row-arrow" />
+    </button>
+  );
+}
+
+/** Ordem de prioridade: temas medidos com pior nota primeiro; depois os que
+ * estão mais perto de serem medidos; por fim os ainda não praticados. */
+function prioritizeTopics(mastery: MasteryRecord[] = []) {
+  const rank = (topic: string) => {
+    const record = mastery.find((item) => item.topic === topic);
+    if (record?.score !== null && record?.score !== undefined) return record.score;
+    return 100 + (5 - Math.min(5, record?.evidenceCount ?? 0)) * 10;
+  };
+  return systems.map((s) => s.name).sort((a, b) => rank(a) - rank(b));
+}
+
+function trainTopic(go:(s:Screen)=>void, topic:string) {
+  queueQuizLaunch(topic, 5);
+  go("quiz");
+}
+
 /* ─── HomePage ──────────────────────────────────────────────────── */
 function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
   const pageRef = useScreenTransition("home");
-  const dashRef = useRef<HTMLDivElement>(null);
-  const streakRef = useRef<HTMLDivElement>(null);
-
-  useStreakPop(streakRef);
-  useChartBars(dashRef);
-  useMasteryBars(dashRef);
-
+  const user = useUser();
   const { summary: learning, loading: learningLoading } = useLearningSummary();
-  // Contadores animados com dados reais — nunca valores de exemplo.
-  const realXp = learning?.profile?.xp ?? 0;
-  const realActivities = learning?.stats?.activities ?? 0;
-  const xpRef  = useCountUp(realXp, " XP");
-  const minRef = useCountUp(0); // minutos de estudo ainda não são rastreados pelo sistema
-  const actRef = useCountUp(realActivities);
   const today = useTodayLabel();
   const streak = learning?.streak ?? 0;
   const localWeek = useLocalWeek(learning?.loginDays);
-  const weeklyActivity = learning?.weeklyActivity ?? [0, 0, 0, 0, 0, 0, 0];
-  const weeklyMax = Math.max(1, ...weeklyActivity);
   const nextMilestone = streak === 0 ? 3 : [3, 7, 15, 30, 60, 100].find((m) => m > streak) ?? streak + 30;
   const milestoneProgress = Math.min(100, Math.round((streak / nextMilestone) * 100));
   const homeAvailableScores = (learning?.mastery || []).flatMap((item) => item.score === null ? [] : [item.score]);
   const generalMastery = homeAvailableScores.length ? Math.round(homeAvailableScores.reduce((sum, value) => sum + value, 0) / homeAvailableScores.length) : null;
+  const priorityTopics = prioritizeTopics(learning?.mastery).slice(0, 3);
   const tier = learning?.pro?.tier;
+  const patientLocked = tier === "free";
+  const labLocked = tier === "free";
   const patientSubtitle =
-    tier === "pro" ? "Consulta sem pistas · 8–12 min" :
     tier === "trial" ? `Teste grátis · ${learning?.pro?.trialDaysLeft ?? 0}d restantes` :
-    tier === "free" ? "Plano básico · 1 consulta/dia" :
+    tier === "free" ? "Consulta completa com IA" :
     "Consulta sem pistas · 8–12 min";
+
+  const runMissionAction = (action: MissionAction) => {
+    if (action.type === "quiz") { queueQuizLaunch(action.topic, action.amount); go("quiz"); }
+    else go(action.screen);
+  };
+  const nextMissionTask = learning?.mission?.tasks.find((task) => !task.done);
+
+  const errorCount = learning?.errors?.length ?? 0;
+  const openQuizView = (view: QuizView) => { queueQuizView(view); go("quiz"); };
+  const firstName = safeDisplayName(user.name, user.email).split(" ")[0];
+  const greetingLine =
+    learningLoading && !learning ? "Bom ter você aqui." :
+    streak >= 2 ? `${streak} dias seguidos de estudo. Continue assim.` :
+    streak === 1 ? "Primeiro dia da sequência. Complete a missão para mantê-la." :
+    "Conclua uma tarefa hoje para começar sua sequência.";
+  const apps = [
+    { id:"patient", label:"Paciente IA", icon:Stethoscope, tone:"mint", locked:patientLocked, badge:0, onClick:() => go("patient") },
+    { id:"quiz", label:"Quiz rápido", icon:Zap, tone:"blue", locked:false, badge:0, onClick:() => { queueQuizLaunch("Todos", 5); go("quiz"); } },
+    { id:"simulado", label:"Simulados", icon:ClipboardCheck, tone:"indigo", locked:tier === "free", badge:0, onClick:() => go("quiz") },
+    { id:"lab", label:"Laboratório", icon:AudioLines, tone:"violet", locked:labLocked, badge:0, onClick:() => go("auscultation") },
+    { id:"atlas", label:"Atlas TC 3D", icon:ScanLine, tone:"orange", locked:false, badge:0, onClick:() => go("study") },
+    { id:"errors", label:"Caderno de erros", icon:NotebookPen, tone:"rose", locked:false, badge:errorCount, onClick:() => openQuizView("errors") },
+    { id:"semiology", label:"Semiologia", icon:BookOpenCheck, tone:"cyan", locked:false, badge:0, onClick:() => go("semiology") },
+    { id:"flashcards", label:"Flashcards", icon:Layers, tone:"amber", locked:false, badge:0, onClick:() => go("flashcards") },
+  ] as const;
 
   return (
     <div className="page home-page" ref={pageRef}>
-      <Top go={go} />
-      <div className="dash" ref={dashRef}>
-        <HeartDashboardHero
-          onContinue={() => go("study")}
+      <header className="home-greeting">
+        <h1>Oi, {firstName}</h1>
+        <p>{greetingLine}</p>
+      </header>
+      <form
+        className="home-search"
+        role="search"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const value = new FormData(event.currentTarget).get("q")?.toString().trim() ?? "";
+          if (value.length >= 3) queueResearchQuery(value);
+          go("research");
+        }}
+      >
+        <Search aria-hidden="true" />
+        <label htmlFor="home-search-q" className="rs-sr">Pesquisar um tema</label>
+        <input id="home-search-q" name="q" placeholder="Pesquise um tema: sopro sistólico, ascite, Babinski…" maxLength={80} autoComplete="off" />
+        <button type="submit">Pesquisar</button>
+      </form>
+      <div className="dash">
+        <MissionHero
+          mission={learning?.mission}
+          loading={learningLoading}
           streakDays={streak}
-          progressPercent={generalMastery ?? 0}
-          activitiesToday={weeklyActivity[(new Date().getDay() + 6) % 7] ?? 0}
-          activitiesGoal={5}
+          generalMastery={generalMastery}
+          onAction={runMissionAction}
         />
 
-        <section className="quick">
+        <section className="quick-hub">
           <header>
             <small>ACESSO RÁPIDO</small>
             <h3>O que vamos treinar?</h3>
           </header>
-          <button className="next-patient" onClick={() => go("patient")}>
-            <i><Stethoscope /></i>
-            <span><b>Próximo paciente</b><small>{patientSubtitle}</small></span>
-            <ChevronRight />
-          </button>
-          <div>
-            <button onClick={() => go("quiz")}>
-              <ClipboardCheck /><span><b>Quiz rápido</b><small>5 questões</small></span>
-            </button>
-            <button onClick={() => go("study")}>
-              <BookOpen /><span><b>Continuar aula</b><small>Ausculta cardíaca</small></span>
-            </button>
+          <div className="app-grid">
+            {apps.map((app) => (
+              <button key={app.id} className={`app-icon tone-${app.tone}`} onClick={app.onClick} aria-label={app.locked ? `${app.label} (Pro)` : app.label}>
+                <span className="app-icon-tile">
+                  <app.icon />
+                  {app.locked ? <i className="app-icon-lock"><LockKeyhole /></i> : app.badge > 0 ? <i className="app-icon-badge">{app.badge > 99 ? "99+" : app.badge}</i> : null}
+                </span>
+                <b>{app.label}</b>
+              </button>
+            ))}
           </div>
         </section>
 
-        <section className="streak dashboard-streak" onClick={checkin} ref={streakRef}>
+        <section className="streak dashboard-streak" onClick={checkin}>
           <header>
             <div className="dashboard-streak-flame" aria-hidden="true">
               <span /><Flame /><i />
@@ -400,49 +493,28 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
           </footer>
         </section>
 
-        <section className="week">
-          <header className="section-title">
-            <span>
-              <small>EVOLUÇÃO SEMANAL</small>
-              <h3>{realActivities > 0 ? "Você está ganhando ritmo" : "Comece sua primeira atividade"}</h3>
-            </span>
-            <button onClick={() => go("progress")}>Detalhes</button>
-          </header>
-          <div className="metrics">
-            <span><b ref={xpRef as any}>0 XP</b><small>XP ganhos</small></span>
-            <span><b ref={minRef as any}>0</b><small>minutos</small></span>
-            <span><b ref={actRef as any}>0</b><small>atividades</small></span>
-          </div>
-          <div className="chart">
-            {weeklyActivity.map((v, i) => (
-              <span key={i}>
-                <i style={{ height:`${Math.round((v / weeklyMax) * 100)}%` }} className={v === weeklyMax && v > 0 ? "best" : ""} />
-                <small>{["S","T","Q","Q","S","S","D"][i]}</small>
-              </span>
-            ))}
-          </div>
-        </section>
+        <WeekRhythm
+          rhythm={learning?.rhythm}
+          week={learning?.week}
+          loading={learningLoading}
+          onDetails={() => go("progress")}
+          onStart={() => (nextMissionTask ? runMissionAction(nextMissionTask.action) : trainTopic(go, "Todos"))}
+        />
 
-        <section className="priorities">
+        <section className="topic-priorities">
           <header className="section-title">
             <span>
               <small>DOMÍNIO POR TEMA</small>
-              <h3>Prioridades de estudo</h3>
+              <h3>Onde focar agora</h3>
             </span>
             <button onClick={() => go("progress")}>Ver todos</button>
           </header>
-          {systems.slice(0, 3).map((s) => {
-            const real = learning?.mastery?.find((item) => item.topic === s.name);
-            return <button key={s.name} onClick={() => go("progress")}>
-              <i className={s.color}><s.icon /></i>
-              <span>
-                <b>{s.name}</b>
-                <small>{real?.status || "Sem dados registrados"}</small>
-              </span>
-              <div><i style={{ width:`${real?.score || 0}%` }} /></div>
-              <em>{real?.score === null || real?.score === undefined ? "—" : `${real.score}%`}</em>
-            </button>;
-          })}
+          <div className="topic-row-list">
+            {priorityTopics.map((topic) => (
+              <TopicRow key={topic} topic={topic} record={learning?.mastery?.find((item) => item.topic === topic)} onTrain={(t) => trainTopic(go, t)} />
+            ))}
+          </div>
+          <p className="topic-row-note"><ShieldCheck /> Cada tema ganha uma porcentagem depois de 5 respostas avaliadas.</p>
         </section>
 
         <HomeRankCard open={() => go("ranking")} />
@@ -703,13 +775,19 @@ function Progress({ go }: { go:(s:Screen)=>void }) {
             const system = systems.find((item) => item.name === name)!;
             const real = realFor(name);
             const angle = index * 60;
-            return <article key={name} className={`wheel-segment wheel-${index + 1} ${real?.score == null ? "no-data" : ""}`} style={{ "--angle":`${angle}deg`, "--counter-angle":`${-angle}deg`, "--score":`${real?.score || 0}%` } as any}>
-              <i className="wheel-fill" /><span><system.icon /><small>{name === "Abdome e digestório" ? "Digestório" : name}</small><b>{real?.score == null ? "—" : `${real.score}%`}</b></span>
+            const evidence = Math.min(5, real?.evidenceCount ?? 0);
+            return <article key={name} className={`wheel-segment wheel-${index + 1} ${real?.score == null ? "no-data" : ""}`} style={{ "--angle":`${angle}deg`, "--counter-angle":`${-angle}deg`, "--score":`${real?.score ?? evidence * 20}%` } as any}>
+              <i className="wheel-fill" /><span><system.icon /><small>{name === "Abdome e digestório" ? "Digestório" : name}</small><b>{real?.score == null ? `${evidence}/5` : `${real.score}%`}</b></span>
             </article>;
           })}
           <i className="topic-wheel-core"><Activity /><small>DOMÍNIO</small><b>{generalMastery == null ? "—" : `${generalMastery}%`}</b></i>
         </div>
-        <p className="topic-wheel-note"><ShieldCheck /> O preenchimento de cada segmento usa somente resultados avaliados. Temas com menos de 5 evidências aparecem como &quot;—&quot; (dados insuficientes).</p>
+        <p className="topic-wheel-note"><ShieldCheck /> Temas com porcentagem já foram medidos. Temas com &quot;2/5&quot; mostram quantas respostas avaliadas faltam para a medição.</p>
+        <div className="topic-row-list">
+          {prioritizeTopics(summary?.mastery).map((topic) => (
+            <TopicRow key={topic} topic={topic} record={realFor(topic)} onTrain={(t) => trainTopic(go, t)} />
+          ))}
+        </div>
       </section>
 
       {hasEvidence && (
@@ -1080,19 +1158,45 @@ export function QuizLegacy({ go }: { go:(s:Screen)=>void }) {
 }
 
 /* ─── Root ──────────────────────────────────────────────────────── */
+// Mesma chave de dia (horário de Brasília) usada pelo streak calculado no
+// servidor — evita que o "já mostrado hoje" divirja do dia real do streak
+// por causa do fuso do navegador.
+function brasiliaDateKey(): string {
+  const BRASILIA_OFFSET_MS = 3 * 60 * 60 * 1000;
+  const shifted = new Date(Date.now() - BRASILIA_OFFSET_MS);
+  return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, "0")}-${String(shifted.getUTCDate()).padStart(2, "0")}`;
+}
+
 export default function SemioLab() {
   const [screen, setScreen]   = useState<Screen>(() => {
     // Deep link de notificação (?screen=patient etc.) — preservado através
     // do login, já que é a mesma URL antes e depois de autenticar.
     if (typeof window === "undefined") return "home";
     const requested = new URLSearchParams(window.location.search).get("screen");
-    const valid: Screen[] = ["home","study","auscultation","patient","quiz","profile","progress","ranking","achievements"];
+    const valid: Screen[] = ["home","study","auscultation","patient","quiz","profile","progress","ranking","achievements","semiology","flashcards","research"];
     return (valid as string[]).includes(requested || "") ? (requested as Screen) : "home";
   });
   const [navOpen, setNavOpen] = useState(true);
-  const [checkin, setCheckin] = useState(true);
-  const [theme, setThemeState] = useState<AppTheme>("light");
   const user = useUser();
+  // Aparece sozinho só no primeiro retorno do dia — sem isso, um app que
+  // fica aberto em segundo plano e é retomado pelo sistema (comum em PWA
+  // mobile) remonta este componente do zero e mostrava o popup de novo a
+  // cada retomada, mesmo dentro da mesma sessão de 24h.
+  const [checkin, setCheckin] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return !localStorage.getItem(`semiolab:${user.id}:streak-seen:${brasiliaDateKey()}`);
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    if (!checkin) return;
+    try {
+      localStorage.setItem(`semiolab:${user.id}:streak-seen:${brasiliaDateKey()}`, "1");
+    } catch { /* só evita repetir o popup; falha aqui não é crítica */ }
+  }, [checkin, user.id]);
+  const [theme, setThemeState] = useState<AppTheme>("light");
   const [microcaseState, setMicrocaseState] = useState<{ loading: boolean; eligible: boolean; step: MicrocaseStep }>({ loading: true, eligible: false, step: "intro" });
   useEffect(() => {
     fetch("/api/first-experience/state")
@@ -1174,6 +1278,9 @@ export default function SemioLab() {
     screen==="progress"     ? <Progress go={go} /> :
     screen==="ranking"      ? <RankingExperience go={go} /> :
     screen==="achievements" ? <Achievements go={go} /> :
+    screen==="semiology"    ? <SemiologyExperience onFlashcards={(deck) => { queueFlashcardDeck(deck); go("flashcards"); }} onQuiz={(topic) => { queueQuizLaunch(topic, 5); go("quiz"); }} /> :
+    screen==="research"     ? <ResearchExperience onFlashcards={(deck) => { queueFlashcardDeck(deck); go("flashcards"); }} onQuiz={(topic) => { queueQuizLaunch(topic, 5); go("quiz"); }} onSemiology={(id) => { queueSemiologyModule(id); go("semiology"); }} onUpgrade={() => openProUpgradeModal("daily")} /> :
+    screen==="flashcards"   ? <FlashcardsExperience onQuiz={(topic) => { queueQuizLaunch(topic, 5); go("quiz"); }} /> :
                               <Profile go={go} logout={logout} theme={theme} setTheme={setThemeState} />;
 
   if (microcaseState.loading) {
