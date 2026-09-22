@@ -42,7 +42,7 @@ export async function logAudioUsage(
   params: {
     userId: string | null;
     sessionId: string | null;
-    operation: "transcription" | "tts" | "question_generation";
+    operation: "transcription" | "tts" | "question_generation" | "research";
     model: string;
     inputTokens?: number;
     outputTokens?: number;

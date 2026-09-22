@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Termos de Uso — SemioLab" };
 
 export default function TermosDeUsoPage() {
   return (
-    <LegalLayout title="Termos de Uso" updatedNote="Última atualização: 22 de agosto de 2026">
+    <LegalLayout title="Termos de Uso" updatedNote="Última atualização: 22 de setembro de 2026">
       <section>
         <h2 className="text-base font-bold text-white">1. Sobre o SemioLab</h2>
         <p>
@@ -81,6 +81,14 @@ export default function TermosDeUsoPage() {
           de propriedade do SemioLab ou de seus licenciadores, e é protegido pela legislação de
           direitos autorais e propriedade intelectual aplicável. O uso da plataforma não transfere
           nenhum direito de propriedade intelectual ao usuário.
+        </p>
+        <p className="mt-3">
+          A Pesquisa por tema monta materiais de estudo com apoio de inteligência artificial a partir
+          do conteúdo do SemioLab e de bases científicas públicas da National Library of Medicine dos
+          EUA (StatPearls/NCBI Bookshelf, PubMed e MedlinePlus), indicadas nas referências de cada
+          material. As imagens exibidas vêm do acervo do Wikimedia Commons e são usadas sob licenças
+          livres (Creative Commons ou domínio público); a autoria, a licença e a página de origem de
+          cada imagem ficam no ícone de informação ao final de cada material. Os direitos dessas imagens pertencem aos respectivos autores.
         </p>
       </section>
 
