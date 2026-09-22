@@ -7,7 +7,12 @@ import { resolveUserAccess } from "@/lib/user-access";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-export async function POST(request: Request) {
+// GET (não POST) de propósito: é o que permite tocar direto de
+// `new Audio(url)`, com o navegador fazendo streaming/buffer progressivo
+// nativo — sem isso, o áudio só começa a tocar depois do download inteiro.
+// A autenticação continua vindo do cookie de sessão (SameSite=Lax barra
+// embeds de terceiros), sessionId/messageId na URL não são segredo.
+export async function GET(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -17,12 +22,12 @@ export async function POST(request: Request) {
   // Recurso do plano Pro e do período de teste — não disponível no free.
   const access = await resolveUserAccess(supabase, user.id);
   if (access.tier !== "pro" && access.tier !== "trial") {
-    return Response.json({ error: "Ouvir a resposta do paciente é exclusivo do plano Pro e do período de teste.", code: "PRO_REQUIRED" }, { status: 403 });
+    return Response.json({ error: "Ouvir a resposta do paciente é exclusiva do plano Pro e do período de teste.", code: "PRO_REQUIRED" }, { status: 403 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as { sessionId?: string; messageId?: string };
-  const sessionId = body.sessionId;
-  const messageId = body.messageId;
+  const url = new URL(request.url);
+  const sessionId = url.searchParams.get("sessionId");
+  const messageId = url.searchParams.get("messageId");
   if (!sessionId || !messageId) return Response.json({ error: "Dados inválidos." }, { status: 400 });
 
   const { data: session } = await supabase
@@ -54,22 +59,37 @@ export async function POST(request: Request) {
       model: OPENAI_TTS_MODEL,
       voice: OPENAI_TTS_VOICE,
       input: message.content,
-      instructions: "Fale em português brasileiro, com tom natural, humano e caloroso, como um paciente numa consulta médica.",
+      instructions:
+        "Fale em português brasileiro como uma pessoa de verdade batendo papo, informal e espontâneo, nunca formal ou lendo um texto. Ritmo natural de fala, com as pequenas variações e pausas de quem está pensando enquanto fala — nunca robótico, nunca narrado, nunca com entonação de locutor.",
       response_format: "mp3",
+      // Envia o áudio em pedaços conforme é gerado (em vez de só no final):
+      // é o que permite o navegador começar a tocar quase imediatamente.
+      stream_format: "audio",
     });
 
-    const audioBuffer = Buffer.from(await speech.arrayBuffer());
-    await logAudioUsage(service, {
+    // Custo é estimado a partir do texto (a Speech API não devolve tokens
+    // reais) — loga sem bloquear a resposta, para o primeiro byte de áudio
+    // chegar ao navegador o quanto antes.
+    logAudioUsage(service, {
       userId: user.id,
       sessionId,
       operation: "tts",
       model: OPENAI_TTS_MODEL,
       estimatedCostUsd: estimateTtsCostUsd(message.content),
-    });
+    }).catch((err) => console.error("[patient/tts] falha ao logar uso", safeErrorMeta(err)));
 
-    return new Response(audioBuffer, {
-      headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" },
-    });
+    const headers = {
+      "Content-Type": "audio/mpeg",
+      // Cache privado (só neste navegador) e de longa duração: tocar de
+      // novo a mesma resposta não gera nem cobra áudio outra vez.
+      "Cache-Control": "private, max-age=86400, immutable",
+    };
+    if (!speech.body) {
+      // Fallback só por segurança de tipos — na prática a Speech API sempre
+      // devolve um corpo com stream_format "audio".
+      return new Response(Buffer.from(await speech.arrayBuffer()), { headers });
+    }
+    return new Response(speech.body, { headers });
   } catch (err) {
     console.error("[patient/tts] erro ao gerar áudio", {
       ...safeErrorMeta(err),

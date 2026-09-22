@@ -16,7 +16,6 @@ import {
   LockKeyhole,
   MessageSquareText,
   Mic,
-  NotebookPen,
   Plus,
   Send,
   ShieldCheck,
@@ -124,8 +123,6 @@ export default function PatientExperience({
     [examText, setExamText] = useState(""),
     [examOrder, setExamOrder] = useState(""),
     [typing, setTyping] = useState(false),
-    [notes, setNotes] = useState(""),
-    [notesOpen, setNotesOpen] = useState(false),
     [history, setHistory] = useState<ConsultHistory[]>([]),
     [selectedHistory, setSelectedHistory] = useState<ConsultHistory | null>(null),
     [restored, setRestored] = useState(false),
@@ -148,10 +145,6 @@ export default function PatientExperience({
   const recordedChunksRef = useRef<Blob[]>([]);
   const recordingStartRef = useRef(0);
   const recordingStreamRef = useRef<MediaStream | null>(null);
-  // Cache em memória do áudio já gerado por mensagem — nunca localStorage,
-  // e some quando a página é recarregada/fechada. Evita gerar (e cobrar) o
-  // TTS de novo em cliques repetidos no mesmo "Ouvir resposta".
-  const audioCacheRef = useRef<Map<string, string>>(new Map());
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const user = useUser();
   const { summary: learning } = useLearningSummary();
@@ -201,7 +194,6 @@ export default function PatientExperience({
         if (typeof session.physical === "boolean") setPhysical(session.physical);
         if (typeof session.examText === "string") setExamText(session.examText);
         if (typeof session.examOrder === "string") setExamOrder(session.examOrder);
-        if (typeof session.notes === "string") setNotes(session.notes);
         if (typeof session.hypothesis === "string") setHypothesis(session.hypothesis);
         if (typeof session.differentials === "string") setDifferentials(session.differentials);
         if (typeof session.conduct === "string") setConduct(session.conduct);
@@ -267,7 +259,6 @@ export default function PatientExperience({
         physical,
         examText,
         examOrder,
-        notes,
         hypothesis,
         differentials,
         conduct,
@@ -282,7 +273,6 @@ export default function PatientExperience({
     physical,
     examText,
     examOrder,
-    notes,
     hypothesis,
     differentials,
     conduct,
@@ -340,7 +330,6 @@ export default function PatientExperience({
     setHypothesis("");
     setDifferentials("");
     setConduct("");
-    setNotes("");
     setServerEvaluation(null);
     setLoadError("");
     setMessages([]);
@@ -558,44 +547,30 @@ export default function PatientExperience({
     recorder.stop();
   }
 
-  async function playPatientAudio(message: Message) {
+  function playPatientAudio(message: Message) {
     if (!message.id || !sessionId) return;
-    // Reaproveita o áudio já gerado nesta página, sem nova cobrança.
-    const cached = audioCacheRef.current.get(message.id);
-    if (cached) {
-      currentAudioRef.current?.pause();
-      const audio = new Audio(cached);
-      currentAudioRef.current = audio;
-      setPlayingMessageId(message.id);
-      audio.onended = () => setPlayingMessageId(null);
-      audio.play().catch(() => setPlayingMessageId(null));
-      return;
-    }
+    // Toca direto da URL (GET) em vez de baixar o áudio inteiro antes de
+    // criar um blob: o navegador já começa a tocar assim que os primeiros
+    // bytes chegam, em vez de esperar a resposta inteira do servidor — é
+    // isso que faz o paciente "começar a falar" muito mais rápido. Tocar de
+    // novo a mesma mensagem também não gera nem cobra áudio de novo: o
+    // servidor manda a resposta com cache privado de longa duração, então o
+    // navegador serve do próprio cache local sem nova requisição.
+    currentAudioRef.current?.pause();
+    const audio = new Audio(
+      `/api/patient/tts?sessionId=${encodeURIComponent(sessionId)}&messageId=${encodeURIComponent(message.id)}`,
+    );
+    currentAudioRef.current = audio;
     setLoadingAudioMessageId(message.id);
-    try {
-      const response = await fetch("/api/patient/tts", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sessionId, messageId: message.id }),
-      });
-      if (!response.ok) {
-        setMicError("Não foi possível gerar o áudio desta resposta agora.");
-        return;
-      }
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      audioCacheRef.current.set(message.id, url);
-      currentAudioRef.current?.pause();
-      const audio = new Audio(url);
-      currentAudioRef.current = audio;
-      setPlayingMessageId(message.id);
-      audio.onended = () => setPlayingMessageId(null);
-      audio.play().catch(() => setPlayingMessageId(null));
-    } catch {
-      setMicError("Não foi possível gerar o áudio desta resposta agora.");
-    } finally {
+    audio.oncanplay = () => setLoadingAudioMessageId(null);
+    audio.onplaying = () => { setLoadingAudioMessageId(null); setPlayingMessageId(message.id!); };
+    audio.onended = () => setPlayingMessageId(null);
+    audio.onerror = () => {
       setLoadingAudioMessageId(null);
-    }
+      setPlayingMessageId(null);
+      setMicError("Não foi possível gerar o áudio desta resposta agora.");
+    };
+    audio.play().catch(() => setLoadingAudioMessageId(null));
   }
 
   async function requestExam() {
@@ -909,6 +884,15 @@ export default function PatientExperience({
     );
   const patientName = caseInfo?.patientName || "Paciente";
   const patientInitials = patientName.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "P";
+  const voiceStatus = transcribing
+    ? "Ouvindo sua pergunta..."
+    : recording
+      ? "Gravando — toque no microfone para enviar"
+      : typing
+        ? `${patientName} está respondendo...`
+        : playingMessageId
+          ? `${patientName} está falando...`
+          : "Toque no microfone para perguntar";
   return (
     <div className="consult">
       <header>
@@ -932,6 +916,18 @@ export default function PatientExperience({
         </em>
       </header>
       <main ref={chatRef}>
+        {canUseAudio && (
+          <div className="consult-mode-bar">
+            <div className="chat-mode-toggle" role="tablist" aria-label="Modo de consulta">
+              <button type="button" role="tab" aria-selected={chatMode === "text"} className={chatMode === "text" ? "active" : ""} onClick={() => setChatMode("text")}>
+                <MessageSquareText size={14} /> Mensagem
+              </button>
+              <button type="button" role="tab" aria-selected={chatMode === "audio"} className={chatMode === "audio" ? "active" : ""} onClick={() => setChatMode("audio")}>
+                <Mic size={14} /> Áudio
+              </button>
+            </div>
+          </div>
+        )}
         <section className="patient-chat-profile">
           <i className="patient-profile-avatar">{patientInitials}<span /></i>
           <b>{patientName}</b>
@@ -951,7 +947,15 @@ export default function PatientExperience({
             <p>“{caseInfo?.receptionReason || "Não informado"}.”</p>
           </span>
         </div>
-        {isFirstConsultation && (
+        {chatMode === "audio" && canUseAudio && (
+          <div className="voice-call-panel">
+            <div className={`voice-call-avatar ${recording ? "is-listening" : typing || playingMessageId ? "is-speaking" : ""}`} aria-hidden="true">
+              {patientInitials}
+            </div>
+            <p className="voice-call-status">{voiceStatus}</p>
+          </div>
+        )}
+        {isFirstConsultation && chatMode === "text" && (
           <details className="first-consult-checklist" open>
             <summary>Roteiro sugerido para sua primeira consulta</summary>
             <ul>
@@ -969,7 +973,12 @@ export default function PatientExperience({
             </div>
           </details>
         )}
-        {messages.map((m, i) => (
+        {messages.map((m, i) => {
+          // Modo áudio: a fala não aparece escrita, é só conversa por voz —
+          // resultado de exame continua visível porque é essencialmente
+          // visual (laudo, imagem, tabela de laboratório).
+          if (chatMode === "audio" && m.who !== "exam") return null;
+          return (
           <div key={i} className={`msg ${m.who}`}>
             <i>
               {m.who === "patient" ? (
@@ -1083,8 +1092,9 @@ export default function PatientExperience({
               </div>
             )}
           </div>
-        ))}
-        {typing && (
+          );
+        })}
+        {typing && chatMode === "text" && (
           <div className="msg patient typing-message" aria-label="Paciente digitando">
             <i>{patientInitials}</i>
             <div className="typing-bubble"><span /><span /><span /></div>
@@ -1105,24 +1115,11 @@ export default function PatientExperience({
           >
             <ClipboardCheck /> {examOrder ? "Novo exame" : "Solicitar exame"}
           </button>
-          <button className={notes.trim() ? "completed" : ""} onClick={() => setNotesOpen(true)}>
-            <NotebookPen /> {notes.trim() ? "Anotações salvas" : "Anotações"}
-          </button>
           <button className="consult-finish-btn" onClick={() => setPhase("finish")}>
             <Check /> Finalizar
           </button>
           <span>Consulta educacional</span>
         </div>
-        {canUseAudio && (
-          <div className="chat-mode-toggle" role="tablist" aria-label="Modo de consulta">
-            <button type="button" role="tab" aria-selected={chatMode === "text"} className={chatMode === "text" ? "active" : ""} onClick={() => setChatMode("text")}>
-              <MessageSquareText size={14} /> Mensagem
-            </button>
-            <button type="button" role="tab" aria-selected={chatMode === "audio"} className={chatMode === "audio" ? "active" : ""} onClick={() => setChatMode("audio")}>
-              <Mic size={14} /> Áudio
-            </button>
-          </div>
-        )}
         {chatMode === "audio" && canUseAudio ? (
           <div className="chat-audio-bar">
             <button className="chat-attach" aria-label="Solicitar exame" onClick={() => setExamOpen(true)} type="button">
@@ -1138,15 +1135,7 @@ export default function PatientExperience({
               >
                 {recording ? <Square size={24} /> : <Mic size={24} />}
               </button>
-              <span className="chat-audio-status">
-                {transcribing
-                  ? "Ouvindo sua pergunta..."
-                  : recording
-                    ? "Toque para enviar"
-                    : typing
-                      ? "Aguardando resposta do paciente..."
-                      : "Toque no microfone para perguntar"}
-              </span>
+              <span className="chat-audio-status">{voiceStatus}</span>
             </div>
           </div>
         ) : (
@@ -1277,23 +1266,6 @@ export default function PatientExperience({
                 )}
               </p>
             )}
-          </section>
-        </div>
-      )}
-      {notesOpen && (
-        <div className="overlay">
-          <section className="clinical-modal notes-modal">
-            <button className="close" onClick={() => setNotesOpen(false)}><X /></button>
-            <small>ANOTAÇÕES DA CONSULTA</small>
-            <h2>Registre seus achados</h2>
-            <p>As anotações ficam salvas neste dispositivo enquanto a consulta estiver em andamento.</p>
-            <textarea
-              autoFocus
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Ex.: dispneia aos esforços, ortopneia, edema bilateral..."
-            />
-            <button className="primary" onClick={() => setNotesOpen(false)}>Salvar anotações <Check /></button>
           </section>
         </div>
       )}
