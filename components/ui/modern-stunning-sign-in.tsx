@@ -123,11 +123,12 @@ const SignIn1 = ({ onSignIn, initialMode = "signin" }: SignIn1Props) => {
     const supabase = createClient();
 
     if (mode === "signup") {
+      const referralCode = localStorage.getItem("semiolab:referral-code");
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { name: name.trim() },
+          data: { name: name.trim(), ...(referralCode ? { ref: referralCode } : {}) },
           emailRedirectTo: `${window.location.origin}/auth/confirm`,
         },
       });

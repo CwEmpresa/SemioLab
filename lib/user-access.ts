@@ -21,8 +21,11 @@ export async function resolveUserAccess(
 ): Promise<UserAccess> {
   const [{ data: sub }, { data: profile }] = await Promise.all([
     supabase.from("subscriptions").select("status").eq("user_id", userId).maybeSingle(),
-    supabase.from("profiles").select("trial_started_at").eq("id", userId).single(),
+    supabase.from("profiles").select("trial_started_at, pro_granted_until").eq("id", userId).single(),
   ]);
-  const tier = getAccessTier(isProActive(sub?.status), profile?.trial_started_at);
+  // Pro "de verdade" (Cakto) OU Pro ganho pelo programa de indicação — o
+  // segundo nunca substitui o primeiro, só soma outra forma de ter acesso.
+  const grantedProActive = !!profile?.pro_granted_until && new Date(profile.pro_granted_until).getTime() > Date.now();
+  const tier = getAccessTier(isProActive(sub?.status) || grantedProActive, profile?.trial_started_at);
   return { tier, trialDaysLeft: trialDaysLeft(profile?.trial_started_at), limits: TIER_LIMITS[tier] };
 }

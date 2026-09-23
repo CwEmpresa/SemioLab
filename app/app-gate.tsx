@@ -38,6 +38,16 @@ export default function AppGate({
   }, [authenticated]);
 
   useEffect(() => {
+    // Captura o código de indicação o mais cedo possível — antes mesmo da
+    // pessoa decidir se vai se cadastrar agora ou só depois de navegar pela
+    // apresentação. Mesmo padrão do comentário sobre beforeinstallprompt no
+    // topo deste arquivo: o primeiro componente cliente que sempre monta.
+    if (typeof window === "undefined") return;
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) localStorage.setItem("semiolab:referral-code", ref);
+  }, []);
+
+  useEffect(() => {
     // Perfil incompleto: reaproveita o deep-link ?screen= que o próprio
     // Root já entende (mesmo mecanismo dos links de notificação) — nunca
     // cria tela nova, nunca altera visual.

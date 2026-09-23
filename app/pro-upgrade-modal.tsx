@@ -160,19 +160,22 @@ export default function ProUpgradeModal({ userId }: { userId: string }) {
                 <small>MENSAL</small>
               </span>
               <span className="pro-plan-copy">Flexibilidade para começar</span>
-              <b className="pro-plan-price"><em>R$</em> 29,90 <span>/mês</span></b>
+              <span className="pro-plan-was">de <s>R$ 29,90</s></span>
+              <b className="pro-plan-price"><em>R$</em> 19,90 <span>/mês</span></b>
               <span className="pro-plan-billing">Cobrança mensal</span>
             </button>
-            <button className={`recommended ${plan === "annual" ? "selected" : ""}`} onClick={() => setPlan("annual")} role="radio" aria-checked={plan === "annual"}>
+            <div className="pro-plan-slot">
               <strong className="pro-best-badge"><Sparkles /> MELHOR ESCOLHA</strong>
-              <span className="pro-plan-head">
-                <i>{plan === "annual" && <Check />}</i>
-                <small>ANUAL</small>
-              </span>
-              <span className="pro-plan-copy">Acesso completo por 12 meses</span>
-              <b className="pro-plan-price"><em>R$</em> 199,90 <span>/ano</span></b>
-              <span className="pro-plan-equivalent">equivale a <b>R$ 16,66/mês</b></span>
-            </button>
+              <button className={`recommended ${plan === "annual" ? "selected" : ""}`} onClick={() => setPlan("annual")} role="radio" aria-checked={plan === "annual"}>
+                <span className="pro-plan-head">
+                  <i>{plan === "annual" && <Check />}</i>
+                  <small>ANUAL</small>
+                </span>
+                <span className="pro-plan-copy">Acesso completo por 12 meses</span>
+                <b className="pro-plan-price"><em>R$</em> 15,90 <span>/mês</span></b>
+                <span className="pro-plan-billing">R$ 190,80 cobrados uma vez por ano</span>
+              </button>
+            </div>
           </div>
           {checkoutUrls ? (
             <a

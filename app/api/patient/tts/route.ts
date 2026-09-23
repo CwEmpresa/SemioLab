@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { getOpenAIClient, OPENAI_TTS_MODEL, OPENAI_TTS_VOICE, estimateTtsCostUsd, safeErrorMeta } from "@/lib/openai";
+import { getOpenAIClient, OPENAI_TTS_MODEL, resolvePatientVoice, estimateTtsCostUsd, safeErrorMeta } from "@/lib/openai";
 import { logAudioUsage, isRateLimited } from "@/lib/ai-usage";
 import { resolveUserAccess } from "@/lib/user-access";
 
@@ -32,22 +32,31 @@ export async function GET(request: Request) {
 
   const { data: session } = await supabase
     .from("patient_sessions")
-    .select("id")
+    .select("id, case_id")
     .eq("id", sessionId)
     .maybeSingle();
   if (!session) return Response.json({ error: "Sessão inválida." }, { status: 404 });
 
   const service = createServiceClient();
-  const { data: message } = await service
-    .from("patient_messages")
-    .select("id, content")
-    .eq("id", messageId)
-    .eq("session_id", sessionId)
-    .eq("role", "patient")
-    .maybeSingle();
+  const [{ data: message }, { data: caseDetails }] = await Promise.all([
+    service
+      .from("patient_messages")
+      .select("id, content")
+      .eq("id", messageId)
+      .eq("session_id", sessionId)
+      .eq("role", "patient")
+      .maybeSingle(),
+    service
+      .from("patient_case_details")
+      .select("hidden_case")
+      .eq("case_id", session.case_id)
+      .single(),
+  ]);
   if (!message || !message.content?.trim()) {
     return Response.json({ error: "Mensagem não encontrada." }, { status: 404 });
   }
+  const persona = (caseDetails?.hidden_case as { persona?: { sex?: string; age?: number } } | null)?.persona;
+  const { voice, ageHint } = resolvePatientVoice(persona?.sex ?? "feminino", persona?.age ?? 40);
 
   if (await isRateLimited(service, { userId: user.id, operation: "tts", maxPerWindow: 20, windowSeconds: 120 })) {
     return Response.json({ error: "Muitos pedidos de áudio em pouco tempo. Aguarde um instante.", code: "RATE_LIMITED" }, { status: 429 });
@@ -57,10 +66,11 @@ export async function GET(request: Request) {
     const client = getOpenAIClient();
     const speech = await client.audio.speech.create({
       model: OPENAI_TTS_MODEL,
-      voice: OPENAI_TTS_VOICE,
+      voice,
       input: message.content,
       instructions:
-        "Fale em português brasileiro como uma pessoa de verdade batendo papo, informal e espontâneo, nunca formal ou lendo um texto. Ritmo natural de fala, com as pequenas variações e pausas de quem está pensando enquanto fala — nunca robótico, nunca narrado, nunca com entonação de locutor.",
+        "Fale em português brasileiro como uma pessoa de verdade batendo papo, informal e espontâneo, nunca formal ou lendo um texto. Ritmo natural de fala, com as pequenas variações e pausas de quem está pensando enquanto fala — nunca robótico, nunca narrado, nunca com entonação de locutor. " +
+        ageHint,
       response_format: "mp3",
       // Envia o áudio em pedaços conforme é gerado (em vez de só no final):
       // é o que permite o navegador começar a tocar quase imediatamente.

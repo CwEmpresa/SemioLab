@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/generate-questions",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/evaluate-referrals",
+      "schedule": "30 6 * * *"
     }
   ]
 }

@@ -7,11 +7,49 @@ export const AI_PROVIDER = process.env.AI_PROVIDER || "openai";
 export const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5-mini";
 export const OPENAI_TRANSCRIPTION_MODEL = process.env.OPENAI_TRANSCRIPTION_MODEL || "gpt-4o-mini-transcribe";
 export const OPENAI_TTS_MODEL = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
-// Voz escolhida com base em recomendações públicas da OpenAI para tom
-// natural/caloroso — ainda precisa ser ouvida em português brasileiro por
-// um humano antes de considerar definitiva (não há como testar áudio real
-// neste ambiente).
-export const OPENAI_TTS_VOICE = process.env.OPENAI_TTS_VOICE || "coral";
+
+export type OpenAiVoice = "nova" | "coral" | "echo" | "onyx";
+
+// Corte de idade escolhido para dividir os casos clínicos reais do banco
+// (17 a 72 anos) em duas metades quase iguais — não é uma categorização
+// médica, só o ponto de corte usado para escolher o timbre da voz.
+const VOICE_AGE_CUTOFF = 45;
+
+// A OpenAI não documenta idade por voz, só timbre/gênero — a escolha abaixo
+// é a melhor caracterização pública disponível (plataforma da OpenAI) para
+// cobrir o cruzamento pedido: feminino/masculino × mais jovem/mais velho.
+// "coral" já era a voz única usada antes desta mudança, por isso vira o
+// padrão do grupo "feminino, mais velha" (o grupo que ela já atendia sem
+// diferenciação).
+const PATIENT_VOICE_BY_GROUP: Record<"feminino_jovem" | "feminino_idosa" | "masculino_jovem" | "masculino_idoso", OpenAiVoice> = {
+  feminino_jovem: "nova",
+  feminino_idosa: "coral",
+  masculino_jovem: "echo",
+  masculino_idoso: "onyx",
+};
+
+// Reforça a impressão de idade além do timbre em si — a OpenAI não expõe
+// controle de "idade" na voz, só o texto livre de `instructions`.
+const PATIENT_VOICE_AGE_HINT: Record<"jovem" | "idosa", string> = {
+  jovem: "Energia mais viva, ritmo um pouco mais rápido, como alguém mais jovem.",
+  idosa: "Ritmo mais pausado, tom mais calmo, como alguém mais velho.",
+};
+
+/** Escolhe a voz da TTS a partir do sexo/idade do `persona` do caso clínico
+ * (`HiddenCase["persona"]` em `lib/patient-case-schema.ts`). `sex` só tem
+ * dois valores reais no banco hoje: "masculino" e "feminino" — qualquer
+ * outro valor cai no grupo feminino por segurança (nunca lança erro). */
+export function resolvePatientVoice(sex: string, age: number): { voice: OpenAiVoice; ageHint: string } {
+  const isMale = sex.trim().toLowerCase() === "masculino";
+  const isYoung = age < VOICE_AGE_CUTOFF;
+  const group = isMale
+    ? (isYoung ? "masculino_jovem" : "masculino_idoso")
+    : (isYoung ? "feminino_jovem" : "feminino_idosa");
+  return {
+    voice: PATIENT_VOICE_BY_GROUP[group],
+    ageHint: PATIENT_VOICE_AGE_HINT[isYoung ? "jovem" : "idosa"],
+  };
+}
 export const OPENAI_QUESTION_MODEL = process.env.OPENAI_QUESTION_MODEL || OPENAI_MODEL;
 /** Chave de segurança: interrompe a geração de questões imediatamente,
  * sem precisar de novo deploy — padrão desligado por segurança. */

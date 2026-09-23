@@ -3,6 +3,7 @@ import "./globals.css";
 import "./dashboard.css";
 import "./study.css";
 import "./research.css";
+import "./referrals.css";
 
 export const metadata: Metadata = {
   title: "SemioLab",

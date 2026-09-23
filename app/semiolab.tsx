@@ -2,7 +2,7 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import {
   Activity, Award, BarChart3, Bell, BookOpenCheck, Brain, Check, Layers, NotebookPen, ScanLine,
-  BadgeCheck, Camera, ChevronRight, CircleAlert, ClipboardCheck, Clock3, CreditCard, FileText, Flame, HeartPulse,
+  BadgeCheck, Camera, ChevronDown, ChevronRight, CircleAlert, ClipboardCheck, Clock3, CreditCard, FileText, Flame, Gift, HeartPulse,
   AudioLines, HelpCircle, Mail, MessageCircle, Palette,
   Home, LibraryBig, LockKeyhole, LogOut, Menu, MessageSquareText,
   Search, Settings, ShieldCheck, SlidersHorizontal, Sparkles, Stethoscope, Target,
@@ -14,6 +14,7 @@ import SemiologyExperience, { queueSemiologyModule } from "./semiology-experienc
 import ResearchExperience, { queueResearchQuery } from "./research-experience";
 import FlashcardsExperience, { queueFlashcardDeck } from "./flashcards-experience";
 import RankingExperience, { HomeRankCard } from "./ranking-experience";
+import ReferralsExperience from "./referrals-experience";
 import PwaOnboarding, { NotificationSettingsPanel } from "./pwa-onboarding";
 import ProUpgradeModal, { openProUpgradeModal, DailyLimitInfoModal } from "./pro-upgrade-modal";
 import Avatar from "./avatar";
@@ -30,7 +31,7 @@ import {
   useScreenTransition, useStaggerReveal, useModalEntrance, useSidebarReveal,
 } from "@/components/animations";
 
-type Screen = "home"|"study"|"auscultation"|"patient"|"quiz"|"profile"|"progress"|"ranking"|"achievements"|"semiology"|"flashcards"|"research";
+type Screen = "home"|"study"|"auscultation"|"patient"|"quiz"|"profile"|"progress"|"ranking"|"achievements"|"semiology"|"flashcards"|"research"|"referrals";
 
 /* ─── Data ─────────────────────────────────────────────────────── */
 const systems = [
@@ -58,25 +59,63 @@ function Logo({ small = false }: { small?: boolean }) {
   );
 }
 
-const nav = [
-  { id:"home"    as Screen, name:"Início",        icon:Home },
-  { id:"study"   as Screen, name:"Ensino",         icon:LibraryBig },
-  { id:"auscultation" as Screen, name:"Laboratório", icon:AudioLines },
-  { id:"patient" as Screen, name:"Paciente",       icon:Stethoscope },
-  { id:"quiz"    as Screen, name:"Quiz e simulados", icon:ClipboardCheck },
-  { id:"profile" as Screen, name:"Perfil",         icon:UserRound },
+type NavLink = { kind: "link"; id: Screen; name: string; icon: typeof Home };
+type NavGroup = { kind: "group"; id: string; name: string; icon: typeof Home; items: { id: Screen; name: string; icon: typeof Home }[] };
+type NavEntry = NavLink | NavGroup;
+
+// Agrupa por "o que a pessoa está tentando fazer" (aprender conteúdo vs.
+// praticar vs. acompanhar evolução) em vez de uma lista achatada — eram 11
+// botões soltos antes, o que ficava poluído conforme mais telas foram
+// adicionadas.
+const navTree: NavEntry[] = [
+  { kind: "link", id: "home", name: "Início", icon: Home },
+  { kind: "link", id: "patient", name: "Paciente", icon: Stethoscope },
+  {
+    kind: "group", id: "ensino", name: "Ensino", icon: LibraryBig,
+    items: [
+      { id: "study", name: "Atlas de TC 3D", icon: ScanLine },
+      { id: "semiology", name: "Semiologia", icon: BookOpenCheck },
+      { id: "flashcards", name: "Flashcards", icon: Layers },
+      { id: "research", name: "Pesquisa por tema", icon: Search },
+    ],
+  },
+  {
+    kind: "group", id: "pratica", name: "Prática", icon: Target,
+    items: [
+      { id: "quiz", name: "Quiz e simulados", icon: ClipboardCheck },
+      { id: "auscultation", name: "Laboratório", icon: AudioLines },
+    ],
+  },
+  {
+    kind: "group", id: "jornada", name: "Minha jornada", icon: BarChart3,
+    items: [
+      { id: "progress", name: "Progresso", icon: BarChart3 },
+      { id: "ranking", name: "Ranking", icon: Trophy },
+      { id: "achievements", name: "Conquistas", icon: Award },
+    ],
+  },
+  { kind: "link", id: "referrals", name: "Indique e ganhe", icon: Gift },
+  { kind: "link", id: "profile", name: "Perfil", icon: UserRound },
 ];
 
-const mobileNav = nav;
-const drawerNav = [
-  ...nav,
-  { id:"progress" as Screen, name:"Progresso", icon:BarChart3 },
-  { id:"ranking" as Screen, name:"Ranking", icon:Trophy },
-  { id:"achievements" as Screen, name:"Conquistas", icon:Award },
-  { id:"semiology" as Screen, name:"Semiologia", icon:BookOpenCheck },
-  { id:"flashcards" as Screen, name:"Flashcards", icon:Layers },
-  { id:"research" as Screen, name:"Pesquisa por tema", icon:Search },
+// Barra inferior mobile: só os 5 atalhos mais usados, sempre visíveis sem
+// precisar abrir o menu — não usa navTree porque uma bottom bar não tem
+// espaço para categorias.
+const mobileBottomNav: NavLink[] = [
+  { kind: "link", id: "home", name: "Início", icon: Home },
+  { kind: "link", id: "patient", name: "Paciente", icon: Stethoscope },
+  { kind: "link", id: "quiz", name: "Quiz", icon: ClipboardCheck },
+  { kind: "link", id: "flashcards", name: "Flashcards", icon: Layers },
+  { kind: "link", id: "profile", name: "Perfil", icon: UserRound },
 ];
+
+/** Acha o grupo (se houver) que contém a tela ativa, para abri-lo sozinho. */
+function groupContaining(screen: Screen): string | null {
+  for (const entry of navTree) {
+    if (entry.kind === "group" && entry.items.some((item) => item.id === screen)) return entry.id;
+  }
+  return null;
+}
 
 const embeddedRoutes: Partial<Record<Screen, string>> = {
   study: "/atlas-tc-3d-portugues-v2.html",
@@ -118,6 +157,21 @@ function Navigation({ screen, go, open, setOpen }: { screen:Screen; go:(s:Screen
   const level = levelFromXp(learning?.profile?.xp ?? user.xp ?? 0);
   const sideRef = useSidebarReveal(open);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const active = groupContaining(screen);
+    return new Set(active ? [active] : []);
+  });
+  useEffect(() => {
+    const active = groupContaining(screen);
+    if (!active) return;
+    setOpenGroups((prev) => (prev.has(active) ? prev : new Set(prev).add(active)));
+  }, [screen]);
+  const toggleGroup = (id: string) =>
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   const navigate = (next: Screen) => {
     setDrawerOpen(false);
     go(next);
@@ -130,26 +184,47 @@ function Navigation({ screen, go, open, setOpen }: { screen:Screen; go:(s:Screen
           {open && <button onClick={() => setOpen(false)}><Menu /></button>}
         </header>
         <nav>
-          {nav.map((x) => (
-            <button
-              key={x.id}
-              className={screen === x.id ? "active" : ""}
-              onPointerEnter={() => warmEmbedded(x.id)}
-              onPointerDown={() => warmEmbedded(x.id)}
-              onFocus={() => warmEmbedded(x.id)}
-              onClick={() => go(x.id)}
-            >
-              <x.icon /><span>{x.name}</span>
-            </button>
-          ))}
+          {navTree.map((entry) =>
+            entry.kind === "link" ? (
+              <button
+                key={entry.id}
+                className={screen === entry.id ? "active" : ""}
+                onPointerEnter={() => warmEmbedded(entry.id)}
+                onPointerDown={() => warmEmbedded(entry.id)}
+                onFocus={() => warmEmbedded(entry.id)}
+                onClick={() => go(entry.id)}
+              >
+                <entry.icon /><span>{entry.name}</span>
+              </button>
+            ) : (
+              <div key={entry.id} className={`side-group ${openGroups.has(entry.id) ? "expanded" : ""}`}>
+                <button
+                  className={`side-group-head ${entry.items.some((i) => i.id === screen) ? "active" : ""}`}
+                  aria-expanded={openGroups.has(entry.id)}
+                  onClick={() => toggleGroup(entry.id)}
+                >
+                  <entry.icon /><span>{entry.name}</span><ChevronDown className="side-group-chevron" />
+                </button>
+                {openGroups.has(entry.id) && (
+                  <div className="side-group-items">
+                    {entry.items.map((item) => (
+                      <button
+                        key={item.id}
+                        className={screen === item.id ? "active" : ""}
+                        onPointerEnter={() => warmEmbedded(item.id)}
+                        onPointerDown={() => warmEmbedded(item.id)}
+                        onFocus={() => warmEmbedded(item.id)}
+                        onClick={() => go(item.id)}
+                      >
+                        <item.icon /><span>{item.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ),
+          )}
         </nav>
-        <div className="side-extra">
-          <button className={screen === "semiology" ? "active" : ""} onClick={() => go("semiology")}><BookOpenCheck /><span>Semiologia</span></button>
-          <button className={screen === "flashcards" ? "active" : ""} onClick={() => go("flashcards")}><Layers /><span>Flashcards</span></button>
-          <button className={screen === "research" ? "active" : ""} onClick={() => go("research")}><Search /><span>Pesquisa</span></button>
-          <button className={screen === "progress" ? "active" : ""} onClick={() => go("progress")}><BarChart3 /><span>Progresso</span></button>
-          <button className={screen === "ranking"  ? "active" : ""} onClick={() => go("ranking")}><Trophy /><span>Ranking</span></button>
-        </div>
         <button className="side-user" onClick={() => go("profile")}>
           <i><Avatar url={avatarUrl} name={displayName} /></i>
           <span><b>{displayName}</b><small>Estudante · Nível {level}</small></span>
@@ -170,16 +245,32 @@ function Navigation({ screen, go, open, setOpen }: { screen:Screen; go:(s:Screen
           </header>
           <small className="mobile-drawer-kicker">NAVEGAÇÃO</small>
           <nav>
-            {drawerNav.map((item) => (
-              <button
-                key={item.id}
-                className={screen === item.id ? "active" : ""}
-                onPointerDown={() => warmEmbedded(item.id)}
-                onClick={() => navigate(item.id)}
-              >
-                <item.icon /><span>{item.name}</span><ChevronRight />
-              </button>
-            ))}
+            {navTree.map((entry) =>
+              entry.kind === "link" ? (
+                <button
+                  key={entry.id}
+                  className={screen === entry.id ? "active" : ""}
+                  onPointerDown={() => warmEmbedded(entry.id)}
+                  onClick={() => navigate(entry.id)}
+                >
+                  <entry.icon /><span>{entry.name}</span><ChevronRight />
+                </button>
+              ) : (
+                <div key={entry.id} className="mobile-drawer-group">
+                  <small className="mobile-drawer-group-label"><entry.icon />{entry.name}</small>
+                  {entry.items.map((item) => (
+                    <button
+                      key={item.id}
+                      className={screen === item.id ? "active" : ""}
+                      onPointerDown={() => warmEmbedded(item.id)}
+                      onClick={() => navigate(item.id)}
+                    >
+                      <item.icon /><span>{item.name}</span><ChevronRight />
+                    </button>
+                  ))}
+                </div>
+              ),
+            )}
           </nav>
           <button className="mobile-drawer-account" onClick={() => navigate("profile")}>
             <i>{initials}</i><span><b>{displayName}</b><small>Estudante · Nível {level}</small></span><ChevronRight />
@@ -188,7 +279,7 @@ function Navigation({ screen, go, open, setOpen }: { screen:Screen; go:(s:Screen
       </div>
       <nav className="bottom-nav-host">
         <BottomNavBar
-          items={mobileNav.map((x) => ({ id: x.id, label: x.name, icon: x.icon }))}
+          items={mobileBottomNav.map((x) => ({ id: x.id, label: x.name, icon: x.icon }))}
           activeId={screen}
           onSelect={(id) => go(id as Screen)}
           stickyBottom
@@ -1279,6 +1370,7 @@ export default function SemioLab() {
     screen==="quiz"         ? <QuizExperience go={go} /> :
     screen==="progress"     ? <Progress go={go} /> :
     screen==="ranking"      ? <RankingExperience go={go} /> :
+    screen==="referrals"    ? <ReferralsExperience /> :
     screen==="achievements" ? <Achievements go={go} /> :
     screen==="semiology"    ? <SemiologyExperience onFlashcards={(deck) => { queueFlashcardDeck(deck); go("flashcards"); }} onQuiz={(topic) => { queueQuizLaunch(topic, 5); go("quiz"); }} /> :
     screen==="research"     ? <ResearchExperience onFlashcards={(deck) => { queueFlashcardDeck(deck); go("flashcards"); }} onQuiz={(topic) => { queueQuizLaunch(topic, 5); go("quiz"); }} onSemiology={(id) => { queueSemiologyModule(id); go("semiology"); }} onUpgrade={() => openProUpgradeModal("daily")} /> :
