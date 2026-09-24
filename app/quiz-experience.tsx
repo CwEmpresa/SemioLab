@@ -137,7 +137,6 @@ export default function QuizExperience({
   const [answers, setAnswers] = useState<number[]>([]);
   const [quizResults, setQuizResults] = useState<{ questionId: string; correct: boolean; correctText: string; explanation: string }[]>([]);
   const [quizStartLoading, setQuizStartLoading] = useState(false);
-  const [seconds, setSeconds] = useState(30);
   const { summary: learning } = useLearningSummary();
   const [savedErrors, setSavedErrors] = useState<SavedError[]>([]);
   const [attempts, setAttempts] = useState(0);
@@ -191,23 +190,6 @@ export default function QuizExperience({
     [caseAnswers],
   );
 
-  useEffect(() => {
-    if (mode !== "quiz") return;
-    setSeconds(30);
-    const id = window.setInterval(
-      () =>
-        setSeconds((value) => {
-          if (value <= 1) {
-            window.clearInterval(id);
-            answerQuestion(-1);
-            return 0;
-          }
-          return value - 1;
-        }),
-      1000,
-    );
-    return () => window.clearInterval(id);
-  }, [mode, current]);
   useEffect(() => {
     if (mode !== "exam") return;
     const id = window.setInterval(
@@ -338,7 +320,7 @@ export default function QuizExperience({
               questionId: r.questionId,
               topic: q?.topic || topic,
               question: q?.text || "",
-              selectedAnswer: q ? q.options[finalAnswers[active.indexOf(q)]] || "Sem resposta — tempo esgotado" : "",
+              selectedAnswer: q ? q.options[finalAnswers[active.indexOf(q)]] || "Sem resposta" : "",
               correctAnswer: r.correctText,
               explanation: r.explanation,
             };
@@ -533,8 +515,6 @@ export default function QuizExperience({
               />
             </i>
           </span>
-          <Clock3 />
-          <b className={seconds < 10 ? "timer-danger" : ""}>{seconds}s</b>
         </header>
         <main>
           <small>{question.topic.toUpperCase()} · QUIZ RÁPIDO</small>
@@ -797,7 +777,7 @@ export default function QuizExperience({
           <small>QUESTÕES OBJETIVAS</small>
           <h1>Monte seu quiz.</h1>
           <p>
-            Respostas de múltipla escolha com 30 segundos por questão e correção
+            Respostas de múltipla escolha, sem limite de tempo, e correção
             imediata ao final.
           </p>
           <label>
@@ -840,7 +820,7 @@ export default function QuizExperience({
             <span>
               <b>{topic}</b>
               <small>
-                {Math.min(amount, maxAmount)} questões · 30 segundos cada
+                {Math.min(amount, maxAmount)} questões · sem limite de tempo
               </small>
             </span>
           </div>
@@ -941,7 +921,7 @@ export default function QuizExperience({
             <span><Zap /></span>
           </div>
           <div className="quiz-format-facts">
-            <span><Clock3 /><b>30s</b><small>por questão</small></span>
+            <span><Clock3 /><b>Sem tempo</b><small>para responder</small></span>
             <span><FileText /><b>3–15</b><small>questões</small></span>
             <span><Check /><b>Feedback</b><small>detalhado</small></span>
           </div>
