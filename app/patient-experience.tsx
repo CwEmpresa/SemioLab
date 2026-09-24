@@ -82,6 +82,23 @@ const patientHistoryKey = (userId: string) => `semiolab:${userId}:consult-histor
 // ser removidas incondicionalmente para não vazar dados entre contas.
 const LEGACY_GLOBAL_KEYS = ["semiolab:patient-session:v2", "semiolab:patient-session:v3", "semiolab:consult-history:v1"];
 
+// Stream de texto do modo conversa por voz: o servidor coloca, no fim de cada
+// frase completa, um marcador assinado (<assinatura>). Aqui o
+// texto é separado dos marcadores e as frases prontas são devolvidas para
+// já serem faladas enquanto o resto da resposta ainda chega.
+const VOICE_MARKER_SPLIT = /([0-9a-f]{64})/;
+function parseVoiceStream(full: string) {
+  const parts = full.split(VOICE_MARKER_SPLIT);
+  let text = "";
+  const sentences: { text: string; sig: string }[] = [];
+  for (let i = 0; i < parts.length; i += 2) {
+    text += parts[i];
+    if (i + 1 < parts.length) sentences.push({ text: parts[i].trim(), sig: parts[i + 1] });
+  }
+  // Marcador ainda chegando (cortado entre dois pedaços do stream).
+  return { text: text.replace(/[0-9a-f]{0,64}$/, ""), sentences };
+}
+
 function messageTime(timestamp: number) {
   return new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
@@ -148,6 +165,8 @@ export default function PatientExperience({
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const stopVadRef = useRef<(() => void) | null>(null);
+  const sentenceQueueRef = useRef<HTMLAudioElement[]>([]);
+  const sentencePlayingRef = useRef(false);
   const discardRecordingRef = useRef(false);
   useEffect(
     () => () => {
@@ -400,6 +419,9 @@ export default function PatientExperience({
   async function send(overrideText?: string) {
     const question = (overrideText ?? input).trim();
     if (!question || !sessionId || typing) return;
+    // Nova pergunta: interrompe qualquer fala anterior ainda na fila.
+    stopSpeaking();
+    const wantsVoice = chatMode === "audio" && canUseAudio;
     setMessages((m) => [...m, { who: "student", text: question, createdAt: Date.now() }]);
     if (overrideText === undefined) setInput("");
     setTyping(true);
@@ -407,7 +429,7 @@ export default function PatientExperience({
       const response = await fetch("/api/patient/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sessionId, message: question }),
+        body: JSON.stringify({ sessionId, message: question, voice: wantsVoice }),
       });
       if (response.status === 404) {
         setTyping(false);
@@ -435,11 +457,18 @@ export default function PatientExperience({
         if (markerIndex === -1) return { clean: text, id: undefined as string | undefined };
         return { clean: text.slice(0, markerIndex), id: text.slice(markerIndex + 7).trim() };
       };
+      let spokenSentences = 0;
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
         full += decoder.decode(value, { stream: true });
-        const { clean } = stripMarker(full);
+        const voiceParsed = parseVoiceStream(full);
+        // Cada frase completa já vira áudio na hora (a fila toca em ordem).
+        for (; spokenSentences < voiceParsed.sentences.length; spokenSentences++) {
+          const sentence = voiceParsed.sentences[spokenSentences];
+          if (wantsVoice && sentence.text) speakSentence(sentence.text, sentence.sig);
+        }
+        const { clean } = stripMarker(voiceParsed.text);
         setMessages((m) => {
           const next = [...m];
           const last = next[next.length - 1];
@@ -451,7 +480,12 @@ export default function PatientExperience({
       // um caractere acentuado partido entre dois chunks no fim do stream) —
       // sem isso, o último caractere/palavra podia ficar cortado.
       full += decoder.decode();
-      const { clean: finalText, id: messageId } = stripMarker(full);
+      const finalParsed = parseVoiceStream(full);
+      for (; spokenSentences < finalParsed.sentences.length; spokenSentences++) {
+        const sentence = finalParsed.sentences[spokenSentences];
+        if (wantsVoice && sentence.text) speakSentence(sentence.text, sentence.sig);
+      }
+      const { clean: finalText, id: messageId } = stripMarker(finalParsed.text);
       setMessages((m) => {
         const next = [...m];
         const last = next[next.length - 1];
@@ -460,7 +494,9 @@ export default function PatientExperience({
       });
       // Modo áudio: a resposta toca sozinha, sem precisar tocar em "ouvir
       // resposta" — é uma conversa por voz, não um chat com áudio opcional.
-      if (chatMode === "audio" && canUseAudio && messageId) {
+      // (Se nenhuma frase foi falada durante o stream, cai no áudio da
+      // mensagem inteira.)
+      if (wantsVoice && spokenSentences === 0 && messageId) {
         playPatientAudio({ who: "patient", text: finalText, id: messageId, createdAt });
       }
     } catch {
@@ -635,6 +671,41 @@ export default function PatientExperience({
       { once: true },
     );
     recorder.stop();
+  }
+
+  // Fila de frases faladas: cada frase é pedida ao servidor assim que fica
+  // pronta e a próxima já vai baixando enquanto a atual toca.
+  function stopSpeaking() {
+    sentenceQueueRef.current = [];
+    sentencePlayingRef.current = false;
+    currentAudioRef.current?.pause();
+    setPlayingMessageId(null);
+  }
+  function playNextSentence() {
+    const next = sentenceQueueRef.current.shift();
+    if (!next) {
+      sentencePlayingRef.current = false;
+      setPlayingMessageId(null);
+      return;
+    }
+    sentencePlayingRef.current = true;
+    currentAudioRef.current = next;
+    next.onplaying = () => setPlayingMessageId("voice");
+    next.onended = playNextSentence;
+    next.onerror = () => {
+      setMicError("Não foi possível gerar o áudio desta resposta agora.");
+      playNextSentence();
+    };
+    next.play().catch(() => playNextSentence());
+  }
+  function speakSentence(text: string, sig: string) {
+    if (!sessionId) return;
+    const audio = new Audio(
+      `/api/patient/tts?sessionId=${encodeURIComponent(sessionId)}&text=${encodeURIComponent(text)}&sig=${sig}`,
+    );
+    audio.preload = "auto";
+    sentenceQueueRef.current.push(audio);
+    if (!sentencePlayingRef.current) playNextSentence();
   }
 
   function playPatientAudio(message: Message) {

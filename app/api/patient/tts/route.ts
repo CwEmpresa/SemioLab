@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getOpenAIClient, OPENAI_TTS_MODEL, resolvePatientVoice, estimateTtsCostUsd, safeErrorMeta } from "@/lib/openai";
 import { logAudioUsage, isRateLimited } from "@/lib/ai-usage";
 import { resolveUserAccess } from "@/lib/user-access";
+import { verifySentence } from "@/lib/sentence-audio";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -22,7 +23,17 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const sessionId = url.searchParams.get("sessionId");
   const messageId = url.searchParams.get("messageId");
-  if (!sessionId || !messageId) return Response.json({ error: "Dados inválidos." }, { status: 400 });
+  // Modo frase (conversa por voz): o cliente pede a voz de UMA frase assim
+  // que ela fica pronta, antes da resposta inteira terminar. O texto só é
+  // aceito se vier com a assinatura que o servidor gerou para ele nesta
+  // sessão — nunca fala texto arbitrário.
+  const sentenceText = url.searchParams.get("text")?.trim() ?? "";
+  const sentenceSig = url.searchParams.get("sig") ?? "";
+  const sentenceMode = sentenceText.length > 0;
+  if (!sessionId || (!sentenceMode && !messageId)) return Response.json({ error: "Dados inválidos." }, { status: 400 });
+  if (sentenceMode && (sentenceText.length > 500 || !verifySentence(sessionId, sentenceText, sentenceSig))) {
+    return Response.json({ error: "Texto inválido.", code: "INVALID_SENTENCE" }, { status: 400 });
+  }
 
   // Tudo que o áudio precisa é lido em paralelo (antes eram 5 idas seguidas
   // ao banco antes do primeiro byte de voz).
@@ -30,14 +41,16 @@ export async function GET(request: Request) {
   const [access, { data: session }, { data: message }, rateLimited] = await Promise.all([
     resolveUserAccess(supabase, user.id),
     supabase.from("patient_sessions").select("id, case_id").eq("id", sessionId).maybeSingle(),
-    service
-      .from("patient_messages")
-      .select("id, content")
-      .eq("id", messageId)
-      .eq("session_id", sessionId)
-      .eq("role", "patient")
-      .maybeSingle(),
-    isRateLimited(service, { userId: user.id, operation: "tts", maxPerWindow: 20, windowSeconds: 120 }),
+    sentenceMode
+      ? Promise.resolve({ data: { id: "sentence", content: sentenceText } })
+      : service
+          .from("patient_messages")
+          .select("id, content")
+          .eq("id", messageId as string)
+          .eq("session_id", sessionId)
+          .eq("role", "patient")
+          .maybeSingle(),
+    isRateLimited(service, { userId: user.id, operation: "tts", maxPerWindow: 80, windowSeconds: 120 }),
   ]);
   // Recurso do plano Pro e do período de teste — não disponível no free.
   if (access.tier !== "pro" && access.tier !== "trial") {
@@ -56,7 +69,7 @@ export async function GET(request: Request) {
     .select("hidden_case")
     .eq("case_id", session.case_id)
     .single();
-  const persona = (caseDetails?.hidden_case as { persona?: { sex?: string; age?: number } } | null)?.persona;
+  const persona = (caseDetails?.hidden_case as { persona?: { sex?: string; age?: number; tone?: string } } | null)?.persona;
   const { voice, ageHint } = resolvePatientVoice(persona?.sex ?? "feminino", persona?.age ?? 40);
 
   try {
@@ -66,7 +79,9 @@ export async function GET(request: Request) {
       voice,
       input: message.content,
       instructions:
-        "Fale em português brasileiro como uma pessoa de verdade batendo papo, informal e espontâneo, nunca formal ou lendo um texto. Ritmo natural de fala, com as pequenas variações e pausas de quem está pensando enquanto fala — nunca robótico, nunca narrado, nunca com entonação de locutor. " +
+        "Fale em português brasileiro como uma pessoa de verdade batendo papo, informal e espontâneo, nunca formal ou lendo um texto. Ritmo natural de fala, com as pequenas variações e pausas de quem está pensando enquanto fala, nunca robótico, nunca narrado, nunca com entonação de locutor. " +
+        "Tenha emoção de verdade na voz: quem está doente soa um pouco cansado, incomodado ou preocupado, e hesita de leve quando o assunto é delicado; ao contar algo que dói, a voz acompanha. Sem exagero de teatro. " +
+        (persona?.tone ? `Jeito da pessoa: ${persona.tone}. ` : "") +
         ageHint,
       response_format: "mp3",
       // Envia o áudio em pedaços conforme é gerado (em vez de só no final):

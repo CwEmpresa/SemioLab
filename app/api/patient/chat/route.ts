@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getOpenAIClient, OPENAI_MODEL, safeErrorMeta, type UsageTokens } from "@/lib/openai";
 import { consumeResponseStream, shouldRetry, ZERO_USAGE } from "@/lib/response-stream";
 import { logAiUsage } from "@/lib/ai-usage";
+import { createSentenceMarker, signSentence } from "@/lib/sentence-audio";
 import type { HiddenCase } from "@/lib/patient-case-schema";
 import {
   buildPatientSystemInstruction,
@@ -55,9 +56,12 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
 
-  const body = (await request.json().catch(() => ({}))) as { sessionId?: string; message?: string };
+  const body = (await request.json().catch(() => ({}))) as { sessionId?: string; message?: string; voice?: boolean };
   const sessionId = body.sessionId;
   const message = typeof body.message === "string" ? body.message.trim() : "";
+  // Modo conversa por voz: o texto sai com marcadores de fim de frase, para
+  // o cliente já começar a falar a primeira frase enquanto o resto é escrito.
+  const wantsVoice = body.voice === true;
   if (!sessionId || !message) return Response.json({ error: "Dados inválidos.", code: "INVALID_INPUT" }, { status: 400 });
   if (message.length > MAX_MESSAGE_LENGTH) {
     return Response.json(
@@ -199,6 +203,11 @@ export async function POST(request: Request) {
       async start(controller) {
         const usageLog: UsageTokens[] = [];
         let fullText = "";
+        const splitter = wantsVoice ? createSentenceMarker((sentence) => signSentence(sessionId, sentence)) : null;
+        const emit = (delta: string) => {
+          const chunk = splitter ? splitter.push(delta) : delta;
+          if (chunk) controller.enqueue(encoder.encode(chunk));
+        };
         try {
           // Tentativa 1: reasoning mínimo, orçamento suficiente para
           // reasoning + texto visível (o limite de 1-3 frases é imposto
@@ -206,7 +215,7 @@ export async function POST(request: Request) {
           const first = await runResponseStream(
             client,
             { instructions, input: turns, maxOutputTokens: 500, reasoningEffort: "minimal" },
-            (delta) => controller.enqueue(encoder.encode(delta)),
+            emit,
           );
           usageLog.push(first.usage);
           fullText = first.text;
@@ -221,7 +230,7 @@ export async function POST(request: Request) {
             const retry = await runResponseStream(
               client,
               { instructions, input: turns, maxOutputTokens: 700, reasoningEffort: "minimal" },
-              (delta) => controller.enqueue(encoder.encode(delta)),
+              emit,
             );
             usageLog.push(retry.usage);
             if (retry.text.trim().length > 0) fullText = retry.text;
@@ -229,6 +238,10 @@ export async function POST(request: Request) {
         } catch (err) {
           console.error("[patient/chat] erro no streaming", safeErrorMeta(err));
         } finally {
+          if (splitter) {
+            const rest = splitter.flush();
+            if (rest) controller.enqueue(encoder.encode(rest));
+          }
           const trimmed = fullText.trim();
           // Nunca grava nem envia bolha vazia/só espaço.
           const contentToSave = trimmed.length > 0 ? fullText : FALLBACK_REPLY;
