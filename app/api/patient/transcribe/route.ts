@@ -38,13 +38,14 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
 
+  // Validação do formulário e checagem de plano rodam em paralelo (eram
+  // sequenciais): cada ida ao banco a menos é tempo a menos de espera.
+  const [access, form] = await Promise.all([resolveUserAccess(supabase, user.id), request.formData().catch(() => null)]);
   // Recurso do plano Pro e do período de teste — não disponível no free.
-  const access = await resolveUserAccess(supabase, user.id);
   if (access.tier !== "pro" && access.tier !== "trial") {
     return Response.json({ error: "A pergunta por voz é exclusiva do plano Pro e do período de teste.", code: "PRO_REQUIRED" }, { status: 403 });
   }
 
-  const form = await request.formData().catch(() => null);
   if (!form) return Response.json({ error: "Requisição inválida." }, { status: 400 });
 
   const sessionId = form.get("sessionId");
@@ -65,23 +66,21 @@ export async function POST(request: Request) {
     return Response.json({ error: "Formato de áudio não suportado.", code: "AUDIO_INVALID_FORMAT" }, { status: 400 });
   }
 
-  // Sessão precisa pertencer ao usuário autenticado e estar ativa.
-  const { data: session } = await supabase
-    .from("patient_sessions")
-    .select("id, status")
-    .eq("id", sessionId)
-    .maybeSingle();
+  const service = createServiceClient();
+  // Sessão (precisa pertencer ao usuário e estar ativa), limite de uso e
+  // leitura do arquivo em paralelo.
+  const [{ data: session }, rateLimited, buffer] = await Promise.all([
+    supabase.from("patient_sessions").select("id, status").eq("id", sessionId).maybeSingle(),
+    isRateLimited(service, { userId: user.id, operation: "transcription", maxPerWindow: 10, windowSeconds: 120 }),
+    audio.arrayBuffer().then((b) => new Uint8Array(b)),
+  ]);
   if (!session || session.status !== "active") {
     return Response.json({ error: "Sessão inválida ou já encerrada.", code: "SESSION_NOT_ACTIVE" }, { status: 404 });
   }
-
-  const buffer = new Uint8Array(await audio.arrayBuffer());
   if (!sniffAudioSignature(buffer)) {
     return Response.json({ error: "Arquivo de áudio inválido.", code: "AUDIO_SIGNATURE_INVALID" }, { status: 400 });
   }
-
-  const service = createServiceClient();
-  if (await isRateLimited(service, { userId: user.id, operation: "transcription", maxPerWindow: 10, windowSeconds: 120 })) {
+  if (rateLimited) {
     return Response.json({ error: "Muitas gravações em pouco tempo. Aguarde um instante.", code: "RATE_LIMITED" }, { status: 429 });
   }
 
@@ -92,6 +91,10 @@ export async function POST(request: Request) {
       model: OPENAI_TRANSCRIPTION_MODEL,
       file,
       language: "pt",
+      // Contexto de vocabulário: melhora o reconhecimento de nomes de
+      // exames e termos clínicos, que a fala corrida costuma confundir.
+      prompt:
+        "Consulta médica em português do Brasil. O estudante conversa com o paciente e pede exames: hemograma, raio x de tórax, ultrassonografia de abdome, tomografia de crânio, eletrocardiograma, PCR, glicemia, troponina, creatinina.",
     });
 
     const usage = (result as { usage?: { input_tokens?: number; output_tokens?: number; type?: string } }).usage;

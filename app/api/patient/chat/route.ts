@@ -133,9 +133,17 @@ export async function POST(request: Request) {
     return Response.json({ error: "A sessão foi atualizada por outra requisição. Tente novamente.", code: "SESSION_UPDATED" }, { status: 409 });
   }
 
-  const [{ data: caseDetails }, { data: caseRow }] = await Promise.all([
+  // Caso, fala de abertura e histórico da conversa lidos juntos (antes eram
+  // duas esperas seguidas antes de o modelo começar a responder).
+  const [{ data: caseDetails }, { data: caseRow }, { data: historyRows }] = await Promise.all([
     service.from("patient_case_details").select("hidden_case").eq("case_id", session.case_id).single(),
     service.from("patient_cases").select("opening_line").eq("id", session.case_id).single(),
+    service
+      .from("patient_messages")
+      .select("id, role, content")
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true }),
   ]);
   if (!caseDetails) return Response.json({ error: "Caso clínico indisponível.", code: "CASE_NOT_FOUND" }, { status: 500 });
   const hidden = caseDetails.hidden_case as HiddenCase;
@@ -158,13 +166,6 @@ export async function POST(request: Request) {
     });
   }
 
-  const { data: historyRows } = await service
-    .from("patient_messages")
-    .select("id, role, content")
-    .eq("session_id", sessionId)
-    .order("created_at", { ascending: true })
-    .order("id", { ascending: true });
-
   // Contexto otimizado: prompt fixo primeiro (favorece cache de prefixo) e
   // apenas o histórico necessário, começando na 1ª fala do estudante.
   // Mensagens antigas vazias/só espaço (não devem existir mais, mas por
@@ -183,7 +184,10 @@ export async function POST(request: Request) {
   }
   turns.push({ role: "user", content: message });
 
-  await service.from("patient_messages").insert({ session_id: sessionId, role: "student", content: message });
+  // A gravação da fala do estudante roda EM PARALELO com a chamada ao
+  // modelo (não precisa terminar antes); só é aguardada antes de gravar a
+  // resposta do paciente, para manter a ordem correta na conversa.
+  const studentInsert = Promise.resolve(service.from("patient_messages").insert({ session_id: sessionId, role: "student", content: message }));
 
   const instructions = buildPatientSystemInstruction(hidden, caseRow?.opening_line);
   const encoder = new TextEncoder();
@@ -230,6 +234,7 @@ export async function POST(request: Request) {
           const contentToSave = trimmed.length > 0 ? fullText : FALLBACK_REPLY;
           if (trimmed.length === 0) controller.enqueue(encoder.encode(FALLBACK_REPLY));
 
+          await studentInsert;
           const { data: savedMessage } = await service
             .from("patient_messages")
             .insert({ session_id: sessionId, role: "patient", content: contentToSave })

@@ -122,6 +122,7 @@ export default function PatientExperience({
     [loadingAudioMessageId, setLoadingAudioMessageId] = useState<string | null>(null),
     [examText, setExamText] = useState(""),
     [examOrder, setExamOrder] = useState(""),
+    [examPending, setExamPending] = useState(false),
     [typing, setTyping] = useState(false),
     [history, setHistory] = useState<ConsultHistory[]>([]),
     [selectedHistory, setSelectedHistory] = useState<ConsultHistory | null>(null),
@@ -146,6 +147,15 @@ export default function PatientExperience({
   const recordingStartRef = useRef(0);
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const stopVadRef = useRef<(() => void) | null>(null);
+  const discardRecordingRef = useRef(false);
+  useEffect(
+    () => () => {
+      stopVadRef.current?.();
+      recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+    },
+    [],
+  );
   const user = useUser();
   const { summary: learning } = useLearningSummary();
   // Consulta por voz (gravar pergunta + ouvir resposta) é liberada para
@@ -461,6 +471,65 @@ export default function PatientExperience({
   }
   const MAX_RECORDING_MS = 30_000;
   const MAX_RECORDING_BYTES = 2 * 1024 * 1024;
+  // Detecção de fim de fala (só no modo conversa por áudio): encerra a
+  // gravação sozinha quando o estudante termina de falar, em vez de esperar
+  // o toque em "parar". É o que mais encurta a espera e deixa a conversa
+  // natural. Se ninguém falar, descarta sem enviar nada (não gasta
+  // transcrição nem pergunta).
+  const SILENCE_END_MS = 1100;
+  const NO_SPEECH_TIMEOUT_MS = 8000;
+  const MIN_SPEECH_MS = 250;
+
+  function startSilenceDetection(stream: MediaStream, onEnd: () => void, onNoSpeech: () => void) {
+    const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return () => {};
+    const ctx = new AudioCtx();
+    const source = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    source.connect(analyser);
+    const buffer = new Float32Array(analyser.fftSize);
+    const startedAt = performance.now();
+    let noiseFloor = 0.008;
+    let calibrating = true;
+    let speechMs = 0;
+    let lastVoiceAt = 0;
+    let lastTick = startedAt;
+    const timer = window.setInterval(() => {
+      const now = performance.now();
+      const dt = now - lastTick;
+      lastTick = now;
+      analyser.getFloatTimeDomainData(buffer);
+      let sum = 0;
+      for (let i = 0; i < buffer.length; i++) sum += buffer[i] * buffer[i];
+      const rms = Math.sqrt(sum / buffer.length);
+      // Primeiros 300 ms: mede o ruído de fundo para ajustar o limiar.
+      if (calibrating) {
+        noiseFloor = Math.max(noiseFloor, rms);
+        if (now - startedAt > 300) calibrating = false;
+        return;
+      }
+      const isVoice = rms > Math.max(0.02, noiseFloor * 2.5);
+      if (isVoice) {
+        speechMs += dt;
+        lastVoiceAt = now;
+      }
+      if (speechMs >= MIN_SPEECH_MS && now - lastVoiceAt > SILENCE_END_MS) {
+        cleanup();
+        onEnd();
+      } else if (speechMs < MIN_SPEECH_MS && now - startedAt > NO_SPEECH_TIMEOUT_MS) {
+        cleanup();
+        onNoSpeech();
+      }
+    }, 50);
+    function cleanup() {
+      window.clearInterval(timer);
+      source.disconnect();
+      void ctx.close().catch(() => {});
+      stopVadRef.current = null;
+    }
+    return cleanup;
+  }
 
   async function startRecording() {
     setMicError("");
@@ -470,15 +539,23 @@ export default function PatientExperience({
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Voz mono com cancelamento de eco/ruído: melhora o reconhecimento
+      // (principalmente com o áudio do paciente tocando perto do microfone).
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
       recordingStreamRef.current = stream;
       const mimeType = ["audio/webm", "audio/ogg", "audio/mp4"].find((type) => MediaRecorder.isTypeSupported(type)) || "";
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      // 32 kbps é mais que suficiente para fala e deixa o arquivo (e o
+      // envio) bem menor que o padrão do navegador.
+      const recorder = new MediaRecorder(stream, { ...(mimeType ? { mimeType } : {}), audioBitsPerSecond: 32000 });
       recordedChunksRef.current = [];
+      discardRecordingRef.current = false;
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) recordedChunksRef.current.push(event.data);
       };
       recorder.onstop = () => {
+        stopVadRef.current?.();
         stream.getTracks().forEach((track) => track.stop());
         recordingStreamRef.current = null;
       };
@@ -486,6 +563,22 @@ export default function PatientExperience({
       recordingStartRef.current = Date.now();
       recorder.start();
       setRecording(true);
+      if (chatMode === "audio") {
+        stopVadRef.current = startSilenceDetection(
+          stream,
+          () => {
+            if (mediaRecorderRef.current === recorder && recorder.state === "recording") stopRecording();
+          },
+          () => {
+            if (mediaRecorderRef.current !== recorder || recorder.state !== "recording") return;
+            discardRecordingRef.current = true;
+            setRecording(false);
+            recorder.stop();
+            mediaRecorderRef.current = null;
+            setMicError("Não ouvi nada. Toque no microfone e fale de novo.");
+          },
+        );
+      }
       window.setTimeout(() => {
         if (mediaRecorderRef.current === recorder && recorder.state === "recording") stopRecording();
       }, MAX_RECORDING_MS);
@@ -504,7 +597,7 @@ export default function PatientExperience({
       async () => {
         const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || "audio/webm" });
         mediaRecorderRef.current = null;
-        if (blob.size === 0) return;
+        if (blob.size === 0 || discardRecordingRef.current) return;
         if (blob.size > MAX_RECORDING_BYTES) {
           setMicError("Gravação maior que 2 MB. Tente uma pergunta mais curta.");
           return;
@@ -576,6 +669,7 @@ export default function PatientExperience({
     setExamOrder(order);
     setExamOpen(false);
     setExamText("");
+    setExamPending(true);
     try {
       const response = await fetch("/api/patient/exam", {
         method: "POST",
@@ -640,6 +734,8 @@ export default function PatientExperience({
       }
     } catch {
       setMessages((m) => [...m, { who: "patient", text: "Não foi possível liberar o exame agora.", createdAt: Date.now() }]);
+    } finally {
+      setExamPending(false);
     }
   }
   async function requestPhysicalExam() {
@@ -883,9 +979,9 @@ export default function PatientExperience({
   const patientName = caseInfo?.patientName || "Paciente";
   const patientInitials = patientName.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "P";
   const voiceStatus = transcribing
-    ? "Ouvindo sua pergunta..."
+    ? "Entendendo o que você disse..."
     : recording
-      ? "Gravando — toque no microfone para enviar"
+      ? "Ouvindo... fale normalmente, envio quando você parar"
       : typing
         ? `${patientName} está respondendo...`
         : playingMessageId
@@ -1094,6 +1190,12 @@ export default function PatientExperience({
           </div>
           );
         })}
+        {examPending && (
+          <div className="msg patient typing-message" role="status" aria-label="Solicitando exames">
+            <i>{patientInitials}</i>
+            <div className="typing-bubble"><span /><span /><span /></div>
+          </div>
+        )}
         {typing && chatMode === "text" && (
           <div className="msg patient typing-message" aria-label="Paciente digitando">
             <i>{patientInitials}</i>

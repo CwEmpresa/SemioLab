@@ -19,26 +19,17 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
 
-  // Recurso do plano Pro e do período de teste — não disponível no free.
-  const access = await resolveUserAccess(supabase, user.id);
-  if (access.tier !== "pro" && access.tier !== "trial") {
-    return Response.json({ error: "Ouvir a resposta do paciente é exclusiva do plano Pro e do período de teste.", code: "PRO_REQUIRED" }, { status: 403 });
-  }
-
   const url = new URL(request.url);
   const sessionId = url.searchParams.get("sessionId");
   const messageId = url.searchParams.get("messageId");
   if (!sessionId || !messageId) return Response.json({ error: "Dados inválidos." }, { status: 400 });
 
-  const { data: session } = await supabase
-    .from("patient_sessions")
-    .select("id, case_id")
-    .eq("id", sessionId)
-    .maybeSingle();
-  if (!session) return Response.json({ error: "Sessão inválida." }, { status: 404 });
-
+  // Tudo que o áudio precisa é lido em paralelo (antes eram 5 idas seguidas
+  // ao banco antes do primeiro byte de voz).
   const service = createServiceClient();
-  const [{ data: message }, { data: caseDetails }] = await Promise.all([
+  const [access, { data: session }, { data: message }, rateLimited] = await Promise.all([
+    resolveUserAccess(supabase, user.id),
+    supabase.from("patient_sessions").select("id, case_id").eq("id", sessionId).maybeSingle(),
     service
       .from("patient_messages")
       .select("id, content")
@@ -46,21 +37,27 @@ export async function GET(request: Request) {
       .eq("session_id", sessionId)
       .eq("role", "patient")
       .maybeSingle(),
-    service
-      .from("patient_case_details")
-      .select("hidden_case")
-      .eq("case_id", session.case_id)
-      .single(),
+    isRateLimited(service, { userId: user.id, operation: "tts", maxPerWindow: 20, windowSeconds: 120 }),
   ]);
+  // Recurso do plano Pro e do período de teste — não disponível no free.
+  if (access.tier !== "pro" && access.tier !== "trial") {
+    return Response.json({ error: "Ouvir a resposta do paciente é exclusiva do plano Pro e do período de teste.", code: "PRO_REQUIRED" }, { status: 403 });
+  }
+
+  if (!session) return Response.json({ error: "Sessão inválida." }, { status: 404 });
   if (!message || !message.content?.trim()) {
     return Response.json({ error: "Mensagem não encontrada." }, { status: 404 });
   }
-  const persona = (caseDetails?.hidden_case as { persona?: { sex?: string; age?: number } } | null)?.persona;
-  const { voice, ageHint } = resolvePatientVoice(persona?.sex ?? "feminino", persona?.age ?? 40);
-
-  if (await isRateLimited(service, { userId: user.id, operation: "tts", maxPerWindow: 20, windowSeconds: 120 })) {
+  if (rateLimited) {
     return Response.json({ error: "Muitos pedidos de áudio em pouco tempo. Aguarde um instante.", code: "RATE_LIMITED" }, { status: 429 });
   }
+  const { data: caseDetails } = await service
+    .from("patient_case_details")
+    .select("hidden_case")
+    .eq("case_id", session.case_id)
+    .single();
+  const persona = (caseDetails?.hidden_case as { persona?: { sex?: string; age?: number } } | null)?.persona;
+  const { voice, ageHint } = resolvePatientVoice(persona?.sex ?? "feminino", persona?.age ?? 40);
 
   try {
     const client = getOpenAIClient();

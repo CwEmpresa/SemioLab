@@ -2,11 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { resolveUserAccess } from "@/lib/user-access";
 import type { HiddenCase } from "@/lib/patient-case-schema";
-import { matchExamFindings, matchCanonicalExamIds } from "@/lib/patient-ai-rules";
+import { resolveExamOrder, type ResolvedItem } from "@/lib/exam-resolver";
+import { logAiUsage } from "@/lib/ai-usage";
+import { OPENAI_MODEL } from "@/lib/openai";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
-const NOT_AVAILABLE_MESSAGE = "Este exame não está disponível neste caso simulado.";
 const UNRECOGNIZED_MESSAGE = "Nenhum exame compatível com esse pedido foi encontrado. Revise o nome do exame solicitado.";
 const ALREADY_REQUESTED_MESSAGE = "Este exame já foi solicitado.";
 
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { sessionId?: string; order?: string; physical?: boolean };
   const sessionId = body.sessionId;
   const wantsPhysical = body.physical === true;
-  const order = typeof body.order === "string" ? body.order.trim().slice(0, 300) : "";
+  const order = typeof body.order === "string" ? body.order.trim().slice(0, 400) : "";
   if (!sessionId || (!order && !wantsPhysical)) return Response.json({ error: "Dados inválidos." }, { status: 400 });
 
   const { data: session } = await supabase
@@ -81,12 +83,9 @@ export async function POST(request: Request) {
     return Response.json({ physicalExam: hidden.physicalExam });
   }
 
-  // IDs canônicos citados no pedido (correspondência exata antes de
-  // qualquer busca aproximada — ver lib/exam-catalog.ts).
-  const requestedIds = matchCanonicalExamIds(order);
-
-  // Impede solicitação duplicada pelo MESMO id canônico: busca todos os
-  // exames já liberados nesta sessão e verifica sobreposição.
+  // Impede solicitação duplicada: busca todos os exames já liberados nesta
+  // sessão (ids canônicos, ou ids "gen_*" dos resultados gerados) e verifica
+  // sobreposição com o que está sendo pedido agora.
   const { data: pastExamMessages } = await service
     .from("patient_messages")
     .select("exam_report")
@@ -98,10 +97,22 @@ export async function POST(request: Request) {
     const ids = (row.exam_report as { examIds?: string[] } | null)?.examIds;
     ids?.forEach((id) => alreadyRequestedIds.add(id));
   }
-  const duplicateIds = requestedIds.filter((id) => alreadyRequestedIds.has(id));
-  const newIds = requestedIds.filter((id) => !alreadyRequestedIds.has(id));
 
-  if (requestedIds.length > 0 && newIds.length === 0) {
+  // Resolve o pedido: regras rápidas primeiro (catálogo, modalidade + região
+  // do exame), e só chama o modelo para o que as regras não entenderam.
+  const resolution = await resolveExamOrder(hidden, order);
+  if (resolution.usage) {
+    await logAiUsage(service, { userId: user.id, sessionId, operation: "chat", model: OPENAI_MODEL, usage: resolution.usage });
+  }
+
+  const idsOf = (item: ResolvedItem) => (item.kind === "registered" ? item.exam.examIds : [item.id]);
+  const newItems = resolution.items.filter((item) => !idsOf(item).some((id) => alreadyRequestedIds.has(id)));
+  const duplicateCount = resolution.items.length - newItems.length;
+
+  if (resolution.items.length === 0) {
+    return Response.json({ order, report: { summary: UNRECOGNIZED_MESSAGE, labs: [], imaging: [] } });
+  }
+  if (newItems.length === 0) {
     // Todos os exames pedidos já tinham sido solicitados: nenhuma evidência
     // ou pontuação nova é concedida, e nada é gravado de novo.
     return Response.json({
@@ -111,39 +122,29 @@ export async function POST(request: Request) {
     });
   }
 
-  // Busca no CASO REAL (nunca inventa) só os exames com id novo.
-  const found = matchExamFindings(hidden, order).filter((exam) => exam.examIds.some((id) => newIds.includes(id)));
+  const normalized = newItems.map((item) =>
+    item.kind === "registered"
+      ? { name: item.exam.name, type: item.exam.type, result: item.exam.result, examId: item.exam.examIds[0], ids: item.exam.examIds }
+      : { name: item.name, type: item.type, result: item.result, examId: undefined as string | undefined, ids: [item.id] },
+  );
 
-  // A API NUNCA retorna corpo vazio: se o exame pedido foi reconhecido mas
-  // não está cadastrado NESTE caso, a mensagem é explícita e diferente de
-  // "pedido não reconhecido" (texto livre sem exame correspondente).
-  const summary =
-    found.length > 0
-      ? duplicateIds.length > 0
-        ? "Resultados liberados com base no pedido registrado (um dos exames já havia sido solicitado antes)."
-        : "Resultados liberados com base no pedido registrado."
-      : newIds.length > 0
-        ? NOT_AVAILABLE_MESSAGE
-        : UNRECOGNIZED_MESSAGE;
-
+  const notes: string[] = [];
+  if (duplicateCount > 0) notes.push("um dos exames já havia sido solicitado antes");
+  if (resolution.unresolved.length > 0) notes.push(`não identifiquei: ${resolution.unresolved.join("; ")}`);
   const report = {
-    summary,
-    labs: found
-      .filter((e) => e.type === "lab")
-      .map((e) => ({ name: e.name, value: e.result, unit: "", reference: "" })),
-    imaging: found
+    summary: `Resultados liberados com base no pedido registrado${notes.length ? ` (${notes.join(" · ")})` : ""}.`,
+    labs: normalized.filter((e) => e.type === "lab").map((e) => ({ name: e.name, value: e.result, unit: "", reference: "" })),
+    imaging: normalized
       .filter((e) => e.type === "imaging")
-      .map((e) => ({ title: e.name, findings: e.result, comparison: "Sem exame anterior para comparação.", examId: e.examIds[0] })),
+      .map((e) => ({ title: e.name, findings: e.result, comparison: "Sem exame anterior para comparação.", examId: e.examId })),
   };
 
-  if (found.length > 0) {
-    await service.from("patient_messages").insert({
-      session_id: sessionId,
-      role: "exam",
-      content: order,
-      exam_report: { ...report, examIds: found.flatMap((e) => e.examIds) },
-    });
-  }
+  await service.from("patient_messages").insert({
+    session_id: sessionId,
+    role: "exam",
+    content: order,
+    exam_report: { ...report, examIds: normalized.flatMap((e) => e.ids) },
+  });
 
   return Response.json({ order, report });
 }
