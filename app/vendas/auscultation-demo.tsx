@@ -71,8 +71,10 @@ export default function AuscultationDemo() {
       }
     }
 
-    const gap = 4;
-    const bw = (w - gap * (BARS - 1)) / BARS;
+    // Em telas estreitas o espaço entre barras encolhe junto, para a
+    // largura nunca ficar negativa.
+    const gap = Math.min(4, (w / BARS) * 0.4);
+    const bw = Math.max(1, (w - gap * (BARS - 1)) / BARS);
     const grad = g.createLinearGradient(0, 0, w, 0);
     grad.addColorStop(0, "#3de0c4");
     grad.addColorStop(1, "#9ff5e4");

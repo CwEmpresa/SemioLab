@@ -1,31 +1,29 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
-import { Archivo } from "next/font/google";
-import { Check, Minus, ShieldCheck } from "lucide-react";
+import { Geist } from "next/font/google";
+import { ShieldCheck } from "lucide-react";
 import { TIER_LIMITS, TRIAL_DAYS } from "@/lib/access-tier";
 import { CAKTO_CHECKOUT_URLS } from "@/lib/pro";
+import HeroStage from "./hero-stage";
+import Patients from "./patients";
 import Bedside from "./bedside";
-import Statement from "./statement";
 import AuscultationDemo from "./auscultation-demo";
-import Features, { type Feature } from "./features";
 import Pricing from "./pricing";
 import Faq from "./faq";
 import MobileCta from "./mobile-cta";
+import neon from "../../public/brand/semiolab-neon-logo.png";
+import room from "../../public/patient-room.png";
+import xray from "../../public/clinical/radiografia-ic-congestiva.png";
+import anatomy from "../../public/semiolab-anatomy-human.png";
 import "./screens.css";
 import "./sales.css";
 
-/* Archivo com eixo de largura: os títulos usam a versão condensada e
-   pesada, o corpo continua em Manrope como no app. */
-const display = Archivo({
-  subsets: ["latin", "latin-ext"],
-  axes: ["wdth"],
-  variable: "--font-display",
-  display: "swap",
-});
+const geist = Geist({ subsets: ["latin", "latin-ext"], variable: "--font-geist", display: "swap" });
 
-const TITLE = "SemioLab — Erre aqui. Não no paciente.";
+const TITLE = "SemioLab — Pacientes virtuais para treinar raciocínio clínico";
 const DESCRIPTION =
-  "Atenda pacientes virtuais que não entregam o diagnóstico: pergunte, ausculte sons reais, peça exames e veja onde seu raciocínio falhou. Comece grátis.";
+  "Atenda pacientes que não entregam o diagnóstico: pergunte, ausculte sons reais, peça exames e veja onde seu raciocínio falhou. Comece grátis.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -34,81 +32,12 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
-const STATEMENT =
-  "Ler sobre um sopro não ensina a reconhecer um. Caso pronto já entrega a pergunta. Nota de prova não mostra se você conduz uma consulta. No SemioLab você pergunta, ausculta, pede o exame e erra antes de errar com alguém na frente.";
-const STATEMENT_ACCENT = STATEMENT.split(" ").indexOf("No");
-
-/* Uma sequência real: é a ordem de um atendimento no app. */
-const STEPS = [
-  {
-    tone: "hr",
-    title: "Anamnese",
-    body: "A paciente conta do jeito dela, com as palavras dela. Você decide o que perguntar, e o que não perguntar fica no escuro.",
-  },
-  {
-    tone: "spo2",
-    title: "Exame físico",
-    body: "Peça os sinais, examine e ausculte. Os sons são gravações reais, não descrições.",
-  },
-  {
-    tone: "fr",
-    title: "Exames",
-    body: "Radiografia, ECG, laboratório. O laudo chega dentro da conversa, com a imagem.",
-  },
-  {
-    tone: "err",
-    title: "Hipótese e correção",
-    body: "Você crava o diagnóstico e vê as pistas que deixou passar. Cada erro vira flashcard.",
-  },
-] as const;
-
-const FEATURES: Feature[] = [
-  {
-    screen: "patient",
-    name: "Paciente IA",
-    line: "Atendimento completo, por texto ou por voz.",
-    free: "1 por semana no grátis",
-  },
-  {
-    screen: "auscultation",
-    name: "Laboratório de ausculta",
-    line: "Sons cardíacos e pulmonares reais, com quiz.",
-    free: null,
-  },
-  {
-    screen: "quiz",
-    name: "Quiz e simulados",
-    line: "Com o porquê de cada alternativa.",
-    free: "Quiz no grátis",
-  },
-  {
-    screen: "flashcards",
-    name: "Flashcards",
-    line: "Revisão espaçada montada com os seus erros.",
-    free: `${TIER_LIMITS.free.flashcardsPerDay} por dia no grátis`,
-  },
-  {
-    screen: "atlas",
-    name: "Atlas de TC 3D",
-    line: "Cortes navegáveis, legendados em português.",
-    free: "Incluído no grátis",
-  },
-  {
-    screen: "progress",
-    name: "Domínio por sistema",
-    line: "Onde você está fraco, em números.",
-    free: "Incluído no grátis",
-  },
-];
-
-/* Comparação honesta: o que cada forma de estudo faz e não faz. */
-const COMPARE: { row: string; book: 0 | 1 | 2; bank: 0 | 1 | 2 }[] = [
-  { row: "Você formula a pergunta, sem alternativas na tela", book: 0, bank: 0 },
-  { row: "O paciente responde do jeito dele, não do livro", book: 0, bank: 0 },
-  { row: "Ouve o som real da ausculta", book: 0, bank: 0 },
-  { row: "Mostra a pista que você deixou passar", book: 0, bank: 1 },
-  { row: "Revisa sozinho o que você errou", book: 0, bank: 1 },
-  { row: "Cabe no intervalo entre duas aulas", book: 1, bank: 2 },
+/* Contagens do conteúdo real: data/patient-cases/pilot-50.json,
+   public/media/auscultation e lib/exam-catalog.ts. */
+const STATS = [
+  { n: "50 pacientes", l: "com história própria" },
+  { n: "46 sons reais", l: "de ausculta cardíaca e pulmonar" },
+  { n: "56 exames", l: "para pedir durante a consulta" },
 ];
 
 const FAQ = [
@@ -129,8 +58,8 @@ const FAQ = [
     a: `Um atendimento por semana com o Paciente IA, com até ${TIER_LIMITS.free.examsPerConsultation} exames, ${TIER_LIMITS.free.flashcardsPerDay} flashcards por dia, o Atlas de TC 3D, a Semiologia, o caderno de erros e a pesquisa por tema. Simulados, ausculta e conversa por voz são do Pro.`,
   },
   {
-    q: "Como funciona o cancelamento?",
-    a: "Pela própria assinatura, quando quiser. O Pro vale até o fim do período pago e depois a conta volta ao gratuito, com todo o histórico.",
+    q: "Posso cancelar a qualquer momento?",
+    a: "Sim, pela própria assinatura. O Pro vale até o fim do período pago e depois a conta volta ao gratuito, com todo o histórico.",
   },
   {
     q: "Funciona no celular?",
@@ -138,173 +67,263 @@ const FAQ = [
   },
 ];
 
-function Mark({ v }: { v: 0 | 1 | 2 }) {
-  if (v === 2) return <Check className="sx-yes" aria-label="Sim" />;
-  if (v === 1) return <span className="sx-part">Em parte</span>;
-  return <Minus className="sx-no" aria-label="Não" />;
-}
-
 export default function SalesPage() {
   return (
-    <div className={`sx ${display.variable}`}>
+    <div className={`sx ${geist.variable}`}>
       <a className="sx-skip" href="#conteudo">
         Pular para o conteúdo
       </a>
+
       <header className="sx-nav">
-        <div className="sx-wrap">
-          <Link href="/vendas" className="sx-brand" aria-label="SemioLab, início">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/semiolab-fox.png" alt="" width="26" height="26" />
-            SemioLab
-          </Link>
-          <nav aria-label="Seções">
-            <a href="#como-funciona">Como funciona</a>
-            <a href="#ausculta">Ausculta</a>
-            <a href="#recursos">Recursos</a>
-            <a href="#planos">Planos</a>
-          </nav>
-          <Link className="sx-nav-login" href="/">
-            Entrar
-          </Link>
-          <Link className="sx-btn sx-btn-sm" href="/">
-            Começar grátis
-          </Link>
-        </div>
+        <Link href="/vendas" className="sx-brand" aria-label="SemioLab, início">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/semiolab-fox.png" alt="" width="26" height="26" />
+          SemioLab
+        </Link>
+        <nav aria-label="Seções">
+          <a href="#pacientes">Pacientes</a>
+          <a href="#atender">Experimente</a>
+          <a href="#recursos">Recursos</a>
+          <a href="#planos">Preços</a>
+        </nav>
+        <Link className="sx-btn" href="/">
+          Entrar
+        </Link>
       </header>
 
       <main id="conteudo">
-        {/* ─── Hero: a consulta jogável ─────────────────────────── */}
+        {/* ─── Hero ─────────────────────────────────────────────── */}
         <section className="sx-hero">
-          <div className="sx-wrap sx-hero-grid">
-            <div className="sx-hero-copy">
-              <h1>
-                <span>Erre aqui.</span>
-                <span>Não no paciente.</span>
-              </h1>
-              <p className="sx-hero-sub">
-                Pacientes virtuais que não entregam o diagnóstico. Você pergunta, ausculta, pede o
-                exame e decide. No fim, vê a pista que deixou passar.
+          <div className="sx-hero-copy">
+            <h1>Um paciente virtual que treina seu raciocínio antes do plantão</h1>
+            <p className="sx-lead">
+              Você pergunta, ausculta, pede exames e decide. No fim, o SemioLab mostra a pista que
+              você deixou passar.
+            </p>
+            <div className="sx-hero-cta">
+              <Link className="sx-btn sx-btn-lg" href="/">
+                Começar grátis
+              </Link>
+              <small>{TRIAL_DAYS} dias de Pro incluídos. Sem cartão.</small>
+            </div>
+          </div>
+          <HeroStage />
+        </section>
+
+        {/* ─── Números ──────────────────────────────────────────── */}
+        <section className="sx-stats" aria-label="O SemioLab em números">
+          <ul>
+            {STATS.map((s) => (
+              <li key={s.n}>
+                <b>{s.n}</b>
+                <span>{s.l}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* ─── Pacientes ────────────────────────────────────────── */}
+        <section className="sx-sec" id="pacientes">
+          <div className="sx-wrap sx-head-row">
+            <div>
+              <h2>Seus pacientes estão na sala de espera</h2>
+              <p className="sx-lead">
+                Cada um chega com a queixa, as palavras e a história dele. Nenhum entrega o
+                diagnóstico: você descobre perguntando.
               </p>
-              <div className="sx-hero-actions">
-                <Link className="sx-btn sx-btn-lg" href="/">
-                  Começar grátis
-                </Link>
-                <p>
-                  {TRIAL_DAYS} dias de Pro incluídos.
-                  <br />
-                  Sem cartão de crédito.
-                </p>
-              </div>
-              <p className="sx-hero-try">
-                <span aria-hidden="true" className="sx-hero-try-dot" />
-                A Helena já está na sala. Atenda agora, sem criar conta.
+            </div>
+            <Link className="sx-btn" href="/">
+              Começar grátis
+            </Link>
+          </div>
+          <Patients />
+        </section>
+
+        {/* ─── Neon ─────────────────────────────────────────────── */}
+        <section className="sx-neon">
+          <div className="sx-neon-art" aria-hidden="true">
+            <Image src={neon} alt="" sizes="(max-width: 760px) 120vw, 880px" />
+          </div>
+          <div className="sx-wrap">
+            <div className="sx-neon-copy">
+              <h2>Plantão de treino aberto 24 horas</h2>
+              <p className="sx-lead">
+                Às três da manhã ou no intervalo da aula. Ninguém vê você errar. Só você vê onde
+                errou.
               </p>
+              <Link className="sx-btn" href="/">
+                Começar agora
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ─── Experimente: painel branco com a consulta ────────── */}
+        <section className="sx-panel" aria-labelledby="experimente">
+          <div className="sx-panel-grid">
+            <div>
+              <h2 id="experimente">Atenda a Marta agora.</h2>
+              <p className="sx-panel-sub">Sem criar conta.</p>
             </div>
             <Bedside />
-          </div>
-        </section>
-
-        {/* ─── O problema ───────────────────────────────────────── */}
-        <section className="sx-sec sx-paper sx-statement-sec">
-          <div className="sx-wrap">
-            <Statement text={STATEMENT} accentFrom={STATEMENT_ACCENT} />
-          </div>
-        </section>
-
-        {/* ─── Como funciona ────────────────────────────────────── */}
-        <section className="sx-sec sx-paper sx-steps-sec" id="como-funciona">
-          <div className="sx-wrap">
-            <div className="sx-head">
-              <h2>Uma consulta inteira, do primeiro sintoma à correção.</h2>
-              <p>É a mesma ordem do atendimento de verdade. Nenhuma etapa vem pronta.</p>
-            </div>
-            <ol className="sx-steps">
-              {STEPS.map((s, i) => (
-                <li key={s.title} className={`sx-step sx-tone-${s.tone}`}>
-                  <span className="sx-step-n">{i + 1}</span>
-                  <h3>{s.title}</h3>
-                  <p>{s.body}</p>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-
-        {/* ─── Ausculta ─────────────────────────────────────────── */}
-        <section className="sx-sec sx-ink sx-listen" id="ausculta">
-          <div className="sx-wrap sx-listen-grid">
-            <div className="sx-listen-copy">
-              <h2>Ouça a diferença.</h2>
+            <div className="sx-panel-side">
               <p>
-                Duas gravações reais de coração. Uma sem sopro, outra com sopro holossistólico. No
-                app são dezenas de sons cardíacos e pulmonares, com quiz de reconhecimento.
+                Três perguntas, dois exames e uma hipótese. No fim, você vê as pistas que deixou
+                passar, do mesmo jeito que o app corrige cada atendimento.
               </p>
+              <Link className="sx-btn sx-btn-outline-dark" href="/">
+                Criar conta grátis
+              </Link>
             </div>
-            <AuscultationDemo />
           </div>
         </section>
 
-        {/* ─── Recursos ─────────────────────────────────────────── */}
-        <section className="sx-sec sx-paper" id="recursos">
-          <div className="sx-wrap">
-            <div className="sx-head">
-              <h2>Tudo o que a semiologia pede, no bolso.</h2>
-              <p>Quiz, atendimento e simulado somam na mesma nota por sistema. A consulta pesa mais.</p>
-            </div>
-            <Features items={FEATURES} />
+        {/* ─── Imagem de ponta a ponta ──────────────────────────── */}
+        <section className="sx-bleed">
+          <Image src={room} alt="" fill sizes="100vw" className="sx-bleed-img" placeholder="blur" />
+          <div className="sx-wrap sx-bleed-copy">
+            <h2>A porta abre. O próximo caso entra.</h2>
+            <p className="sx-lead">
+              Você começa sem o diagnóstico, como no plantão. O paciente responde do jeito dele. Se
+              você não pergunta, ele não conta.
+            </p>
+            <Link className="sx-btn" href="/">
+              Começar grátis
+            </Link>
           </div>
         </section>
 
-        {/* ─── Comparação ───────────────────────────────────────── */}
-        <section className="sx-sec sx-paper sx-compare-sec">
-          <div className="sx-wrap">
-            <div className="sx-head">
-              <h2>Livro ensina o que é. Atender ensina a achar.</h2>
+        {/* ─── Recursos em blocos alternados ────────────────────── */}
+        <section className="sx-sec" id="recursos">
+          <div className="sx-wrap sx-rows">
+            <div className="sx-row">
+              <div
+                className="sx-row-art sx-row-art-center"
+                style={{
+                  ["--art" as string]:
+                    "radial-gradient(circle at 30% 20%, #0d9488 0%, transparent 55%), radial-gradient(circle at 80% 90%, #6d28d9 0%, transparent 55%), #0b0b10",
+                }}
+              >
+                <AuscultationDemo />
+              </div>
+              <div className="sx-row-copy">
+                <h2>Ouça o sopro antes de ouvir no paciente</h2>
+                <p className="sx-lead">
+                  46 gravações reais, cardíacas e pulmonares, com a onda na tela e quiz de
+                  reconhecimento. Aperte o play e compare. O laboratório é do Pro, e você testa grátis
+                  por {TRIAL_DAYS} dias.
+                </p>
+                <Link className="sx-btn" href="/">
+                  Começar grátis
+                </Link>
+              </div>
             </div>
-            <div className="sx-compare-scroll">
-              <table className="sx-compare">
-                <thead>
-                  <tr>
-                    <th scope="col">
-                      <span className="sx-visually-hidden">Critério</span>
-                    </th>
-                    <th scope="col">Livro e resumo</th>
-                    <th scope="col">Banco de questões</th>
-                    <th scope="col" className="sx-compare-us">
-                      SemioLab
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {COMPARE.map((c) => (
-                    <tr key={c.row}>
-                      <th scope="row">{c.row}</th>
-                      <td>
-                        <Mark v={c.book} />
-                      </td>
-                      <td>
-                        <Mark v={c.bank} />
-                      </td>
-                      <td className="sx-compare-us">
-                        <Mark v={2} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+            <div className="sx-row flip">
+              <div className="sx-row-art" style={{ ["--art" as string]: "#000" }}>
+                <Image
+                  src={xray}
+                  alt="Radiografia de tórax com área cardíaca aumentada e congestão pulmonar"
+                  fill
+                  sizes="(max-width: 860px) 100vw, 640px"
+                />
+                <span className="sx-img-credit">James Heilman, MD, CC BY-SA 4.0</span>
+                <div className="sx-report" aria-hidden="true">
+                  <small>Radiografia de tórax</small>
+                  <p>Cardiomegalia, congestão hilar bilateral e linhas B de Kerley.</p>
+                </div>
+              </div>
+              <div className="sx-row-copy">
+                <h2>Você pede o exame. O laudo chega na conversa.</h2>
+                <p className="sx-lead">
+                  São 56 exames, do hemograma à tomografia. O laudo aparece dentro do atendimento,
+                  com a imagem quando existe. A hipótese continua sendo sua.
+                </p>
+                <Link className="sx-btn" href="/">
+                  Começar grátis
+                </Link>
+              </div>
+            </div>
+
+            <div className="sx-row">
+              <div
+                className="sx-row-art sx-anatomy"
+                style={{ ["--art" as string]: "radial-gradient(circle at 50% 40%, #134e4a, #0b0b10 70%)" }}
+              >
+                <Image src={anatomy} alt="" fill sizes="(max-width: 860px) 100vw, 640px" />
+                <span className="sx-callout c1" style={{ ["--c" as string]: "#3de0c4" }} aria-hidden="true">
+                  <i />
+                  Cardiovascular <b>74%</b>
+                </span>
+                <span className="sx-callout c2" style={{ ["--c" as string]: "#3de0c4" }} aria-hidden="true">
+                  <i />
+                  Respiratório <b>61%</b>
+                </span>
+                <span className="sx-callout c3" style={{ ["--c" as string]: "#fbbf77" }} aria-hidden="true">
+                  <i />
+                  Renal <b>34%</b>
+                </span>
+                <span className="sx-callout c4" style={{ ["--c" as string]: "#3de0c4" }} aria-hidden="true">
+                  <i />
+                  Abdome <b>66%</b>
+                </span>
+              </div>
+              <div className="sx-row-copy">
+                <h2>Veja onde seu raciocínio está fraco</h2>
+                <p className="sx-lead">
+                  Quiz, simulado e atendimento somam na mesma nota por sistema. Você sabe o que
+                  revisar antes da prova, não depois.
+                </p>
+                <Link className="sx-btn" href="/">
+                  Começar grátis
+                </Link>
+              </div>
+            </div>
+
+            <div className="sx-row flip">
+              <div
+                className="sx-row-art sx-row-art-center"
+                style={{
+                  ["--art" as string]:
+                    "radial-gradient(circle at 70% 25%, #c2410c 0%, transparent 50%), radial-gradient(circle at 20% 85%, #1d4ed8 0%, transparent 55%), #0b0b10",
+                }}
+                aria-hidden="true"
+              >
+                <div className="sx-cards">
+                  <span />
+                  <span />
+                  <span>
+                    <small>Semiologia respiratória</small>
+                    <b>Frêmito toracovocal aumentado: o que sugere?</b>
+                  </span>
+                  <em className="sx-cards-due">12 para revisar hoje</em>
+                </div>
+              </div>
+              <div className="sx-row-copy">
+                <h2>Seus erros viram flashcards</h2>
+                <p className="sx-lead">
+                  Cada pista perdida vai para o caderno de erros e volta em revisão espaçada, no dia
+                  certo. Você estuda o que errou, não o que já sabe.
+                </p>
+                <Link className="sx-btn" href="/">
+                  Começar grátis
+                </Link>
+              </div>
             </div>
           </div>
         </section>
 
         {/* ─── Planos ───────────────────────────────────────────── */}
-        <section className="sx-sec sx-ink sx-plans-sec" id="planos">
+        <section className="sx-sec" id="planos">
           <div className="sx-wrap">
-            <div className="sx-head">
-              <h2>Comece grátis. Assine quando o limite incomodar.</h2>
-              <p>
-                Toda conta nova ganha {TRIAL_DAYS} dias de Pro. Depois, fica no gratuito até você
-                decidir.
-              </p>
+            <div className="sx-head-row">
+              <div>
+                <h2>Escolha seu plano</h2>
+                <p className="sx-lead">
+                  Comece grátis. Assine quando o limite começar a incomodar. No anual você economiza
+                  20%.
+                </p>
+              </div>
             </div>
             <Pricing
               checkout={CAKTO_CHECKOUT_URLS}
@@ -317,25 +336,27 @@ export default function SalesPage() {
                 simulados: TIER_LIMITS.pro.simuladosPerDay,
               }}
             />
-            <div className="sx-guarantee">
+            <p className="sx-plans-foot">
               <ShieldCheck aria-hidden="true" />
-              <p>
-                <b>7 dias para desistir.</b> Assinou e não era o que esperava? Peça o reembolso
-                integral em até 7 dias da compra. <Link href="/reembolso">Ver política de reembolso</Link>
-              </p>
-            </div>
-            <p className="sx-plans-note">Pagamento processado pela Cakto. Cancele quando quiser.</p>
+              <span>
+                <b>7 dias para desistir.</b> Assinou e não era o que esperava? Reembolso integral em
+                até 7 dias da compra. <Link href="/reembolso">Política de reembolso</Link>
+              </span>
+            </p>
           </div>
         </section>
 
         {/* ─── Dúvidas ──────────────────────────────────────────── */}
-        <section className="sx-sec sx-paper sx-faq-sec" id="duvidas">
-          <div className="sx-wrap sx-faq-grid">
-            <div className="sx-head">
-              <h2>Perguntas frequentes.</h2>
-              <p>
-                Outra dúvida? <Link href="/contato">Fale com a gente</Link>.
-              </p>
+        <section className="sx-sec sx-faq-sec" id="duvidas">
+          <div className="sx-wrap">
+            <div className="sx-head-row">
+              <div>
+                <h2>Dúvidas? A gente responde.</h2>
+                <p className="sx-lead">
+                  As perguntas mais comuns sobre o SemioLab. Outra dúvida?{" "}
+                  <Link href="/contato">Fale com a gente</Link>.
+                </p>
+              </div>
             </div>
             <Faq items={FAQ} />
           </div>
@@ -343,33 +364,45 @@ export default function SalesPage() {
 
         {/* ─── Fechamento ───────────────────────────────────────── */}
         <section className="sx-close">
-          <div className="sx-wrap">
-            <h2>
-              <span>Seu próximo paciente</span>
-              <span>já está na sala.</span>
-            </h2>
-            <div className="sx-close-actions">
-              <Link className="sx-btn sx-btn-lg" href="/">
-                Começar grátis
-              </Link>
-              <p>{TRIAL_DAYS} dias de Pro incluídos. Sem cartão.</p>
-            </div>
+          <Image src={xray} alt="" fill sizes="100vw" className="sx-close-img" />
+          <div className="sx-close-inner">
+            <h2>Pronto pro próximo paciente?</h2>
+            <p className="sx-lead">Comece agora. A conta é grátis e vem com {TRIAL_DAYS} dias de Pro.</p>
+            <Link className="sx-btn sx-btn-lg" href="/">
+              Começar grátis
+            </Link>
+            <p className="sx-close-trust">
+              <span>
+                <i />
+                Sem cartão de crédito
+              </span>
+              <span>
+                <i />
+                Cancele quando quiser
+              </span>
+              <span>
+                <i />7 dias de garantia no Pro
+              </span>
+            </p>
           </div>
-          <svg className="sx-close-trace" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true">
-            <path pathLength={1} d="M0 80 L520 80 L540 80 Q552 64 564 80 L580 80 L586 90 L596 16 L606 104 L612 80 L636 80 Q654 56 672 80 L1200 80" />
-          </svg>
         </section>
       </main>
 
       <footer className="sx-foot">
         <div className="sx-wrap">
-          <p className="sx-foot-note">
-            O SemioLab é uma ferramenta de estudo para estudantes e profissionais de saúde. Os casos
-            são simulações e não constituem orientação diagnóstica ou terapêutica. Imagens clínicas e
-            gravações de ausculta têm origem e licença listadas no app.
-          </p>
-          <div className="sx-foot-row">
-            <span>© {new Date().getFullYear()} SemioLab</span>
+          <div className="sx-foot-top">
+            <div>
+              <Link href="/vendas" className="sx-brand">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/semiolab-fox.png" alt="" width="28" height="28" />
+                SemioLab
+              </Link>
+              <p>
+                O SemioLab é uma ferramenta de estudo para estudantes e profissionais de saúde. Os
+                casos são simulações e não constituem orientação diagnóstica ou terapêutica. Imagens
+                clínicas e gravações de ausculta têm origem e licença listadas no app.
+              </p>
+            </div>
             <nav aria-label="Legal">
               <Link href="/termos-de-uso">Termos de uso</Link>
               <Link href="/privacidade">Privacidade</Link>
@@ -378,6 +411,7 @@ export default function SalesPage() {
               <Link href="/contato">Contato</Link>
             </nav>
           </div>
+          <p className="sx-foot-bottom">© {new Date().getFullYear()} SemioLab</p>
         </div>
       </footer>
 

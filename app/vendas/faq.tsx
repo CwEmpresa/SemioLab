@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 /** Acordeão com altura animada. Um item aberto por vez, como na Apple. */
 export default function Faq({ items }: { items: { q: string; a: string }[] }) {
@@ -25,7 +25,7 @@ export default function Faq({ items }: { items: { q: string; a: string }[] }) {
                 onClick={() => setOpen(isOpen ? null : i)}
               >
                 {item.q}
-                <Plus aria-hidden="true" />
+                <ChevronDown aria-hidden="true" />
               </button>
             </h3>
             <AnimatePresence initial={false}>

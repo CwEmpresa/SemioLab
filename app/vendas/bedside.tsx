@@ -27,7 +27,7 @@ type ClueId = (typeof KEY_CLUES)[number]["id"];
 const QUESTIONS: { id: string; q: string; a: string; clue?: ClueId }[] = [
   { id: "deita", q: "Piora quando a senhora deita?", a: "Piora. Durmo com dois travesseiros, senão acordo sem ar.", clue: "ortopneia" },
   { id: "tosse", q: "Tem tosse com catarro?", a: "Quase nada de tosse, doutor. É o fôlego mesmo." },
-  { id: "pernas", q: "As pernas incham no fim do dia?", a: "Incham sim. A meia fica marcando a perna.", clue: "edema" },
+  { id: "pernas", q: "As pernas incham no fim do dia?", a: "Todo dia. No fim da tarde a meia fica marcando a perna.", clue: "edema" },
   { id: "febre", q: "Teve febre esses dias?", a: "Febre não. Só esse cansaço." },
   { id: "pressao", q: "Tem algum problema de saúde?", a: "Pressão alta. Mas parei o remédio no começo do ano.", clue: "has" },
   { id: "fuma", q: "A senhora fuma?", a: "Fumei uns dez anos. Parei faz vinte." },
@@ -69,7 +69,7 @@ type Stage = "ask" | "exam" | "dx" | "result";
 
 const OPENING: Msg = {
   kind: "them",
-  text: "Doutor, tô com falta de ar quando subo escada. Começou faz uns dois meses e tá piorando.",
+  text: "Doutor, tô com falta de ar até pra tomar banho. E as pernas não param de inchar.",
 };
 
 /** Traço de ECG de um batimento, repetido para preencher a faixa. */
@@ -84,7 +84,7 @@ function beatPath(beats: number, w = 64) {
 const TRACE = beatPath(12);
 
 /**
- * Consulta jogável no hero: a pessoa atende a Helena antes de criar a
+ * Consulta jogável: a pessoa atende a Marta (caso 1 do app) antes de criar a
  * conta. Três perguntas, dois exames e uma hipótese, com a correção
  * mostrando as pistas que ficaram para trás.
  */
@@ -169,10 +169,10 @@ export default function Bedside() {
   return (
     <div className="sx-bed" id="atender">
       <header className="sx-bed-head">
-        <span className="sx-bed-avatar" aria-hidden="true">H</span>
+        <span className="sx-bed-avatar" aria-hidden="true">M</span>
         <span className="sx-bed-who">
-          <b>Helena, 58 anos</b>
-          <small>Falta de ar há dois meses</small>
+          <b>Marta, 68 anos</b>
+          <small>Dispneia e inchaço nas pernas</small>
         </span>
         <span className="sx-bed-live">
           <i aria-hidden="true" />

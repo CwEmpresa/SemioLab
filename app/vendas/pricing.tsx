@@ -1,121 +1,105 @@
-"use client";
-
 import Link from "next/link";
-import { useState } from "react";
-import { Check, Minus } from "lucide-react";
+import { Check, X } from "lucide-react";
 
-type Billing = "annual" | "monthly";
-
-const PRICE = {
-  annual: { month: "15,90", day: "0,52", bill: "R$ 190,80 cobrados uma vez por ano." },
-  monthly: { month: "19,90", day: "0,66", bill: "Cobrança mensal. Cancele quando quiser." },
-} as const;
+type Item = { text: string; on: boolean };
 
 /**
- * Dois planos lado a lado e a escolha de cobrança acima deles. O anual
- * vem marcado: é o que a maioria deve assinar, e o preço por dia deixa
- * a comparação concreta.
+ * Três cartões: gratuito, Pro anual em destaque e Pro mensal. O anual
+ * leva a faixa porque é o menor preço por mês, e o mensal mostra o preço
+ * cheio riscado para a comparação ficar evidente.
  */
 export default function Pricing({
+  checkout,
   free,
   pro,
-  checkout,
 }: {
-  checkout: Record<Billing, string>;
+  checkout: { annual: string; monthly: string };
   free: { exams: number; flashcards: number };
   pro: { consultations: number; simulados: number };
 }) {
-  const [billing, setBilling] = useState<Billing>("annual");
-  const p = PRICE[billing];
+  const proItems: Item[] = [
+    { text: `${pro.consultations} atendimentos por dia`, on: true },
+    { text: "Exames ilimitados", on: true },
+    { text: "Laboratório de ausculta", on: true },
+    { text: `${pro.simulados} simulados por dia`, on: true },
+    { text: "Flashcards sem limite", on: true },
+    { text: "Pergunte e ouça por voz", on: true },
+  ];
+  const freeItems: Item[] = [
+    { text: "1 atendimento por semana", on: true },
+    { text: `${free.exams} exames por atendimento`, on: true },
+    { text: `${free.flashcards} flashcards por dia`, on: true },
+    { text: "Atlas de TC 3D e Semiologia", on: true },
+    { text: "Laboratório de ausculta", on: false },
+    { text: "Simulados", on: false },
+    { text: "Conversa por voz", on: false },
+  ];
+
+  const list = (items: Item[]) => (
+    <ul>
+      {items.map((i) => (
+        <li key={i.text} className={i.on ? "" : "off"}>
+          {i.on ? <Check aria-hidden="true" /> : <X aria-hidden="true" />}
+          <span>
+            {i.on ? null : <span className="sx-visually-hidden">Não incluso: </span>}
+            {i.text}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
-    <div className="sx-pricing">
-      <div className="sx-billing" role="radiogroup" aria-label="Forma de cobrança">
-        <button type="button" role="radio" aria-checked={billing === "annual"} onClick={() => setBilling("annual")}>
-          Anual <em>economize 20%</em>
-        </button>
-        <button type="button" role="radio" aria-checked={billing === "monthly"} onClick={() => setBilling("monthly")}>
-          Mensal
-        </button>
-      </div>
+    <div className="sx-plans">
+      <article className="sx-plan">
+        <h3>Gratuito</h3>
+        <p className="sx-plan-price">
+          <b>Grátis</b>
+        </p>
+        <p className="sx-plan-for">Para conhecer o SemioLab e criar o hábito de atender.</p>
+        {list(freeItems)}
+        <Link className="sx-btn sx-btn-ghost" href="/">
+          Começar grátis
+        </Link>
+      </article>
 
-      <div className="sx-plans">
-        <article className="sx-plan">
-          <h3>Gratuito</h3>
-          <p className="sx-plan-price">
-            <b>R$ 0</b>
-          </p>
-          <p className="sx-plan-bill">Para sempre, sem cartão.</p>
-          <ul>
-            <li>
-              <Check aria-hidden="true" />1 atendimento por semana
-            </li>
-            <li>
-              <Check aria-hidden="true" />
-              {free.exams} exames por atendimento
-            </li>
-            <li>
-              <Check aria-hidden="true" />
-              {free.flashcards} flashcards por dia
-            </li>
-            <li>
-              <Check aria-hidden="true" />
-              Atlas de TC 3D e Semiologia
-            </li>
-            <li className="off">
-              <Minus aria-hidden="true" />
-              Simulados, ausculta e voz
-            </li>
-          </ul>
-          <Link className="sx-btn sx-btn-line" href="/">
-            Criar conta grátis
-          </Link>
-        </article>
+      <article className="sx-plan sx-plan-pick">
+        <p className="sx-plan-flag">Melhor preço</p>
+        <h3>Pro anual</h3>
+        <p className="sx-plan-price">
+          <b>
+            R$ 15,<small>90</small>
+          </b>
+          <span>
+            por mês
+            <br />
+            cobrança anual
+          </span>
+        </p>
+        <p className="sx-plan-for">R$ 190,80 por ano. Menos de R$ 0,53 por dia.</p>
+        {list(proItems)}
+        <a className="sx-btn" href={checkout.annual} target="_blank" rel="noopener noreferrer">
+          Assinar Pro anual
+        </a>
+      </article>
 
-        <article className="sx-plan sx-plan-pro">
-          <h3>
-            Pro <span>{billing === "annual" ? "anual" : "mensal"}</span>
-          </h3>
-          <p className="sx-plan-price">
-            {billing === "monthly" ? <s>R$ 29,90</s> : null}
-            <small>R$</small>
-            <b>{p.month}</b>
-            <small>/mês</small>
-          </p>
-          <p className="sx-plan-bill">
-            {p.bill} <strong>R$ {p.day} por dia.</strong>
-          </p>
-          <ul>
-            <li>
-              <Check aria-hidden="true" />
-              {pro.consultations} atendimentos por dia
-            </li>
-            <li>
-              <Check aria-hidden="true" />
-              Exames ilimitados
-            </li>
-            <li>
-              <Check aria-hidden="true" />
-              Pergunte e ouça por voz
-            </li>
-            <li>
-              <Check aria-hidden="true" />
-              Laboratório de ausculta
-            </li>
-            <li>
-              <Check aria-hidden="true" />
-              {pro.simulados} simulados por dia
-            </li>
-            <li>
-              <Check aria-hidden="true" />
-              Flashcards sem limite
-            </li>
-          </ul>
-          <a className="sx-btn" href={checkout[billing]} target="_blank" rel="noopener noreferrer">
-            Assinar o Pro {billing === "annual" ? "anual" : "mensal"}
-          </a>
-        </article>
-      </div>
+      <article className="sx-plan">
+        <h3>Pro mensal</h3>
+        <p className="sx-plan-price">
+          <b>
+            R$ 19,<small>90</small>
+          </b>
+          <span>
+            <s>R$ 29,90</s>
+            por mês
+          </span>
+        </p>
+        <p className="sx-plan-for">Todo o Pro, sem compromisso de um ano. Cancele quando quiser.</p>
+        {list(proItems)}
+        <a className="sx-btn sx-btn-ghost" href={checkout.monthly} target="_blank" rel="noopener noreferrer">
+          Assinar Pro mensal
+        </a>
+      </article>
     </div>
   );
 }

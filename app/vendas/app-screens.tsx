@@ -200,12 +200,12 @@ function PatientScreen() {
         <header className="lp-chat-head">
           <span className="lp-chat-avatar" aria-hidden="true" />
           <span>
-            <b>Helena, 58 anos</b>
+            <b>Marta, 68 anos</b>
             <small>Atendimento em andamento</small>
           </span>
         </header>
         <p className="lp-bubble them">
-          Doutor, tenho falta de ar quando subo escada. Começou faz uns dois meses e piorou.
+          Doutor, tô com falta de ar até pra tomar banho. E as pernas não param de inchar.
         </p>
         <p className="lp-bubble me">A senhora acorda à noite sem ar?</p>
         <p className="lp-bubble them">
