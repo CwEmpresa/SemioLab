@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#061217" />
   <title>SemioLab — Laboratório de Ausculta</title>
+  <script>
+    /* Aplica o tema do SemioLab antes da primeira pintura (mesma origem do app). */
+    try { document.documentElement.dataset.semiolabTheme = localStorage.getItem("semiolab.theme") === "dark" ? "dark" : "light"; } catch (e) { document.documentElement.dataset.semiolabTheme = "light"; }
+  </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
     :root{--bg:#061217;--deep:#030a0d;--surface:#0c1e24;--surface2:#11282f;--surface3:#17343d;--line:#1c3942;--text:#f4f8f8;--sub:#adc0c5;--muted:#71878e;--mint:#35c9b1;--mint2:#1d897a;--blue:#7198f1;--gold:#d6b569;--red:#ee7c7c;--violet:#a98bf0;--shadow:0 24px 70px #0008}
@@ -24,6 +28,140 @@
 /* A navegação canônica pertence ao app hospedeiro; evita uma segunda barra no iframe. */
 .bottom-nav{display:none!important}
 @media(max-width:760px){.content{padding-bottom:24px}}
+
+/* ══ Ajustes de leitura (valem para os dois temas) ══ */
+.top-actions{display:none!important}
+.hero p{font-size:14px}.hero-stats small{font-size:9.5px}
+.panel-head small,.now,.eyebrow{font-size:10px}
+.tabs button{font-size:12px}
+.sound-meta b{font-size:14px}.sound-meta small{font-size:11.5px}.sound-meta em{font-size:10.5px}.sound-tag{font-size:9.5px}
+.verified{font-size:10px}.track-title p{font-size:12px}.time{font-size:10px}
+.detail small{font-size:9.5px}.detail b{font-size:12px}
+.clinical small{font-size:9.5px}.clinical p{font-size:12px}
+.training-head p,.training-score{font-size:11.5px}.quiz-card small,.quiz-progress{font-size:10px}
+.quiz-options button{font-size:12px}.feedback{font-size:12px}
+.quiz-player-copy b{font-size:12.5px}.quiz-player-copy small{font-size:10.5px}.quiz-next{font-size:11px}
+.quiz-finished p{font-size:12px}.source{font-size:11px}.toast{font-size:12px}
+
+/* ══ Tema claro — segue a preferência do SemioLab ══ */
+[data-semiolab-theme="light"]{--bg:#f3f7f8;--deep:#e9f0f2;--surface:#ffffff;--surface2:#f2f7f8;--surface3:#e7f0f1;--line:#dbe7e9;--text:#12313a;--sub:#4c6870;--muted:#6b848b;--mint:#0f9a86;--mint2:#0c7e6e;--blue:#3c66c9;--gold:#9a6b0c;--red:#c2414a;--violet:#6b4fc4;--shadow:0 18px 44px rgba(20,60,66,.09);color-scheme:light}
+[data-semiolab-theme="light"] body{background:radial-gradient(circle at 82% 0%,#dff4ef 0,transparent 30%),var(--bg)}
+[data-semiolab-theme="light"] button:focus-visible{outline-color:#0f9a8666}
+[data-semiolab-theme="light"] .topbar{background:#f3f7f8d9;border-bottom-color:var(--line)}
+[data-semiolab-theme="light"] .hero{border-color:#cfe6e2;background:radial-gradient(circle at 88% 15%,#bfeee44d 0,transparent 32%),linear-gradient(130deg,#ffffff,#f1faf8 60%,#e8f6f3)}
+[data-semiolab-theme="light"] .hero:after{border-color:#0f9a861f;box-shadow:0 0 0 65px #0f9a8608,0 0 0 130px #0f9a8605}
+[data-semiolab-theme="light"] .eyebrow{color:var(--mint)}
+[data-semiolab-theme="light"] .eyebrow i{box-shadow:0 0 0 5px #0f9a861c}
+[data-semiolab-theme="light"] .hero-stats span{border-color:var(--line);background:#ffffffd9}
+[data-semiolab-theme="light"] .scope{background:radial-gradient(circle,#d9f3ee 0 31%,#ffffff 32% 45%,#9fdcd0 46% 48%,#eef7f6 49%);box-shadow:0 0 0 1px #0f9a8640,0 25px 60px rgba(20,60,66,.14),0 0 55px #0f9a8614}
+[data-semiolab-theme="light"] .scope:before,[data-semiolab-theme="light"] .scope:after{box-shadow:0 0 14px #0f9a8655}
+[data-semiolab-theme="light"] .pulse-ring{border-color:#0f9a8650}
+[data-semiolab-theme="light"] .panel{background:#ffffff;border-color:var(--line);box-shadow:var(--shadow)}
+[data-semiolab-theme="light"] .tabs{background:var(--surface2);border-color:var(--line)}
+[data-semiolab-theme="light"] .tabs button.active{color:#ffffff;box-shadow:0 8px 18px #0f9a8630}
+[data-semiolab-theme="light"] .sound-card{background:var(--surface2)}
+[data-semiolab-theme="light"] .sound-card:hover{background:#eaf4f4;border-color:#cfe2e3}
+[data-semiolab-theme="light"] .sound-card.active{background:linear-gradient(100deg,#e3f6f1,#eff9f7);border-color:#0f9a8666;box-shadow:0 10px 26px rgba(15,154,134,.12)}
+[data-semiolab-theme="light"] .play-mini{background:#dff1ee;color:var(--mint)}
+[data-semiolab-theme="light"] .active .play-mini{color:#fff;background:var(--mint);box-shadow:0 10px 22px #0f9a8633}
+[data-semiolab-theme="light"] .sound-meta em{color:var(--mint)}
+[data-semiolab-theme="light"] .sound-tag{color:var(--mint);border-color:#b8e1d9;background:#e7f6f3}
+[data-semiolab-theme="light"] .verified{color:#3f7f75}
+[data-semiolab-theme="light"] .visualizer{background:radial-gradient(circle,#c9eee666,transparent 63%)}
+[data-semiolab-theme="light"] .visualizer i{background:linear-gradient(var(--mint),#7fd0c3)}
+[data-semiolab-theme="light"] .controls button{background:var(--surface3);color:var(--text)}
+[data-semiolab-theme="light"] .controls button.main-play{color:#fff;background:var(--mint);box-shadow:0 12px 28px #0f9a8640}
+[data-semiolab-theme="light"] .detail{background:var(--surface2)}
+[data-semiolab-theme="light"] .detail b{color:var(--text)}
+[data-semiolab-theme="light"] .clinical{background:#e9f7f4;border-color:#bfe3dc}
+[data-semiolab-theme="light"] .clinical small{color:var(--mint)}
+[data-semiolab-theme="light"] .clinical p{color:var(--sub)}
+[data-semiolab-theme="light"] .quiz-card{background:linear-gradient(130deg,#ffffff,#f4f9fa);border-color:var(--line)}
+[data-semiolab-theme="light"] .quiz-options button{background:#ffffff;border-color:var(--line);color:var(--sub)}
+[data-semiolab-theme="light"] .quiz-options button:hover{border-color:#8fcfc4;color:var(--text)}
+[data-semiolab-theme="light"] .quiz-options button.correct{background:#e3f6f1;border-color:var(--mint);color:#0b5f53}
+[data-semiolab-theme="light"] .quiz-options button.wrong{background:#fdecec;border-color:var(--red);color:#8e2a31}
+[data-semiolab-theme="light"] .feedback{background:var(--surface2);color:var(--sub)}
+[data-semiolab-theme="light"] .quiz-player{background:linear-gradient(100deg,#e5f6f2,#f3faf9);border-color:#bfe3dc}
+[data-semiolab-theme="light"] .quiz-play,[data-semiolab-theme="light"] .quiz-next{color:#fff}
+[data-semiolab-theme="light"] .quiz-player-copy small{color:var(--muted)}
+[data-semiolab-theme="light"] .source{border-color:#c9dbde;color:var(--muted)}
+[data-semiolab-theme="light"] .source a{color:var(--mint)}
+[data-semiolab-theme="light"] .toast{background:#12313a;color:#eafaf6;box-shadow:0 18px 50px rgba(18,49,58,.25)}
+[data-semiolab-theme="light"] .player-backdrop{background:#0d2a2f66}
+[data-semiolab-theme="light"] .player-close{background:#fff;border-color:var(--line);color:var(--text)}
+@media(max-width:760px){[data-semiolab-theme="light"] .workspace>.player{border-color:#bfe3dc;box-shadow:0 32px 90px rgba(18,49,58,.28)}}
+
+/* ══ Redesign: destaque, cor por categoria e responsividade ══ */
+html,body{max-width:100%;overflow-x:hidden}
+.main,.content{min-width:0}
+/* 1fr = minmax(auto,1fr): as abas sem quebra esticavam a coluna além da tela */
+.workspace{grid-template-columns:minmax(0,1.55fr) minmax(320px,.75fr)}
+@media(max-width:1050px){.workspace,.hero{grid-template-columns:minmax(0,1fr)}}
+.panel,.library,.player,.training{min-width:0}
+
+/* Hero sempre em destaque (escuro com brilho), nos dois temas */
+.hero,[data-semiolab-theme="light"] .hero{color:#f1fbf9;border-color:transparent;background:radial-gradient(520px 300px at 92% 0%,rgba(63,224,191,.28),transparent 70%),radial-gradient(380px 240px at 0% 120%,rgba(229,72,77,.22),transparent 70%),linear-gradient(135deg,#041a1f,#08302f 58%,#0b4a43);box-shadow:0 24px 60px rgba(5,35,42,.25)}
+.hero h1{color:#fff}
+.hero p,[data-semiolab-theme="light"] .hero p{color:#a9c6c2}
+.eyebrow,[data-semiolab-theme="light"] .eyebrow{color:#7fe8d2}
+.hero-stats span,[data-semiolab-theme="light"] .hero-stats span{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12)}
+.hero-stats span b{color:#fff}.hero-stats span small{color:#a9c6c2}
+.hero-stats span:nth-child(1){box-shadow:inset 3px 0 #ff7a80}
+.hero-stats span:nth-child(2){box-shadow:inset 3px 0 #6ea0ff}
+.hero-stats span:nth-child(3){box-shadow:inset 3px 0 #f6c46e}
+[data-semiolab-theme="light"] .scope{background:radial-gradient(circle,#173f3d 0 31%,#10282d 32% 45%,#1b5d55 46% 48%,#0a1b20 49%);box-shadow:0 0 0 1px #4ed5c358,0 25px 60px #0008,0 0 55px #31c5ad15}
+[data-semiolab-theme="light"] .scope:before,[data-semiolab-theme="light"] .scope:after{box-shadow:0 0 18px #35c9b199}
+[data-semiolab-theme="light"] .pulse-ring{border-color:#50dbc55c}
+[data-semiolab-theme="light"] .hero:after{border-color:#55d7c227;box-shadow:0 0 0 65px #4ed4bf09,0 0 0 130px #4ed4bf06}
+
+/* Cores por categoria de som */
+.sound-card{--cat:var(--mint);position:relative;overflow:hidden}
+.sound-card[data-type="heart"]{--cat:#e5484d}
+.sound-card[data-type="lung"]{--cat:#3b82f6}
+.sound-card[data-type="pediatric"]{--cat:#8b5cf6}
+[data-semiolab-theme="dark"] .sound-card[data-type="heart"]{--cat:#ff7a80}
+[data-semiolab-theme="dark"] .sound-card[data-type="lung"]{--cat:#7aa7ff}
+[data-semiolab-theme="dark"] .sound-card[data-type="pediatric"]{--cat:#b39bff}
+.sound-card::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--cat);opacity:.85}
+.sound-card .play-mini,[data-semiolab-theme="light"] .sound-card .play-mini{color:var(--cat);background:color-mix(in srgb,var(--cat) 14%,transparent)}
+.sound-card.active .play-mini,[data-semiolab-theme="light"] .sound-card.active .play-mini{color:#fff;background:var(--cat);box-shadow:0 10px 22px color-mix(in srgb,var(--cat) 35%,transparent)}
+.sound-card .sound-tag,[data-semiolab-theme="light"] .sound-card .sound-tag{color:var(--cat);background:color-mix(in srgb,var(--cat) 10%,transparent);border-color:color-mix(in srgb,var(--cat) 30%,transparent)}
+.sound-card .sound-meta em,[data-semiolab-theme="light"] .sound-card .sound-meta em{color:var(--muted)}
+.sound-card.active,[data-semiolab-theme="light"] .sound-card.active{background:color-mix(in srgb,var(--cat) 8%,var(--surface));border-color:color-mix(in srgb,var(--cat) 45%,transparent);box-shadow:0 10px 26px color-mix(in srgb,var(--cat) 14%,transparent)}
+[data-semiolab-theme="light"] .sound-card{background:#fff;border-color:var(--line)}
+[data-semiolab-theme="light"] .sound-card:hover{background:#fbfdfd;border-color:#cfe0e2}
+
+/* Player com cabeçalho colorido */
+.player{overflow:hidden}
+.player::before{content:"";display:block;height:4px;margin:-22px -22px 18px;background:linear-gradient(90deg,#3fe0bf,#3b82f6,#8b5cf6)}
+.visualizer i,[data-semiolab-theme="light"] .visualizer i{background:linear-gradient(#3fe0bf,#3b82f6)}
+.controls button.main-play,[data-semiolab-theme="light"] .controls button.main-play{color:#fff;background:linear-gradient(135deg,#14b8a6,#0f766e);box-shadow:0 12px 28px rgba(15,118,110,.35)}
+.clinical,[data-semiolab-theme="light"] .clinical{border-left:3px solid #f6a821}
+.clinical small,[data-semiolab-theme="light"] .clinical small{color:#c47f0e}
+[data-semiolab-theme="dark"] .clinical small{color:#f6c46e}
+.training-score{color:#c47f0e}
+[data-semiolab-theme="dark"] .training-score{color:#f6c46e}
+.quiz-card small{color:#3b82f6}
+
+/* Mobile: largura total, sem rolagem lateral e espaço para a barra flutuante do app */
+@media(max-width:760px){
+  .topbar{padding:0 70px 0 16px}
+  .content{padding:14px 12px 112px}
+  .hero{padding:24px 20px}
+  .hero h1{font-size:30px}
+  .hero p{font-size:13.5px}
+  .hero-stats{flex-wrap:wrap}
+  .hero-stats span{flex:1 1 90px;min-width:0}
+  .panel-head{padding:18px 14px 12px}
+  .tabs{width:100%;max-width:100%}
+  .sound-list{padding:0 8px 10px}
+  .sound-card{grid-template-columns:42px minmax(0,1fr);padding:12px 12px 12px 14px}
+  .sound-meta b,.sound-meta small,.sound-meta em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .workspace>.player{bottom:96px}
+  .player::before{margin:-18px -18px 14px}
+  .training{padding:16px}
+}
 </style>
 </head>
 <body>
@@ -111,7 +249,7 @@
     for(let i=0;i<36;i++){const bar=document.createElement('i');bar.style.setProperty('--h',(22+Math.random()*60)+'px');visualizer.appendChild(bar)}
     const icon=(playing)=>playing?'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="m8 5 11 7-11 7z"/></svg>';
     const typeLabel=s=>s.type==='heart'?'Cardíaca':s.type==='pediatric'?'Pediátrica':'Pulmonar';
-    function renderList(){list.innerHTML='';sounds.filter(s=>filter==='all'||(filter==='simulated'?s.origin.includes('simulado'):s.type===filter)).forEach(s=>{const card=document.createElement('article');card.className='sound-card '+(s.id===selected.id?'active':'');card.innerHTML=`<button class="play-mini" aria-label="Reproduzir ${s.name}">${icon(s.id===selected.id&&!audio.paused)}</button><span class="sound-meta"><b>${s.name}</b><small>${s.subtitle}</small><em>${s.origin} · ${s.source}</em></span><span class="sound-tag">${typeLabel(s)}</span>`;card.onclick=()=>selectSound(s,true);list.appendChild(card)})}
+    function renderList(){list.innerHTML='';sounds.filter(s=>filter==='all'||(filter==='simulated'?s.origin.includes('simulado'):s.type===filter)).forEach(s=>{const card=document.createElement('article');card.className='sound-card '+(s.id===selected.id?'active':'');card.dataset.type=s.type;card.innerHTML=`<button class="play-mini" aria-label="Reproduzir ${s.name}">${icon(s.id===selected.id&&!audio.paused)}</button><span class="sound-meta"><b>${s.name}</b><small>${s.subtitle}</small><em>${s.origin} · ${s.source}</em></span><span class="sound-tag">${typeLabel(s)}</span>`;card.onclick=()=>selectSound(s,true);list.appendChild(card)})}
     function openMobilePlayer(){if(window.matchMedia('(max-width:760px)').matches){nowPlaying.classList.add('mobile-open');playerBackdrop.classList.add('show');document.body.classList.add('player-modal-open')}}
     function closeMobilePlayer(){nowPlaying.classList.remove('mobile-open');playerBackdrop.classList.remove('show');document.body.classList.remove('player-modal-open')}
     function selectSound(s,autoplay=false){selected=s;audio.pause();audio.src=s.audio;audio.load();audio.volume=1;document.getElementById('trackTitle').textContent=s.name;document.getElementById('trackSubtitle').textContent=s.subtitle;document.getElementById('location').textContent=s.location;document.getElementById('category').textContent=s.category;document.getElementById('feature').textContent=s.feature;document.getElementById('system').textContent=s.system;document.getElementById('population').textContent=s.population;document.getElementById('origin').textContent=s.origin;document.getElementById('clinicalText').textContent=s.clinical;document.getElementById('provenanceText').innerHTML=`<a href="${s.sourceUrl}" target="_blank" rel="noreferrer">${s.source}</a> · ID ${s.sourceId} · ${s.license} · ${s.origin}.`;seek.value=0;renderList();if(autoplay){if(LOCKED){requestUpgrade();return}openMobilePlayer();audio.play().catch(()=>showToast('Toque novamente no botão play'))}showToast(s.name+' carregado')}

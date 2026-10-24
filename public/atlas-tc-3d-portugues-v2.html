@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Atlas de TC 3D — Português</title>
+<script>
+  /* Aplica o tema do SemioLab antes da primeira pintura (mesma origem do app). */
+  try { document.documentElement.dataset.semiolabTheme = localStorage.getItem("semiolab.theme") === "dark" ? "dark" : "light"; } catch (e) {}
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -435,11 +439,123 @@ body{
 [data-semiolab-theme="dark"] .icard{background:#0d2329;border-color:#29434a;box-shadow:0 8px 25px #0005}
 [data-semiolab-theme="dark"] .cond-img-caption{background:#102830;color:#a5b8ba;border-color:#29444a}
 [data-semiolab-theme="dark"] .findings-list li{border-color:#203940}
-/* Remove completamente (não apenas esconde atrás/reposiciona) o botão de
- * favoritos e o indicador de progresso — ficavam junto ao botão flutuante
- * de navegação do app (que existe até 760px). Marca/título continuam. */
+/* ══ Layout responsivo (mobile → desktop) e tela do sistema ══ */
+:root{
+  --ax-bg:#f5f8fc;--ax-surface:#ffffff;--ax-soft:#f1f6f9;--ax-line:#dfe8ef;
+  --ax-ink:#0f2740;--ax-sub:#5d7488;--ax-accent:#0a9fa9;--ax-accent-soft:#e6f8f9;
+  --ax-shadow:0 10px 30px rgba(18,52,77,.08);
+}
+[data-semiolab-theme="dark"]{
+  --ax-bg:#07171c;--ax-surface:#0d2329;--ax-soft:#10282f;--ax-line:#23414a;
+  --ax-ink:#edf8f6;--ax-sub:#9bb1b2;--ax-accent:#3fd8df;--ax-accent-soft:#0f3236;
+  --ax-shadow:0 10px 30px rgba(0,0,0,.35);
+}
+html,body{background:var(--ax-bg)}
+#home-view,#organ-view,#condition-view{background:var(--ax-bg)}
+.top-app-bar{color:var(--ax-ink)}
+[data-semiolab-theme="dark"] .top-brand-mark{background:#0f3236;color:#3fd8df;box-shadow:inset 0 0 0 1px #23515a}
+.organ-card:hover{transform:translateY(-3px);box-shadow:0 16px 30px rgba(6,35,60,.22),inset 0 1px 0 rgba(255,255,255,.1)}
+.organ-card:focus-visible,.rail-item:focus-visible,.organ-back:focus-visible,.condition-picker-trigger:focus-visible,.cond-step:focus-visible{outline:2px solid var(--ax-accent);outline-offset:2px}
+
+/* Cabeçalho fixo do sistema: voltar + título + seletor fazem parte do mesmo bloco */
+#organ-view{padding-bottom:28px}
+.organ-bar{position:sticky;top:0;z-index:20;flex-shrink:0;padding:14px 18px 12px;background:color-mix(in srgb,var(--ax-bg) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--ax-line)}
+.organ-bar-row{display:flex;align-items:center;gap:14px}
+.organ-back{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px 0 10px;border:1px solid var(--ax-line);border-radius:12px;background:var(--ax-surface);color:var(--ax-ink);font:700 13px var(--font);cursor:pointer;flex-shrink:0;transition:border-color .15s,background .15s}
+.organ-back:hover{border-color:var(--ax-accent);color:var(--ax-accent)}
+.organ-bar-copy{min-width:0;flex:1}
+.organ-bar-copy small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ax-accent)}
+.organ-bar-copy h1{font-size:22px;line-height:1.15;font-weight:850;letter-spacing:-.4px;color:var(--ax-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.organ-bar-count{flex-shrink:0;padding:6px 11px;border-radius:99px;background:var(--ax-accent-soft);color:var(--ax-accent);font-size:12px;font-weight:750}
+.organ-bar .condition-jump{padding:12px 0 0}
+.condition-picker-trigger{background:var(--ax-surface);border-color:var(--ax-line);color:var(--ax-ink);box-shadow:none;min-height:54px}
+.condition-picker-trigger small{color:var(--ax-accent)}
+.condition-picker-trigger .trigger-copy{flex:1}
+.trigger-nav{flex-shrink:0;font-size:11.5px;font-weight:700;color:var(--ax-sub)}
+[data-semiolab-theme="dark"] .condition-picker-trigger .chevron{background:#0f3236;color:#3fd8df}
+
+.organ-layout{display:block}
+.condition-rail{display:none}
+.condition-main{min-width:0;padding:4px 0 0}
+
+/* Conteúdo da condição */
+.cond-header{padding:18px 20px 14px;background:none}
+.cond-sub{color:var(--ax-accent)}
+.cond-title,.organ-hero-title{color:var(--ax-ink)}
+.cond-title{font-size:26px;line-height:1.15;letter-spacing:-.5px;margin-top:4px}
+.cond-grid{display:block}
+.cond-img-wrap{margin:0 20px 20px;border-color:var(--ax-line);background:#000;box-shadow:var(--ax-shadow)}
+.cond-img-wrap img{background:#000}
+.cond-img-wrap.img-missing{display:grid;place-items:center;min-height:180px;background:var(--ax-soft)}
+.cond-img-wrap.img-missing::before{content:'Imagem indisponível no momento';color:var(--ax-sub);font-size:13px}
+.cond-img-caption{background:var(--ax-surface);color:var(--ax-sub);border-top:1px solid var(--ax-line);font-style:normal}
+.content-section{color:var(--ax-ink)}
+.findings-list li{color:var(--ax-ink);border-bottom-color:var(--ax-line)}
+.icard{background:var(--ax-surface);border-color:var(--ax-line)}
+.icard ul li{color:var(--ax-sub)}
+.cond-steps{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:22px 20px 0}
+.cond-step{display:flex;flex-direction:column;gap:2px;min-width:0;padding:12px 14px;border:1px solid var(--ax-line);border-radius:14px;background:var(--ax-surface);color:var(--ax-ink);font-family:var(--font);text-align:left;cursor:pointer;transition:border-color .15s,transform .15s}
+.cond-step.next{text-align:right;grid-column:2}
+.cond-step:hover{border-color:var(--ax-accent);transform:translateY(-1px)}
+.cond-step small{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ax-accent)}
+.cond-step b{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Lista lateral (desktop) */
+.rail-head{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 10px}
+.rail-head h2{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ax-sub)}
+.rail-head span{font-size:12px;font-weight:750;color:var(--ax-accent)}
+.rail-search{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:9px 12px;border:1px solid var(--ax-line);border-radius:12px;background:var(--ax-surface);color:var(--ax-sub)}
+.rail-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--ax-ink);font:500 13px var(--font)}
+.rail-list{display:grid;gap:4px;overflow-y:auto;overscroll-behavior:contain;padding-right:4px}
+.rail-item{display:block;width:100%;padding:10px 12px;border:0;border-radius:10px;background:transparent;color:var(--ax-sub);font:600 13px/1.35 var(--font);text-align:left;cursor:pointer;transition:background .15s,color .15s}
+.rail-item:hover{background:var(--ax-soft);color:var(--ax-ink)}
+.rail-item.active{background:var(--ax-accent-soft);color:var(--ax-accent);box-shadow:inset 3px 0 0 var(--ax-accent)}
+
+/* Desktop: ocupa a largura disponível em vez de imitar um celular */
+@media (min-width:760px){
+  .view{width:min(100%,1240px)}
+  .hero{margin:0 22px 26px;padding:44px 40px 36px}
+  .hero h1{font-size:42px}
+  .section-header{padding:0 22px 16px}
+  .organ-grid{padding:0 22px 24px;gap:16px}
+  .organ-bar{padding:16px 24px 14px}
+  .cond-header{padding:22px 24px 16px}
+  .cond-img-wrap{margin:0 24px 22px}
+  .content-section{padding:0 24px 8px}
+  .info-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 24px}
+  .cond-steps{padding:24px 24px 0}
+}
+@media (min-width:1000px){
+  .organ-grid{grid-template-columns:repeat(5,1fr)}
+  .organ-bar .condition-jump{display:none}
+  .organ-layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:8px;padding:0 0 0 24px;align-items:start}
+  .condition-rail{display:flex;flex-direction:column;position:sticky;top:84px;max-height:calc(100vh - 100px);padding:18px 0 12px}
+  .condition-rail .rail-list{flex:1;min-height:0}
+  .cond-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:22px;padding:0 24px 22px;align-items:start}
+  .cond-grid .cond-img-wrap{margin:0}
+  .cond-grid .content-section{padding:0}
+  .cond-grid .section-chip{margin-top:4px}
+}
+@media (min-width:1280px){.organ-grid{grid-template-columns:repeat(6,1fr)}}
 @media (max-width:760px){
-  .top-status{display:none}
+  /* o menu flutuante do app fica no canto superior direito */
+  .organ-bar-row{padding-right:54px}
+  .organ-bar-count{display:none}
+}
+@media (max-width:620px){
+  .organ-bar{padding:12px 14px 10px}
+  .organ-back span{display:none}
+  .organ-back{width:40px;padding:0;justify-content:center}
+  .organ-bar-copy h1{font-size:19px}
+  .cond-title{font-size:22px}
+  .cond-header{padding:16px 16px 12px}
+  .cond-img-wrap{margin:0 16px 18px}
+  .content-section{padding:0 16px 8px}
+  .info-cards{padding:0 16px}
+  .cond-steps{padding:20px 16px 0}
+}
+@media (prefers-reduced-motion:reduce){
+  .view,.organ-card,.cond-step,.fade-in-up,.fade-in-scale{transition:none!important;animation:none!important}
 }
 </style>
 </head>
@@ -456,12 +572,6 @@ body{
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 7h16M7 4v6M17 4v6M5 11h14v9H5z"/><path d="M9 15h6"/></svg>
       </span>
       Atlas de TC
-    </div>
-    <div class="top-status">
-      <span class="top-bookmark" aria-label="Favoritos">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M6 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18l-6-4-6 4z"/></svg>
-      </span>
-      <span class="top-progress"><span>35%</span></span>
     </div>
   </header>
   <!-- Hero -->
@@ -505,32 +615,37 @@ body{
 
 <!-- ══ ORGAN VIEW ══ -->
 <div class="view hidden" id="organ-view">
-  <div class="organ-view-hero" id="ovh">
-    <div class="back-btn" onclick="goHome()">
-      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-        <path d="M15 18l-6-6 6-6"/>
-      </svg>
+  <header class="organ-bar">
+    <div class="organ-bar-row">
+      <button class="organ-back" type="button" onclick="goHome()" aria-label="Voltar para os sistemas">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        <span>Sistemas</span>
+      </button>
+      <div class="organ-bar-copy">
+        <small id="organ-hero-badge">Atlas de TC · Sistema</small>
+        <h1 id="organ-hero-title">Órgão</h1>
+      </div>
+      <span class="organ-bar-count" id="organ-hero-sub">0 condições</span>
     </div>
-    <div class="progress-ring" title="Progresso">
-      <svg width="44" height="44" viewBox="0 0 44 44">
-        <circle class="track" cx="22" cy="22" r="20"/>
-        <circle class="fill" id="prog-fill" cx="22" cy="22" r="20"/>
-      </svg>
-      <div class="label" id="prog-label">35%</div>
+    <div class="condition-jump">
+      <button class="condition-picker-trigger" type="button" onclick="openConditionPicker()">
+        <span class="trigger-copy"><small>Condição em estudo</small><strong id="selected-condition-label">Selecione uma condição</strong></span>
+        <span class="trigger-nav" id="trigger-position"></span>
+        <span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m7 10 5 5 5-5"/></svg></span>
+      </button>
     </div>
-    <div class="organ-hero-visual" id="organ-hero-visual"></div>
-    <div class="organ-hero-badge" id="organ-hero-badge">TC — Sistema</div>
-    <div class="organ-hero-title" id="organ-hero-title">Órgão</div>
-    <div class="organ-hero-sub" id="organ-hero-sub">condições disponíveis</div>
+  </header>
+  <div class="organ-layout">
+    <aside class="condition-rail" aria-label="Condições do sistema">
+      <div class="rail-head"><h2>Condições</h2><span id="rail-count">0</span></div>
+      <label class="rail-search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input id="rail-search" type="search" placeholder="Filtrar condições…" oninput="renderRail(this.value)">
+      </label>
+      <nav class="rail-list" id="rail-list"></nav>
+    </aside>
+    <main class="condition-main" id="condition-body"></main>
   </div>
-  <div class="conditions-label">Condições</div>
-  <div class="condition-jump">
-    <button class="condition-picker-trigger" type="button" onclick="openConditionPicker()">
-      <span class="trigger-copy"><small>Condição selecionada</small><strong id="selected-condition-label">Selecione uma condição</strong></span>
-      <span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m7 10 5 5 5-5"/></svg></span>
-    </button>
-  </div>
-  <div id="condition-body"></div>
 </div>
 
 <div class="picker-overlay" id="condition-picker" onclick="if(event.target===this) closeConditionPicker()">
@@ -14153,12 +14268,13 @@ function filterOrgans(q){
 function openOrgan(organ){
   activeOrganId = organ.id;
 
-  // preenche hero do organ view
-  document.getElementById('organ-hero-visual').innerHTML = systemVisualHTML(organ);
-  document.getElementById('organ-hero-badge').textContent = 'TC — Sistema';
+  // preenche o cabeçalho do sistema
+  document.getElementById('organ-hero-badge').textContent = 'Atlas de TC · Sistema';
   document.getElementById('organ-hero-title').textContent = organ.label;
   document.getElementById('organ-hero-sub').textContent =
-    `${organ.topics.length} condição${organ.topics.length!==1?'es':''} disponív${organ.topics.length!==1?'eis':'el'}`;
+    `${organ.topics.length} ${organ.topics.length!==1?'condições':'condição'}`;
+  document.getElementById('rail-count').textContent = organ.topics.length;
+  document.getElementById('rail-search').value = '';
 
   document.getElementById('picker-title').textContent = `Condições · ${organ.label}`;
 
@@ -14184,9 +14300,34 @@ function selectTopic(organId, topicId){
   activeTopicId = topicId;
 
   document.getElementById('selected-condition-label').textContent = topic.label;
+  const position = organ.topics.findIndex(t => t.id === topicId) + 1;
+  document.getElementById('trigger-position').textContent = `${position}/${organ.topics.length}`;
   closeConditionPicker();
 
-  renderCondition(topic);
+  renderRail(document.getElementById('rail-search').value || '');
+  renderCondition(topic, organ);
+}
+
+function renderRail(query=''){
+  const organ = organs.find(o => o.id === activeOrganId);
+  const list = document.getElementById('rail-list');
+  if(!organ || !list){ if(list) list.innerHTML=''; return; }
+  const q = normalizeSearch(query.trim());
+  const topics = q ? organ.topics.filter(t=>normalizeSearch(t.label).includes(q)) : organ.topics;
+  list.innerHTML = topics.length ? topics.map(t=>`
+    <button class="rail-item ${t.id===activeTopicId?'active':''}" type="button" onclick="selectTopic('${organ.id}','${t.id}')" ${t.id===activeTopicId?'aria-current="true"':''}>
+      <span>${t.label}</span>
+    </button>`).join('') : '<div class="picker-empty">Nenhuma condição encontrada.</div>';
+  const active = list.querySelector('.rail-item.active');
+  if(active && !q) active.scrollIntoView({block:'nearest'});
+}
+
+function stepTopic(delta){
+  const organ = organs.find(o => o.id === activeOrganId);
+  if(!organ) return;
+  const index = organ.topics.findIndex(t => t.id === activeTopicId);
+  const next = organ.topics[index + delta];
+  if(next) selectTopic(organ.id, next.id);
 }
 
 function normalizeSearch(value){
@@ -14222,8 +14363,11 @@ function closeConditionPicker(){
 // ═══════════════════════════════
 // RENDER CONDITION
 // ═══════════════════════════════
-function renderCondition(topic){
+function renderCondition(topic, organ){
   const body = document.getElementById('condition-body');
+  const index = organ ? organ.topics.findIndex(t => t.id === topic.id) : -1;
+  const prev = organ && index > 0 ? organ.topics[index - 1] : null;
+  const next = organ && index >= 0 && index < organ.topics.length - 1 ? organ.topics[index + 1] : null;
 
   let findingsHTML = '<ul class="findings-list">';
   topic.findings.forEach(f => { findingsHTML += `<li>${f}</li>`; });
@@ -14244,38 +14388,43 @@ function renderCondition(topic){
       <ul>${items.map(i=>`<li>${i}</li>`).join('')}</ul>
     </div>`;
 
+  const step = (t, dir) => !t ? '<span></span>' : `
+    <button class="cond-step ${dir}" type="button" onclick="stepTopic(${dir==='prev'?-1:1})">
+      <small>${dir==='prev'?'Anterior':'Próxima'}</small><b>${t.label}</b>
+    </button>`;
+
   body.innerHTML = `
     <div class="cond-header fade-in-up">
-      <div class="back-btn" onclick="goHome()">
-        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <path d="M15 18l-6-6 6-6"/>
-        </svg>
-      </div>
-      <div class="cond-sub">Achados de TC</div>
-      <div class="cond-title">${topic.label}</div>
+      <div class="cond-sub">Achados de TC${organ ? ` · ${organ.label}` : ''}</div>
+      <h2 class="cond-title">${topic.label}</h2>
     </div>
 
-    <div class="cond-img-wrap fade-in-up" style="animation-delay:.05s">
-      <img loading="lazy" decoding="async" src="${topic.img}" alt="${topic.label}"
-           onerror="this.parentElement.innerHTML='<div style=background:#0d2a4a;height:180px;display:flex;align-items:center;justify-content:center;color:#4a7090;font-size:13px>Imagem — ${topic.label}</div>'">
-      <div class="cond-img-caption">${topic.label} · Aparência na TC</div>
-    </div>
+    <div class="cond-grid">
+      <figure class="cond-img-wrap fade-in-up" style="animation-delay:.05s">
+        <img loading="lazy" decoding="async" src="${topic.img}" alt="Tomografia: ${topic.label}"
+             onerror="this.parentElement.classList.add('img-missing');this.remove()">
+        <figcaption class="cond-img-caption">${topic.label} · Aparência na TC</figcaption>
+      </figure>
 
-    <div class="content-section fade-in-up" style="animation-delay:.08s">
-      <div class="section-chip">Achados Críticos na TC</div>
-      ${findingsHTML}
-      ${subHTML}
+      <section class="content-section fade-in-up" style="animation-delay:.08s">
+        <div class="section-chip">Achados críticos na TC</div>
+        ${findingsHTML}
+        ${subHTML}
+      </section>
     </div>
 
     <div class="info-cards fade-in-up" style="animation-delay:.12s">
       ${mk('Etiologia', topic.etiol)}
       ${mk('Epidemiologia', topic.epid, 'gold')}
-      ${mk('Apresentação Clínica', topic.apres, 'green')}
+      ${mk('Apresentação clínica', topic.apres, 'green')}
       ${mk('Prognóstico', topic.prog, 'red')}
     </div>
+
+    <nav class="cond-steps" aria-label="Navegar entre condições">${step(prev,'prev')}${step(next,'next')}</nav>
   `;
 
-  body.scrollIntoView({behavior:'smooth', block:'start'});
+  const view = document.getElementById('organ-view');
+  if(view) view.scrollTo({top:0, behavior:'smooth'});
 }
 
 // ═══════════════════════════════

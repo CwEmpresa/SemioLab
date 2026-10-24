@@ -8671,8 +8671,12 @@ button.avatar:hover {
   width: 100%;
   height: 100%;
   border: 0;
-  background: #fff;
+  background: #f5f8fc;
 }
+[data-semiolab-theme="dark"] .auscultation-lab-frame { background: #061217; }
+[data-semiolab-theme="dark"] .study-atlas-frame { background: #07171c; }
+.content:has(.auscultation-lab-page) { background:#f3f7f8; }
+[data-semiolab-theme="dark"] .content:has(.auscultation-lab-page) { background:#061217; }
 .content:has(.study-atlas-page) { background:#f5f8fc; }
 [data-semiolab-theme="dark"] .content:has(.study-atlas-page) { background:#0b2025; }
 
@@ -8689,7 +8693,7 @@ button.avatar:hover {
   width: calc(100% + 246px);
   height: 100%;
   border: 0;
-  background: #061217;
+  background: #f3f7f8;
   transform: translateX(-246px);
 }
 @media (max-width: 760px) {
@@ -8702,7 +8706,9 @@ button.avatar:hover {
   [data-semiolab-theme="dark"] .content:has(.study-atlas-page) { background:#0b2025; }
   .auscultation-lab-page {
     width: 100%;
-    height: calc(100dvh - 92px);
+    /* altura total: a barra inferior flutua por cima (o conteúdo do
+       laboratório já reserva espaço no fim), sem faixa de fundo atrás dela */
+    height: 100dvh;
     padding: 0;
   }
   .auscultation-lab-frame {

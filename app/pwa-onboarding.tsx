@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { firstExperienceCompletionAcknowledged } from "./first-experience";
 import { getDeferredInstallPrompt, consumeDeferredInstallPrompt, subscribeInstallPrompt } from "./pwa-install-prompt";
 
 /** Trava o scroll da página e some com a bottom-nav enquanto qualquer
@@ -108,18 +107,39 @@ export function NotificationSettingsPanel() {
   );
 }
 
-const DISMISS_COOLDOWN_MS = 24 * 60 * 60 * 1000; // reaparece depois, nunca em todo reload
+// Chaves por dispositivo (não por conta): instalar ou pedir para não ver
+// mais vale para este navegador, qualquer que seja a conta logada.
+const INSTALLED_KEY = "semiolab:pwa-installed:v3";
+const NEVER_KEY = "semiolab:pwa-install-never:v3";
+const SESSION_KEY = "semiolab:pwa-install-seen-session";
+const NOTIF_ASKED_KEY = "semiolab:pwa-notif-asked:v3";
 
+function readFlag(storage: Storage | undefined, key: string) {
+  try { return storage?.getItem(key) === "1"; } catch { return false; }
+}
+function writeFlag(storage: Storage | undefined, key: string) {
+  try { storage?.setItem(key, "1"); } catch { /* sem storage o popup só volta na próxima abertura */ }
+}
+
+if (typeof window !== "undefined") {
+  // Instalou por qualquer caminho (inclusive pelo menu do navegador): nunca
+  // mais mostra o convite neste dispositivo.
+  window.addEventListener("appinstalled", () => writeFlag(window.localStorage, INSTALLED_KEY));
+}
+
+/** Convite de instalação: aparece ao abrir o app pelo navegador, uma vez
+ * por sessão, até a pessoa instalar ou marcar "Não mostrar novamente".
+ * Nunca aparece dentro do app instalado (display-mode standalone). */
 export function pwaInstallPending(userId: string): boolean {
   if (typeof window === "undefined") return false;
   if (isStandalone()) return false;
-  if (localStorage.getItem(`semiolab:${userId}:pwa-installed:v2`)) return false;
-  const dismissedUntil = Number(localStorage.getItem(`semiolab:${userId}:pwa-install-dismissed-until:v2`) || 0);
-  if (dismissedUntil && Date.now() < dismissedUntil) return false;
-  return firstExperienceCompletionAcknowledged(userId);
+  if (readFlag(window.localStorage, INSTALLED_KEY) || readFlag(window.localStorage, `semiolab:${userId}:pwa-installed:v2`)) return false;
+  if (readFlag(window.localStorage, NEVER_KEY)) return false;
+  if (readFlag(window.sessionStorage, SESSION_KEY)) return false;
+  return true;
 }
 
-export default function PwaOnboarding({ userId }: { userId: string }) {
+export default function PwaOnboarding({ userId, blocked = false }: { userId: string; blocked?: boolean }) {
   const [step, setStep] = useState<"hidden" | "install" | "notifications">("hidden");
   // "checking": navegador ainda pode disparar o evento a qualquer momento;
   // "ready": instalação nativa real disponível; "unavailable": não vai vir
@@ -128,13 +148,17 @@ export default function PwaOnboarding({ userId }: { userId: string }) {
     isIos() ? "unavailable" : getDeferredInstallPrompt() ? "ready" : "checking",
   );
   const [installBusy, setInstallBusy] = useState(false);
+  const [neverAgain, setNeverAgain] = useState(false);
 
   useEffect(() => {
     // Prioridade exclusiva: 1) instalação, 2) notificações só depois da
     // instalação confirmada (na próxima abertura do PWA já instalado),
     // 3) nunca os dois juntos. Reavalia sem precisar recarregar a página.
+    if (blocked) return;
+    let timer = 0;
     const checkInstall = () => {
-      if (pwaInstallPending(userId)) setStep("install");
+      // Pequeno atraso: deixa a tela inicial aparecer antes do convite.
+      if (pwaInstallPending(userId)) timer = window.setTimeout(() => setStep((s) => (s === "hidden" ? "install" : s)), 1200);
     };
     const checkNotifications = () => {
       // Hoje só sobra pendência aqui para iOS (única plataforma que exige
@@ -151,9 +175,8 @@ export default function PwaOnboarding({ userId }: { userId: string }) {
     };
     checkInstall();
     checkNotifications();
-    window.addEventListener("semiolab:first-experience-completed", checkInstall);
-    return () => window.removeEventListener("semiolab:first-experience-completed", checkInstall);
-  }, [userId]);
+    return () => window.clearTimeout(timer);
+  }, [userId, blocked]);
 
   useEffect(() => {
     // Continua "avaliando instalabilidade" só enquanto o popup de
@@ -170,13 +193,11 @@ export default function PwaOnboarding({ userId }: { userId: string }) {
   }, [step, nativeState]);
 
   const finishInstall = (accepted: boolean) => {
+    writeFlag(window.sessionStorage, SESSION_KEY);
     if (accepted) {
-      localStorage.setItem(`semiolab:${userId}:pwa-installed:v2`, "1");
-      localStorage.removeItem(`semiolab:${userId}:pwa-install-dismissed-until:v2`);
-    } else {
-      // Recusou/fechou: reaparece depois, nunca em todo reload nem nunca
-      // mais — nunca marcado como instalado.
-      localStorage.setItem(`semiolab:${userId}:pwa-install-dismissed-until:v2`, String(Date.now() + DISMISS_COOLDOWN_MS));
+      writeFlag(window.localStorage, INSTALLED_KEY);
+    } else if (neverAgain) {
+      writeFlag(window.localStorage, NEVER_KEY);
     }
     // Libera outros popups (ex.: Pro diário) que ficaram bloqueados
     // esperando a instalação ser resolvida.
@@ -188,8 +209,13 @@ export default function PwaOnboarding({ userId }: { userId: string }) {
     // mesma sessão, elimina a barreira de "fechar e reabrir já instalado"
     // que fazia quase ninguém nunca ver esse convite. Continua sequencial
     // (nunca junto com a instalação — um modal fecha antes do outro abrir).
-    const canAskNow = !isIos() && typeof Notification !== "undefined" && Notification.permission === "default";
+    // O convite de instalação agora volta a cada sessão; o de notificações
+    // é oferecido uma única vez por dispositivo por este caminho (depois
+    // continua disponível no Perfil).
+    const canAskNow = !isIos() && typeof Notification !== "undefined" && Notification.permission === "default"
+      && !readFlag(window.localStorage, NOTIF_ASKED_KEY);
     if (canAskNow) {
+      writeFlag(window.localStorage, NOTIF_ASKED_KEY);
       setStep("notifications");
       return;
     }
@@ -223,23 +249,42 @@ export default function PwaOnboarding({ userId }: { userId: string }) {
 
   return createPortal(
     <div className="overlay pwa-modal-overlay" onMouseDown={() => (step === "install" ? finishInstall(false) : finishNotifications())}>
-      <section className="clinical-modal pwa-onboarding-modal" onMouseDown={(e) => e.stopPropagation()}>
+      <section className={`clinical-modal pwa-onboarding-modal ${step === "install" ? "pwa-install-modal" : ""}`} role="dialog" aria-modal="true" aria-labelledby={step === "install" ? "pwa-install-title" : undefined} onMouseDown={(e) => e.stopPropagation()}>
         {step === "install" ? (
           <>
-            <h2>Instale o SemioLab</h2>
+            <button className="pwa-close" aria-label="Fechar" onClick={() => finishInstall(isStandalone())}>×</button>
+            <div className="pwa-hero">
+              <img src="/icon-192.png" alt="" width={72} height={72} />
+              <span className="pwa-hero-phone" aria-hidden="true" />
+            </div>
+            <small className="pwa-kicker">App SemioLab</small>
+            <h2 id="pwa-install-title">Leve o SemioLab no seu celular</h2>
+            <p>Instale grátis e abra direto da tela inicial, como um aplicativo — sem precisar de loja.</p>
+            <ul className="pwa-benefits">
+              <li><b>Abre em 1 toque</b><small>Ícone na tela inicial, em tela cheia</small></li>
+              <li><b>Mais rápido</b><small>Carrega sem passar pelo navegador</small></li>
+              <li><b>Lembretes de estudo</b><small>Avisos de novos pacientes e streak</small></li>
+            </ul>
             {nativeState === "checking" ? (
               <p className="pwa-install-checking">Preparando instalação...</p>
-            ) : (
-              <InstallSteps />
-            )}
+            ) : nativeState !== "ready" ? (
+              <details className="pwa-steps-toggle" open={isIos()}>
+                <summary>Como instalar neste dispositivo</summary>
+                <InstallSteps />
+              </details>
+            ) : null}
             {nativeState === "ready" && (
               <button className="primary" disabled={installBusy} onClick={handleNativeInstall}>
                 {installBusy ? "Abrindo..." : "Instalar o SemioLab"}
               </button>
             )}
-            <button onClick={() => finishInstall(isStandalone())}>
-              {nativeState === "ready" ? "Agora não" : "Continuar no navegador"}
+            <button className="pwa-secondary" onClick={() => finishInstall(isStandalone())}>
+              Continuar no navegador
             </button>
+            <label className="pwa-never">
+              <input type="checkbox" checked={neverAgain} onChange={(e) => setNeverAgain(e.target.checked)} />
+              <span>Não mostrar novamente</span>
+            </label>
           </>
         ) : (
           <>

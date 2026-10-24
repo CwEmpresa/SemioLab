@@ -4,6 +4,7 @@ import "./dashboard.css";
 import "./study.css";
 import "./research.css";
 import "./referrals.css";
+import "./redesign.css";
 
 export const metadata: Metadata = {
   title: "SemioLab",

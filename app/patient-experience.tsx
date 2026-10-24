@@ -972,71 +972,116 @@ export default function PatientExperience({
         )}
       </div>
     );
-  if (phase === "result")
+  if (phase === "result") {
+    const tone = score >= 85 ? "excellent" : score >= 70 ? "good" : score >= 50 ? "partial" : "low";
+    const ringRadius = 52;
+    const ringLength = 2 * Math.PI * ringRadius;
+    const breakdown = [
+      { label: "Anamnese", value: serverEvaluation?.historyScore ?? 0, max: 30, icon: MessageSquareText },
+      { label: "Exame físico", value: serverEvaluation?.physicalScore ?? 0, max: 15, icon: Stethoscope },
+      { label: "Exames", value: serverEvaluation?.examsScore ?? 0, max: 15, icon: ClipboardCheck },
+      { label: "Raciocínio", value: serverEvaluation?.reasoningScore ?? 0, max: 40, icon: Lightbulb },
+    ];
+    const strengths = serverEvaluation?.strengths ?? [];
+    const gaps = serverEvaluation?.gaps ?? [];
     return (
-      <div className="result">
-        <header>
+      <div className={`rx-result tone-${tone}`}>
+        <header className="rx-bar">
           <Brand />
-          <button onClick={() => go("home")}>
+          <span className="rx-bar-title">Relatório da consulta</span>
+          <button aria-label="Fechar relatório" onClick={() => go("home")}>
             <X />
           </button>
         </header>
-        <main>
-          <section className="result-hero">
-            <div
-              className="score dynamic"
-              style={{ background: `radial-gradient(circle,#fff 58%,transparent 60%),conic-gradient(#13a58f ${score}%,#e7efed 0)` }}
-            >
-              <b>{score}</b>
-              <small>/ 100</small>
+        <main className="rx-main">
+          <section className="rx-hero">
+            <div className="rx-ring" role="img" aria-label={`Nota ${score} de 100`}>
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <circle className="rx-ring-track" cx="60" cy="60" r={ringRadius} />
+                <circle
+                  className="rx-ring-fill"
+                  cx="60"
+                  cy="60"
+                  r={ringRadius}
+                  strokeDasharray={ringLength}
+                  strokeDashoffset={ringLength * (1 - Math.min(100, Math.max(0, score)) / 100)}
+                />
+              </svg>
+              <span>
+                <b>{score}</b>
+                <small>de 100</small>
+              </span>
             </div>
-            <span>
-              <small>AVALIAÇÃO BASEADA NAS AÇÕES REGISTRADAS</small>
+            <div className="rx-hero-copy">
+              <span className="rx-chip"><ShieldCheck /> {level}</span>
               <h1>{title}</h1>
-              <p><b>{level}</b> · Caso esperado: {serverEvaluation?.correctDiagnosis || caseInfo?.title || "—"}.</p>
-            </span>
-          </section>
-          <div className="score-breakdown">
-            <span>
-              <b>{serverEvaluation?.historyScore ?? 0}<em>/30</em></b>
-              <small>Anamnese</small><i style={{ width: `${(serverEvaluation?.historyScore ?? 0) / 30 * 100}%` }} />
-            </span>
-            <span>
-              <b>{serverEvaluation?.physicalScore ?? 0}<em>/15</em></b>
-              <small>Exame físico</small><i style={{ width: `${(serverEvaluation?.physicalScore ?? 0) / 15 * 100}%` }} />
-            </span>
-            <span>
-              <b>{serverEvaluation?.examsScore ?? 0}<em>/15</em></b>
-              <small>Exames</small><i style={{ width: `${(serverEvaluation?.examsScore ?? 0) / 15 * 100}%` }} />
-            </span>
-            <span>
-              <b>{serverEvaluation?.reasoningScore ?? 0}<em>/40</em></b>
-              <small>Raciocínio</small><i style={{ width: `${(serverEvaluation?.reasoningScore ?? 0) / 40 * 100}%` }} />
-            </span>
-          </div>
-          <div className="feedback">
-            <article>
-              <h3>
-                <Check /> O que você conduziu bem
-              </h3>
-              <ul>{(serverEvaluation?.strengths.length ?? 0) ? serverEvaluation!.strengths.map((item) => <li key={item}>{item}</li>) : <li>Não houve evidência suficiente para pontuar esta parte.</li>}</ul>
-            </article>
-            <article>
-              <h3>
-                <CircleAlert /> O que faltou investigar
-              </h3>
-              <ul>{(serverEvaluation?.gaps.length ?? 0) ? serverEvaluation!.gaps.map((item) => <li key={item}>{item}</li>) : <li>Os principais critérios deste caso foram cobertos.</li>}</ul>
-            </article>
-          </div>
-          <section className="clinical-learning">
-            <header><Lightbulb /><span><small>APRENDIZADO DO CASO</small><h2>Como conectar os achados</h2></span></header>
-            <p>{serverEvaluation?.feedback || "Reveja os achados que você coletou nesta consulta e compare com o raciocínio clínico esperado para o caso."}</p>
-            <div>
-              {(serverEvaluation?.examLearning ?? []).map((item) => <p key={item}><Check />{item}</p>)}
+              <p className="rx-case">
+                <small>Caso esperado</small>
+                <b>{serverEvaluation?.correctDiagnosis || caseInfo?.title || "—"}</b>
+              </p>
             </div>
+          </section>
+
+          <section className="rx-breakdown" aria-label="Nota por etapa">
+            {breakdown.map(({ label, value, max, icon: Icon }) => {
+              const pct = max ? Math.round((value / max) * 100) : 0;
+              const state = pct >= 80 ? "high" : pct >= 50 ? "mid" : "low";
+              return (
+                <article key={label} className={`rx-metric ${state}`}>
+                  <header>
+                    <i><Icon /></i>
+                    <small>{label}</small>
+                  </header>
+                  <b>{value}<em>/{max}</em></b>
+                  <div className="rx-metric-bar" aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>
+                  <span>{pct}% da etapa</span>
+                </article>
+              );
+            })}
+          </section>
+
+          <div className="rx-feedback">
+            <article className="rx-panel rx-strengths">
+              <header>
+                <i><Check /></i>
+                <span><small>Pontos fortes</small><h2>O que você conduziu bem</h2></span>
+                <em>{strengths.length}</em>
+              </header>
+              <ul>
+                {strengths.length
+                  ? strengths.map((item) => <li key={item}><Check />{item}</li>)
+                  : <li className="empty">Não houve evidência suficiente para pontuar esta parte.</li>}
+              </ul>
+            </article>
+            <article className="rx-panel rx-gaps">
+              <header>
+                <i><CircleAlert /></i>
+                <span><small>Para revisar</small><h2>O que faltou investigar</h2></span>
+                <em>{gaps.length}</em>
+              </header>
+              <ul>
+                {gaps.length
+                  ? gaps.map((item, index) => <li key={item}><b>{index + 1}</b>{item}</li>)
+                  : <li className="empty">Os principais critérios deste caso foram cobertos.</li>}
+              </ul>
+            </article>
+          </div>
+
+          <section className="rx-panel rx-learning">
+            <header>
+              <i><Lightbulb /></i>
+              <span><small>Aprendizado do caso</small><h2>Como conectar os achados</h2></span>
+            </header>
+            <p>{serverEvaluation?.feedback || "Reveja os achados que você coletou nesta consulta e compare com o raciocínio clínico esperado para o caso."}</p>
+            {(serverEvaluation?.examLearning ?? []).length > 0 && (
+              <ul>
+                {(serverEvaluation?.examLearning ?? []).map((item) => <li key={item}><Check />{item}</li>)}
+              </ul>
+            )}
             <aside><ShieldCheck /><span><b>Critério de segurança</b><small>A nota usa apenas perguntas, ações e respostas preenchidas nesta consulta. Exames não solicitados não contam, e imagens só aparecem quando há correspondência clínica e fonte validada.</small></span></aside>
           </section>
-          <footer>
+
+          <footer className="rx-actions">
             <button onClick={() => go("study")}>
               Revisar aula recomendada
             </button>
@@ -1047,6 +1092,7 @@ export default function PatientExperience({
         </main>
       </div>
     );
+  }
   const patientName = caseInfo?.patientName || "Paciente";
   const patientInitials = patientName.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "P";
   const voiceStatus = transcribing

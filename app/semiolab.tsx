@@ -775,25 +775,93 @@ function AuscultationLab({ theme }: { theme:AppTheme }) {
 }
 
 /* ─── Progress ──────────────────────────────────────────────────── */
+/** Pontos do mapa anatômico: posição (em % da imagem) do órgão que
+ * representa cada sistema. Anamnese e Exame físico não têm órgão — aparecem
+ * só na lista ao lado. */
+const anatomyHotspots: Record<string, { x: number; y: number }> = {
+  "Neurológico": { x: 50, y: 5.6 },
+  "Respiratório": { x: 38.5, y: 25 },
+  "Cardiovascular": { x: 51, y: 28 },
+  "Abdome e digestório": { x: 50, y: 43 },
+};
+
+function masteryTone(score: number | null | undefined) {
+  if (score === null || score === undefined) return "none";
+  return score >= 75 ? "high" : score >= 50 ? "mid" : "low";
+}
+
+function shortTopic(name: string) {
+  return name === "Abdome e digestório" ? "Digestório" : name;
+}
+
+function AnatomyStage({ selected, onSelect, scoreFor }: { selected:string; onSelect:(name:string)=>void; scoreFor:(name:string)=>number|null }) {
+  const stageRef = useRef<HTMLDivElement>(null);
+  // Inclinação 3D acompanhando o ponteiro — escrita direto em variáveis CSS
+  // para não re-renderizar o React a cada movimento.
+  const tilt = (event: React.PointerEvent<HTMLDivElement>) => {
+    const el = stageRef.current;
+    if (!el || event.pointerType === "touch") return;
+    const rect = el.getBoundingClientRect();
+    const px = (event.clientX - rect.left) / rect.width - .5;
+    const py = (event.clientY - rect.top) / rect.height - .5;
+    el.style.setProperty("--tilt-y", `${(px * 18).toFixed(2)}deg`);
+    el.style.setProperty("--tilt-x", `${(-py * 8).toFixed(2)}deg`);
+  };
+  const reset = () => {
+    stageRef.current?.style.setProperty("--tilt-y", "0deg");
+    stageRef.current?.style.setProperty("--tilt-x", "0deg");
+  };
+  return (
+    <div className="pg-stage" ref={stageRef} onPointerMove={tilt} onPointerLeave={reset}>
+      <span className="pg-stage-grid" aria-hidden="true" />
+      <span className="pg-stage-floor" aria-hidden="true" />
+      <div className="pg-body">
+        <img src="/semiolab-anatomy-human.webp" alt="Modelo anatômico do corpo humano com órgãos internos" width={700} height={1415} draggable={false} />
+        <span className="pg-scan" aria-hidden="true" />
+        {Object.entries(anatomyHotspots).map(([name, pos]) => {
+          const score = scoreFor(name);
+          return (
+            <button
+              key={name}
+              type="button"
+              className={`pg-hotspot tone-${masteryTone(score)} ${selected === name ? "active" : ""} ${pos.x < 45 ? "flip" : ""}`}
+              style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+              onClick={() => onSelect(name)}
+              aria-label={`${name}: ${score === null ? "ainda sem medição" : `${score}% de domínio`}`}
+              aria-pressed={selected === name}
+            >
+              <i />
+              <span>{shortTopic(name)}<b>{score === null ? "—" : `${score}%`}</b></span>
+            </button>
+          );
+        })}
+      </div>
+      <small className="pg-stage-hint">Toque nos pontos para explorar cada sistema</small>
+    </div>
+  );
+}
+
 function Progress({ go }: { go:(s:Screen)=>void }) {
   const pageRef = useScreenTransition("progress");
   const { summary, loading } = useLearningSummary();
   const today = useTodayLabel();
+  const [selectedSystem, setSelectedSystem] = useState("Cardiovascular");
   const xp = Number(summary?.profile?.xp || 0);
   const level = Math.floor(xp / 500) + 1;
-  const levelProgress = Math.round(((xp % 500) / 500) * 100);
-  const toNextLevel = 500 - (xp % 500 || 0);
+  const xpInLevel = xp % 500;
+  const levelProgress = Math.round((xpInLevel / 500) * 100);
+  const toNextLevel = 500 - xpInLevel;
   const availableScores = (summary?.mastery || []).flatMap((item) => item.score === null ? [] : [item.score]);
   const generalMastery = availableScores.length ? Math.round(availableScores.reduce((sum, value) => sum + value, 0) / availableScores.length) : null;
   const questions = Number(summary?.stats?.questions || 0);
   const correct = Number(summary?.stats?.correct || 0);
   const accuracy = questions ? Math.round(correct / questions * 100) : null;
   const consultations = Number(summary?.stats?.consultations || 0);
+  const streak = Number(summary?.streak || 0);
   const simuladoAverage = summary?.stats?.simuladoAverage ?? null;
   const patientAverage = summary?.stats?.patientAverage ?? null;
   const realFor = (name: string) => summary?.mastery?.find((item) => item.topic === name);
-  const spotlight = ["Cardiovascular", "Neurológico", "Respiratório", "Abdome e digestório"];
-  const topicWheel = ["Cardiovascular", "Respiratório", "Anamnese", "Neurológico", "Abdome e digestório", "Exame físico"];
+  const scoreFor = (name: string) => realFor(name)?.score ?? null;
   const hasEvidence = questions > 0 || consultations > 0 || simuladoAverage !== null;
   const masteredTopics = (summary?.mastery || []).filter((m) => m.status === "Domínio");
   const improvingTopics = (summary?.mastery || []).filter((m) => m.status === "Em evolução");
@@ -805,77 +873,140 @@ function Progress({ go }: { go:(s:Screen)=>void }) {
       return acc;
     }, {}),
   ).sort((a, b) => b.count - a.count).slice(0, 3);
+  const maxErrors = errorCounts[0]?.count || 1;
+  const ringLength = 2 * Math.PI * 44;
+  const system = systems.find((item) => item.name === selectedSystem) ?? systems[0];
+  const selectedRecord = realFor(system.name);
+  const selectedScore = selectedRecord?.score ?? null;
+  const selectedTarget = selectedRecord?.evidenceTarget ?? 5;
+  const selectedEvidence = Math.min(selectedTarget, selectedRecord?.evidenceCount ?? 0);
+  const ranked = [...systems].sort((a, b) => (scoreFor(b.name) ?? -1) - (scoreFor(a.name) ?? -1));
+  const metrics = [
+    { icon: Target, tone: "accent", value: accuracy === null ? "—" : `${accuracy}%`, label: "Acertos nos quizzes", hint: questions ? `${correct} de ${questions} questões` : "Sem quizzes ainda", bar: accuracy },
+    { icon: ClipboardCheck, tone: "blue", value: questions.toLocaleString("pt-BR"), label: "Questões concluídas", hint: "Total respondido", bar: null },
+    { icon: FileText, tone: "violet", value: simuladoAverage === null ? "—" : `${simuladoAverage}%`, label: "Média nos simulados", hint: simuladoAverage === null ? "Faça um simulado" : "Nota média", bar: simuladoAverage },
+    { icon: Stethoscope, tone: "warn", value: patientAverage === null ? "—" : `${patientAverage}%`, label: "Média nas consultas", hint: consultations ? `${consultations} ${consultations === 1 ? "consulta" : "consultas"}` : "Atenda um paciente", bar: patientAverage },
+  ];
 
   return (
-    <div className="page progress-page-v2" ref={pageRef}>
-      <header className="progress-v2-heading">
-        <span><small>{today}</small><h1>Seu progresso</h1></span>
+    <div className="page pg-page" ref={pageRef}>
+      <header className="pg-heading">
+        <small>{today}</small>
+        <h1>Seu progresso</h1>
       </header>
 
-      <section className="progress-v2-hero">
-        <div className="progress-v2-copy">
-          <small>NÍVEL {level}</small>
-          <h2>Raciocínio clínico</h2>
-          <strong>{loading ? "…" : `${xp.toLocaleString("pt-BR")} XP`}</strong>
-          <p>
+      <section className="pg-hero">
+        <div className="pg-hero-main">
+          <div className="pg-level">
+            <span className="pg-level-badge" aria-hidden="true"><Award /><b>{level}</b></span>
+            <span>
+              <small>Nível {level}</small>
+              <h2>Raciocínio clínico</h2>
+            </span>
+          </div>
+          <strong className="pg-xp">{loading ? "…" : xp.toLocaleString("pt-BR")}<em>XP</em></strong>
+          <div className="pg-level-track" role="progressbar" aria-valuemin={0} aria-valuemax={500} aria-valuenow={xpInLevel} aria-label="Progresso até o próximo nível">
+            <i style={{ width: `${levelProgress}%` }} />
+          </div>
+          <p className="pg-level-caption">
             {loading
               ? "Carregando seu histórico real…"
-              : !hasEvidence
-                ? "Comece a praticar para gerar sua análise"
-                : `Faltam ${toNextLevel} XP para o próximo nível`}
+              : <><b>{xpInLevel}/500 XP</b> · faltam {toNextLevel} XP para o nível {level + 1}</>}
           </p>
-          <div className="progress-level-track"><i style={{ width:`${levelProgress}%` }} /><b>{levelProgress}%</b></div>
+          <ul className="pg-hero-stats">
+            <li><Flame /><span><b>{streak}</b><small>{streak === 1 ? "dia seguido" : "dias seguidos"}</small></span></li>
+            <li><Stethoscope /><span><b>{consultations}</b><small>{consultations === 1 ? "consulta" : "consultas"}</small></span></li>
+            <li><ClipboardCheck /><span><b>{questions}</b><small>questões</small></span></li>
+          </ul>
         </div>
-        <div className="progress-heart-stage">
-          <span className="progress-heart-halo" />
-          <img src="/semiolab-heart-3d.png" alt="Modelo anatômico tridimensional de um coração" />
-          <aside><i><Award /></i><b>{generalMastery === null ? "—" : `${generalMastery}%`}</b><small>{generalMastery === null ? "sem dados avaliados" : "domínio geral"}</small></aside>
+        <div className="pg-hero-ring">
+          <div className="pg-ring" role="img" aria-label={generalMastery === null ? "Domínio geral sem dados" : `Domínio geral ${generalMastery}%`}>
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle cx="50" cy="50" r="44" className="pg-ring-track" />
+              <circle cx="50" cy="50" r="44" className="pg-ring-fill" strokeDasharray={ringLength} strokeDashoffset={ringLength * (1 - (generalMastery ?? 0) / 100)} />
+            </svg>
+            <span><b>{generalMastery === null ? "—" : `${generalMastery}%`}</b><small>domínio geral</small></span>
+          </div>
+          <p>{generalMastery === null ? "Responda questões para medir seu domínio." : `Média de ${availableScores.length} ${availableScores.length === 1 ? "tema medido" : "temas medidos"}`}</p>
         </div>
       </section>
 
-      <div className="progress-metric-grid">
-        <article><i><Target /></i><span><b>{accuracy === null ? "—" : `${accuracy}%`}</b><small>Acertos nos quizzes</small></span></article>
-        <article><i><ClipboardCheck /></i><span><b>{questions}</b><small>Questões concluídas</small></span></article>
-        <article><i><FileText /></i><span><b>{simuladoAverage === null ? "—" : `${simuladoAverage}%`}</b><small>Média nos simulados</small></span></article>
-        <article><i><Stethoscope /></i><span><b>{patientAverage === null ? "—" : `${patientAverage}%`}</b><small>Média nas consultas</small></span></article>
+      <div className="pg-metrics">
+        {metrics.map(({ icon: Icon, tone, value, label, hint, bar }) => (
+          <article key={label} className={`pg-metric tone-${tone}`}>
+            <i><Icon /></i>
+            <b>{value}</b>
+            <small>{label}</small>
+            <span className={`pg-metric-bar ${bar === null ? "ghost" : ""}`}>{bar !== null && <em style={{ width: `${bar}%` }} />}</span>
+            <p>{hint}</p>
+          </article>
+        ))}
       </div>
 
       {!loading && !hasEvidence && (
-        <section className="clinical-domain-card">
-          <p style={{ padding: "16px 4px" }}>Comece a praticar para gerar sua análise — os dados desta página aparecem assim que você concluir um quiz, simulado ou atendimento.</p>
+        <section className="pg-empty">
+          <Sparkles />
+          <p>Comece a praticar para gerar sua análise — os dados desta página aparecem assim que você concluir um quiz, simulado ou atendimento.</p>
         </section>
       )}
 
-      <section className="clinical-domain-card">
-        <header><span><h2>Domínio clínico</h2><p>Evolução por sistema</p></span><i title="Somente resultados avaliados"><ShieldCheck /></i></header>
-        <div className="clinical-domain-visual">
-          <div className="clinical-human-wrap"><span className="clinical-human-halo" /><img className="clinical-human" src="/semiolab-anatomy-human.png" alt="Representação anatômica frontal do corpo humano com órgãos internos" /></div>
-          {spotlight.map((name, index) => {
-            const system = systems.find((item) => item.name === name)!;
-            const real = realFor(name);
-            return <article key={name} className={`domain-callout domain-${index + 1} ${real?.score == null ? "no-data" : ""}`}>
-              <i><system.icon /></i><span><small>{name === "Abdome e digestório" ? "Digestório" : name}</small><b>{real?.score == null ? "—" : `${real.score}%`}</b></span>
-            </article>;
-          })}
+      <section className="pg-card pg-map">
+        <header className="pg-card-head">
+          <span><small>Mapa clínico</small><h2>Domínio por sistema</h2><p>Explore o corpo e veja onde você já domina e onde precisa treinar.</p></span>
+          <ul className="pg-legend" aria-label="Legenda">
+            <li className="tone-high">Domínio</li>
+            <li className="tone-mid">Em evolução</li>
+            <li className="tone-low">A melhorar</li>
+            <li className="tone-none">Sem medição</li>
+          </ul>
+        </header>
+        <div className="pg-map-grid">
+          <AnatomyStage selected={selectedSystem} onSelect={setSelectedSystem} scoreFor={scoreFor} />
+          <div className="pg-map-side">
+            <article className={`pg-focus tone-${masteryTone(selectedScore)}`} aria-live="polite">
+              <header>
+                <i className={`topic-row-icon ${system.color}`}><system.icon /></i>
+                <span><small>Sistema selecionado</small><h3>{system.name}</h3></span>
+                <b>{selectedScore === null ? `${selectedEvidence}/${selectedTarget}` : `${selectedScore}%`}</b>
+              </header>
+              <p>{system.summary}</p>
+              <ul>{system.topics.map((topic) => <li key={topic}>{topic}</li>)}</ul>
+              <footer>
+                <small>
+                  {selectedScore !== null
+                    ? `${selectedRecord?.status ?? "Medido"} · ${selectedRecord?.evidenceCount ?? 0} respostas avaliadas`
+                    : `Faltam ${selectedTarget - selectedEvidence} respostas para medir`}
+                </small>
+                <button type="button" onClick={() => trainTopic(go, system.name)}>Treinar 5 questões <ChevronRight /></button>
+              </footer>
+            </article>
+            <ol className="pg-rank" aria-label="Avanço por tema">
+              {ranked.map((item) => {
+                const score = scoreFor(item.name);
+                const evidence = Math.min(5, realFor(item.name)?.evidenceCount ?? 0);
+                return (
+                  <li key={item.name}>
+                    <button type="button" className={`tone-${masteryTone(score)} ${selectedSystem === item.name ? "active" : ""}`} onClick={() => setSelectedSystem(item.name)} aria-pressed={selectedSystem === item.name}>
+                      <i className={`topic-row-icon ${item.color}`}><item.icon /></i>
+                      <span className="pg-rank-copy">
+                        <b>{shortTopic(item.name)}</b>
+                        <span className="pg-rank-bar"><em style={{ width: `${score ?? evidence * 20}%` }} /></span>
+                      </span>
+                      <strong>{score === null ? `${evidence}/5` : `${score}%`}</strong>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
         </div>
-        <footer><ShieldCheck /> Dados calculados a partir dos seus resultados reais (quiz 30% + simulado 30% + Paciente IA 40%)</footer>
+        <footer className="pg-card-foot"><ShieldCheck /> Calculado a partir dos seus resultados reais (quiz 30% + simulado 30% + Paciente IA 40%). Temas sem porcentagem mostram quantas respostas faltam para a medição.</footer>
       </section>
 
-      <section className="topic-advance-card">
-        <header><span><h2>Avanço por tema</h2><p>Distribuição do seu aprendizado</p></span></header>
-        <div className="topic-wheel" aria-label="Avanço real distribuído por tema">
-          {topicWheel.map((name, index) => {
-            const system = systems.find((item) => item.name === name)!;
-            const real = realFor(name);
-            const angle = index * 60;
-            const evidence = Math.min(5, real?.evidenceCount ?? 0);
-            return <article key={name} className={`wheel-segment wheel-${index + 1} ${real?.score == null ? "no-data" : ""}`} style={{ "--angle":`${angle}deg`, "--counter-angle":`${-angle}deg`, "--score":`${real?.score ?? evidence * 20}%` } as any}>
-              <i className="wheel-fill" /><span><system.icon /><small>{name === "Abdome e digestório" ? "Digestório" : name}</small><b>{real?.score == null ? `${evidence}/5` : `${real.score}%`}</b></span>
-            </article>;
-          })}
-          <i className="topic-wheel-core"><Activity /><small>DOMÍNIO</small><b>{generalMastery == null ? "—" : `${generalMastery}%`}</b></i>
-        </div>
-        <p className="topic-wheel-note"><ShieldCheck /> Temas com porcentagem já foram medidos. Temas com &quot;2/5&quot; mostram quantas respostas avaliadas faltam para a medição.</p>
+      <section className="pg-card">
+        <header className="pg-card-head">
+          <span><small>Próximos passos</small><h2>Treinos recomendados</h2><p>Começando pelos temas que mais precisam de atenção.</p></span>
+        </header>
         <div className="topic-row-list">
           {prioritizeTopics(summary?.mastery).map((topic) => (
             <TopicRow key={topic} topic={topic} record={realFor(topic)} onTrain={(t) => trainTopic(go, t)} />
@@ -884,23 +1015,37 @@ function Progress({ go }: { go:(s:Screen)=>void }) {
       </section>
 
       {hasEvidence && (
-        <section className="clinical-domain-card">
-          <header><span><h2>Temas por status</h2><p>Dominados, em evolução e a melhorar</p></span></header>
-          <div style={{ padding: "8px 4px", fontSize: 13, lineHeight: 1.8 }}>
-            <p><b>Dominados:</b> {masteredTopics.length ? masteredTopics.map((m) => m.topic).join(", ") : "nenhum ainda"}</p>
-            <p><b>Em evolução:</b> {improvingTopics.length ? improvingTopics.map((m) => m.topic).join(", ") : "nenhum ainda"}</p>
-            <p><b>A melhorar:</b> {weakTopics.length ? weakTopics.map((m) => m.topic).join(", ") : "nenhum ainda"}</p>
-          </div>
-        </section>
-      )}
-
-      {errorCounts.length > 0 && (
-        <section className="clinical-domain-card">
-          <header><span><h2>Erros mais recorrentes</h2><p>Temas com mais revisões pendentes</p></span></header>
-          <div style={{ padding: "8px 4px", fontSize: 13, lineHeight: 1.8 }}>
-            {errorCounts.map((e) => <p key={e.topic}><b>{e.topic}</b> — {e.count} erro{e.count > 1 ? "s" : ""}</p>)}
-          </div>
-        </section>
+        <div className="pg-split">
+          <section className="pg-card">
+            <header className="pg-card-head"><span><small>Visão geral</small><h2>Temas por status</h2></span></header>
+            <div className="pg-status">
+              {[
+                { label: "Dominados", tone: "high", items: masteredTopics },
+                { label: "Em evolução", tone: "mid", items: improvingTopics },
+                { label: "A melhorar", tone: "low", items: weakTopics },
+              ].map((group) => (
+                <div key={group.label} className={`pg-status-group tone-${group.tone}`}>
+                  <small>{group.label}<b>{group.items.length}</b></small>
+                  <p>{group.items.length ? group.items.map((m) => <span key={m.topic}>{m.topic}</span>) : <em>Nenhum ainda</em>}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+          {errorCounts.length > 0 && (
+            <section className="pg-card">
+              <header className="pg-card-head"><span><small>Caderno de erros</small><h2>Erros mais recorrentes</h2></span></header>
+              <ul className="pg-errors">
+                {errorCounts.map((e) => (
+                  <li key={e.topic}>
+                    <span><b>{e.topic}</b><small>{e.count} erro{e.count > 1 ? "s" : ""}</small></span>
+                    <i><em style={{ width: `${(e.count / maxErrors) * 100}%` }} /></i>
+                  </li>
+                ))}
+              </ul>
+              <button type="button" className="pg-link" onClick={() => { queueQuizView("errors"); go("quiz"); }}>Revisar caderno de erros <ChevronRight /></button>
+            </section>
+          )}
+        </div>
       )}
     </div>
   );
@@ -1401,7 +1546,7 @@ export default function SemioLab() {
         {view}
       </div>
       {checkin && <Checkin close={() => setCheckin(false)} />}
-      <PwaOnboarding userId={user.id} />
+      <PwaOnboarding userId={user.id} blocked={checkin} />
       <ProUpgradeModal userId={user.id} />
       <DailyLimitInfoModal />
     </main>

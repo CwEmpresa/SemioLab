@@ -189,32 +189,48 @@ export default function FlashcardsExperience({ onQuiz }: { onQuiz: (topic: strin
         ) : card ? (
           <>
             <div className="fc-progress" aria-hidden="true"><i style={{ width: `${(index / cards.length) * 100}%` }} /></div>
+            <p className="fc-session-meta"><span>{reviewed} {reviewed === 1 ? "revisada" : "revisadas"}</span><span>{cards.length - index} {cards.length - index === 1 ? "restante" : "restantes"}</span></p>
             <div className="fc-stage">
+              <span className="fc-stack" aria-hidden="true" />
               <button
                 className={`fc-card ${flipped ? "flipped" : ""}`}
                 onClick={() => setFlipped((f) => !f)}
                 aria-label={flipped ? "Mostrar a pergunta" : "Mostrar a resposta"}
               >
                 <span className="fc-face fc-front" aria-hidden={flipped}>
-                  <small>{card.isNew ? "Carta nova" : "Revisão"}</small>
-                  <b>{card.front}</b>
-                  <em><RotateCcw /> Toque para ver a resposta</em>
+                  <span className="fc-face-head">
+                    <small className={card.isNew ? "fc-tag new" : "fc-tag"}>{card.isNew ? "Carta nova" : "Revisão"}</small>
+                    <em>{index + 1}/{cards.length}</em>
+                  </span>
+                  <span className="fc-face-body">
+                    <small>Pergunta</small>
+                    <b>{card.front}</b>
+                  </span>
+                  <span className="fc-face-foot"><RotateCcw /> Toque ou pressione espaço para virar</span>
                 </span>
                 <span className="fc-face fc-back" aria-hidden={!flipped}>
-                  <small>Resposta</small>
-                  <b>{card.back}</b>
+                  <span className="fc-face-head">
+                    <small className="fc-tag answer">Resposta</small>
+                    <em>{deck.title}</em>
+                  </span>
+                  <span className="fc-face-body">
+                    <small>{card.front}</small>
+                    <b>{card.back}</b>
+                  </span>
+                  <span className="fc-face-foot">Como foi lembrar desta resposta?</span>
                 </span>
               </button>
             </div>
             <div className={`fc-grades ${flipped ? "visible" : ""}`}>
               {flipped ? (
-                GRADES.map((g) => (
+                GRADES.map((g, i) => (
                   <button key={g.grade} className={`fc-grade tone-${g.tone}`} onClick={() => answer(g.grade)} disabled={saving}>
+                    <kbd aria-hidden="true">{i + 1}</kbd>
                     <b>{g.label}</b><small>{g.hint}</small>
                   </button>
                 ))
               ) : (
-                <button className="study-btn primary wide" onClick={() => setFlipped(true)}>Mostrar resposta</button>
+                <button className="study-btn primary wide fc-reveal" onClick={() => setFlipped(true)}>Mostrar resposta <kbd aria-hidden="true">espaço</kbd></button>
               )}
             </div>
             <p className="fc-keys">Atalhos: espaço vira a carta, teclas 1 a 4 respondem.</p>

@@ -5,11 +5,9 @@ import { useLearningSummary, peekQueuedQuizLaunch, peekQueuedQuizView, clearQueu
 import { openProUpgradeModal, openDailyLimitInfo } from "./pro-upgrade-modal";
 import {
   ArrowLeft,
-  BarChart3,
   BookOpenText,
   Check,
   ChevronRight,
-  CircleAlert,
   ClipboardCheck,
   Clock3,
   FileText,
@@ -873,128 +871,113 @@ export default function QuizExperience({
         </div>
       </div>
     );
+  const formats = [
+    {
+      id: "quiz",
+      tone: "teal",
+      icon: Zap,
+      kicker: "Quiz rápido",
+      title: "Objetivo e visual",
+      text: "Questões rápidas com imagens clínicas e correção comentada ao final.",
+      chips: ["Sem tempo", "3–15 questões", "Feedback detalhado"],
+      cta: "Iniciar",
+      disabled: false,
+      onClick: () => setMode("quiz-config"),
+    },
+    {
+      id: "exam",
+      tone: "blue",
+      icon: ClipboardCheck,
+      kicker: "Simulado clínico",
+      title: "Raciocínio completo",
+      text: "Casos extensos com tempo total e avaliação detalhada por conceitos.",
+      chips: ["15 min", "3 casos", "Avaliação por conceito"],
+      cta: "Configurar",
+      disabled: false,
+      onClick: () => setMode("exam-config"),
+    },
+    {
+      id: "simulado",
+      tone: "violet",
+      icon: Target,
+      kicker: "Simulado objetivo",
+      title: "10 questões inéditas",
+      text: "Questões fixas, sem repetição, que você pode retomar se sair no meio.",
+      chips: ["10 questões", "Nunca repete", "Retomável"],
+      cta: simuladoLoading ? "Carregando…" : "Iniciar",
+      disabled: simuladoLoading,
+      onClick: () => { setSimuladoMode("config"); startSimulado(); },
+    },
+  ];
   return (
-    <div className="page quiz-ui quiz-home">
-      <div className="quiz-top">
-        <button onClick={() => go("home")}>
-          <ArrowLeft />
-        </button>
-        <span>
-          <small>PRÁTICA E AVALIAÇÃO</small>
-          <h1>Quiz e simulados</h1>
-        </span>
-        <button
-          className="quiz-insights-button"
-          onClick={() => setMode("errors")}
-          aria-label="Abrir caderno de erros"
-        >
-          <BarChart3 />
-          {savedErrors.length > 0 && <i>{savedErrors.length}</i>}
-        </button>
-      </div>
-      <section className="quiz-landing-hero">
-        <span>
-          <h2>
-            Treine decisões.<br />
-            Evolua na <em>prática.</em>
-          </h2>
-          <p>
-            Escolha o formato ideal para o seu momento de estudo.
-          </p>
-        </span>
-        <div className="quiz-medical-cross" aria-hidden="true">
-          <i />
-          <i />
+    <div className="page quiz-ui qh-page">
+      <section className="hd-band qh-band">
+        <header className="qh-band-top">
+          <button className="qh-back" onClick={() => go("home")} aria-label="Voltar para o início">
+            <ArrowLeft />
+          </button>
+          <span>
+            <small>Prática e avaliação</small>
+            <h1>Quiz e simulados</h1>
+          </span>
+        </header>
+        <p className="qh-band-lead">Treine decisões e evolua na prática — da revisão rápida ao caso clínico completo.</p>
+        <div className="qh-band-stats">
+          <div>
+            <b>{attempts}</b>
+            <small>Atividades concluídas</small>
+          </div>
+          <button type="button" onClick={() => setMode("errors")}>
+            <b>{savedErrors.length}</b>
+            <small>Erros para revisar <ChevronRight /></small>
+          </button>
         </div>
       </section>
 
-      <section className="quiz-format-grid">
-        <article className="quiz-format-card quiz-fast-card">
-          <header>
-            <span><Zap /> QUIZ RÁPIDO</span>
-          </header>
-          <div className="quiz-format-copy">
-            <h2>Objetivo e visual</h2>
-            <p>Questões rápidas, imagens clínicas e correção ao final.</p>
-          </div>
-          <div className="quiz-coin" aria-hidden="true">
-            <span><Zap /></span>
-          </div>
-          <div className="quiz-format-facts">
-            <span><Clock3 /><b>Sem tempo</b><small>para responder</small></span>
-            <span><FileText /><b>3–15</b><small>questões</small></span>
-            <span><Check /><b>Feedback</b><small>detalhado</small></span>
-          </div>
-          <div className="quiz-format-status">
-            <BarChart3 />
-            <span><small>Atividades concluídas</small><b>{attempts}</b></span>
-          </div>
-          <button className="quiz-format-cta" onClick={() => setMode("quiz-config")}>
-            Iniciar quiz <ChevronRight />
-          </button>
-        </article>
+      <div className="hd-sheet qh-sheet">
+        <header className="qh-section-head">
+          <small>Escolha o formato</small>
+          <h2>Como você quer treinar hoje?</h2>
+        </header>
+        <div className="qh-list">
+          {formats.map((format) => (
+            <button key={format.id} type="button" className={`qh-row tone-${format.tone}`} disabled={format.disabled} onClick={format.onClick}>
+              <i className="qh-row-icon"><format.icon /></i>
+              <span className="qh-row-copy">
+                <small>{format.kicker}</small>
+                <b>{format.title}</b>
+                <span>{format.text}</span>
+                <span className="qh-chips">{format.chips.map((chip) => <em key={chip}>{chip}</em>)}</span>
+              </span>
+              <span className="qh-row-cta">{format.cta} <ChevronRight /></span>
+            </button>
+          ))}
+        </div>
 
-        <article className="quiz-format-card quiz-clinical-card">
-          <header>
-            <span><ClipboardCheck /> SIMULADO CLÍNICO</span>
-          </header>
-          <div className="quiz-format-copy">
-            <h2>Raciocínio completo</h2>
-            <p>Casos extensos, tempo total e avaliação detalhada.</p>
-          </div>
-          <div className="quiz-clipboard" aria-hidden="true">
-            <span><Check /></span>
-            <i />
-          </div>
-          <div className="quiz-format-facts">
-            <span><Clock3 /><b>15 min</b><small>tempo total</small></span>
-            <span><FileText /><b>3 casos</b><small>clínicos</small></span>
-            <span><Target /><b>Avaliação</b><small>por conceitos</small></span>
-          </div>
-          <button className="quiz-format-cta" onClick={() => setMode("exam-config")}>
-            Configurar simulado <ChevronRight />
-          </button>
-        </article>
+        <button
+          type="button"
+          className="qh-row qh-mixed tone-amber"
+          onClick={() => {
+            setTopic("Todos");
+            setAmount(10);
+            startQuiz("Todos", 10);
+          }}
+        >
+          <i className="qh-row-icon"><Sparkles /></i>
+          <span className="qh-row-copy">
+            <small>Atalho</small>
+            <b>Treino misto</b>
+            <span>10 questões variadas de todos os temas de Semiologia.</span>
+          </span>
+          <span className="qh-row-cta">Começar <ChevronRight /></span>
+        </button>
 
-        <article className="quiz-format-card">
-          <header>
-            <span><Target /> SIMULADO (10 QUESTÕES)</span>
-          </header>
-          <div className="quiz-format-copy">
-            <h2>Simulado objetivo</h2>
-            <p>10 questões fixas, sem repetição, com contador diário por plano.</p>
-          </div>
-          <div className="quiz-format-facts">
-            <span><FileText /><b>10</b><small>questões</small></span>
-            <span><Check /><b>Nunca repete</b><small>por usuário</small></span>
-            <span><Clock3 /><b>Retomável</b><small>se sair no meio</small></span>
-          </div>
-          <button
-            className="quiz-format-cta"
-            disabled={simuladoLoading}
-            onClick={() => { setSimuladoMode("config"); startSimulado(); }}
-          >
-            {simuladoLoading ? "Carregando..." : "Iniciar simulado"} <ChevronRight />
-          </button>
-        </article>
-      </section>
-
-      <button
-        className="quiz-resume-strip"
-        onClick={() => {
-          setTopic("Todos");
-          setAmount(10);
-          startQuiz("Todos", 10);
-        }}
-      >
-        <i><Target /></i>
-        <span>
-          <b>Começar treino misto</b>
-          <small>Questões variadas de Semiologia</small>
-        </span>
-        <em>Iniciar agora</em>
-        <ChevronRight />
-      </button>
+        <button type="button" className="qh-errors-link" onClick={() => setMode("errors")}>
+          <BookOpenText />
+          <span><b>Caderno de erros</b><small>{savedErrors.length ? `${savedErrors.length} ${savedErrors.length === 1 ? "questão salva" : "questões salvas"} para revisar` : "Suas questões erradas aparecem aqui"}</small></span>
+          <ChevronRight />
+        </button>
+      </div>
     </div>
   );
 }
