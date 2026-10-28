@@ -180,7 +180,11 @@ export default function ProUpgradeModal({ userId }: { userId: string }) {
           {checkoutUrls ? (
             <a
               className="pro-unlock"
-              href={checkoutLoading ? undefined : checkoutUrls[plan]}
+              // O href fica sempre presente: o React 19 aplica o setState do
+              // clique num microtask, antes do navegador seguir o link — tirar
+              // o href no "loading" cancelava a abertura do checkout. O duplo
+              // clique já é barrado pelo preventDefault abaixo.
+              href={checkoutUrls[plan]}
               target="_blank"
               rel="noopener noreferrer"
               aria-disabled={!!checkoutLoading}
