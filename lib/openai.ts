@@ -52,8 +52,10 @@ export function resolvePatientVoice(sex: string, age: number): { voice: OpenAiVo
 }
 export const OPENAI_QUESTION_MODEL = process.env.OPENAI_QUESTION_MODEL || OPENAI_MODEL;
 /** Chave de segurança: interrompe a geração de questões imediatamente,
- * sem precisar de novo deploy — padrão desligado por segurança. */
-export const QUESTION_GENERATION_ENABLED = process.env.QUESTION_GENERATION_ENABLED === "true";
+ * sem precisar de novo deploy: defina QUESTION_GENERATION_ENABLED=false.
+ * Ligada por padrão — desligada, o banco ficou meses com 3 questões em
+ * quatro temas. O teto de custo diário continua valendo. */
+export const QUESTION_GENERATION_ENABLED = process.env.QUESTION_GENERATION_ENABLED !== "false";
 
 let client: OpenAI | null = null;
 

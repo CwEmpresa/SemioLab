@@ -117,11 +117,25 @@ async function generateBatch(
   count: number,
 ): Promise<Candidate[]> {
   const client = getOpenAIClient();
+  // O que já existe neste tema: sem isso o modelo repetia os mesmos
+  // assuntos com outras palavras (a deduplicação só pega texto idêntico).
+  const { data: existing } = await service
+    .from("simulado_questions")
+    .select("text")
+    .eq("topic", topic)
+    .eq("status", "published")
+    .order("created_at", { ascending: false })
+    .limit(60);
+  const alreadyCovered = (existing ?? []).map((row) => `- ${String(row.text).replace(/\s+/g, " ").slice(0, 110)}`);
   const prompt = [
     `Gere ${count} questões de múltipla escolha de semiologia médica, em português do Brasil, sobre o tema "${topic}", dificuldade "${difficulty}".`,
     "Foque em: anamnese, sinais e sintomas, exame físico, raciocínio clínico e interpretação inicial de exames.",
     "NUNCA inclua doses, posologia, prescrição de medicamentos, condutas terapêuticas controversas, nem perguntas que dependam de uma data/época específica.",
     "Cada questão precisa ter exatamente 4 alternativas, sendo só UMA inequivocamente correta.",
+    "Varie os subtemas entre as questões deste lote e prefira vinhetas clínicas curtas (paciente, queixa, achado) a perguntas de pura definição.",
+    ...(alreadyCovered.length
+      ? ["Questões que JÁ EXISTEM neste tema — não repita o mesmo assunto nem o mesmo achado:", ...alreadyCovered]
+      : []),
     'Responda APENAS com JSON no formato: {"questions":[{"topic":string,"subtopic":string|null,"difficulty":"facil"|"medio"|"dificil","text":string,"options":[string,string,string,string],"correctIndex":0-3,"explanation":string,"tags":string[]}]}',
   ].join("\n");
 
@@ -175,7 +189,7 @@ export async function generateAndValidateBatch(
 
     if (structuralReason) {
       await service.from("simulado_questions").insert({
-        id, topic: q.topic, subtopic: q.subtopic, difficulty: q.difficulty, text: q.text,
+        id, topic, subtopic: q.subtopic, difficulty: q.difficulty, text: q.text,
         options: q.options, correct_index: q.correctIndex, explanation: q.explanation, tags: q.tags,
         status: "rejected", rejection_reason: structuralReason, content_hash: null,
         source: "ai_generated", question_type: "ambos", is_active: false,
@@ -205,7 +219,7 @@ export async function generateAndValidateBatch(
 
     if (!coherence.ok) {
       await service.from("simulado_questions").insert({
-        id, topic: q.topic, subtopic: q.subtopic, difficulty: q.difficulty, text: q.text,
+        id, topic, subtopic: q.subtopic, difficulty: q.difficulty, text: q.text,
         options: q.options, correct_index: q.correctIndex, explanation: q.explanation, tags: q.tags,
         status: "rejected", rejection_reason: `reprovada na checagem de coerência: ${coherence.reason}`, content_hash: null,
         source: "ai_generated", question_type: "ambos", is_active: false,
@@ -215,7 +229,7 @@ export async function generateAndValidateBatch(
     }
 
     const { error: insertError } = await service.from("simulado_questions").insert({
-      id, topic: q.topic, subtopic: q.subtopic, difficulty: q.difficulty, text: q.text,
+      id, topic, subtopic: q.subtopic, difficulty: q.difficulty, text: q.text,
       options: q.options, correct_index: q.correctIndex, explanation: q.explanation, tags: q.tags,
       status: "published", content_hash: hash, source: "ai_generated", question_type: "ambos", is_active: true,
     });

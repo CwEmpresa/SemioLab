@@ -32,7 +32,11 @@ async function pickTarget(service: ReturnType<typeof createServiceClient>): Prom
   const countsByTopic = await countPublishedByTopic(service);
   const total = await countPublishedTotal(service);
 
-  const belowQuiz = TOPICS.find((t) => (countsByTopic[t] ?? 0) < QUIZ_TARGET_PER_TOPIC);
+  // O tema mais vazio primeiro. Antes pegava o primeiro da lista abaixo da
+  // meta, então os temas com 3 questões só seriam atendidos por último.
+  const belowQuiz = [...TOPICS]
+    .sort((a, b) => (countsByTopic[a] ?? 0) - (countsByTopic[b] ?? 0))
+    .find((t) => (countsByTopic[t] ?? 0) < QUIZ_TARGET_PER_TOPIC);
   if (belowQuiz) return { topic: belowQuiz, reason: `completar Quiz (${countsByTopic[belowQuiz] ?? 0}/${QUIZ_TARGET_PER_TOPIC}) no tema ${belowQuiz}` };
 
   const weakest = () => [...TOPICS].sort((a, b) => (countsByTopic[a] ?? 0) - (countsByTopic[b] ?? 0))[0];
