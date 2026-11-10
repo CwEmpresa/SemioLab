@@ -1,3 +1,4 @@
+import { getAuthUserId } from "@/lib/auth-fast";
 import { createClient } from "@/lib/supabase/server";
 import { resolveUserAccess } from "@/lib/user-access";
 import { startOfBrasiliaDayUtc } from "@/lib/ai-usage";
@@ -52,9 +53,8 @@ async function dailyAllowance(supabase: Awaited<ReturnType<typeof createClient>>
 
 async function getContext() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const authUserId = await getAuthUserId(supabase);
+  const user = authUserId ? { id: authUserId } : null;
   return { supabase, user };
 }
 

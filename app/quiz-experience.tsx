@@ -1,13 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLearningSummary, peekQueuedQuizLaunch, peekQueuedQuizView, clearQueuedQuizLaunch } from "./use-learning-summary";
 import { openProUpgradeModal, openDailyLimitInfo } from "./pro-upgrade-modal";
+import {
+  AnswerFeedback,
+  ReviewCard,
+  TopicErrorTable,
+  aggregateTopicStats,
+  celebrate,
+  letterOf,
+  type AnswerFeedbackData,
+  type ReviewItem,
+} from "./quiz-feedback";
+import "./quiz-feedback.css";
 import {
   ArrowLeft,
   BookOpenText,
   Check,
+  ChevronDown,
   ChevronRight,
+  CircleAlert,
   ClipboardCheck,
   Clock3,
   FileText,
@@ -27,14 +40,21 @@ type SavedError = {
   explanation: string;
   createdAt?: number;
 };
-type ClinicalCase = {
-  id: string;
-  topic: string;
+type AttemptRow = { topic?: string; topic_results?: { topic: string; total: number; correct: number }[] | null };
+type PublicClinicalCase = { id: string; topic: string; title: string; prompt: string; asks: string[] };
+type CaseGrade = {
+  caseId: string;
   title: string;
-  prompt: string;
-  expected: string[];
+  topic: string;
+  score: number;
+  items: { id: string; label: string; points: number; earned: number; status: "ok" | "partial" | "missing"; comment: string }[];
+  errors: string[];
+  feedback: string;
+  modelAnswer: string;
   explanation: string;
 };
+type QuizQuestion = { id: string; topic: string; difficulty: string; text: string; options: string[] };
+type QuizResult = ReviewItem & { questionId: string };
 type Mode =
   | "home"
   | "quiz-config"
@@ -45,72 +65,90 @@ type Mode =
   | "exam-result"
   | "errors";
 
-
-const clinicalCases: ClinicalCase[] = [
-  {
-    id: "case-cv",
-    topic: "Cardiovascular",
-    title: "Dispneia progressiva e edema",
-    prompt:
-      "Mulher de 58 anos, hipertensa, apresenta dispneia aos esforços, ortopneia, ganho de 3 kg em uma semana e edema bilateral. PA 162/98 mmHg, FC 108 bpm, SpO₂ 91%, B3 e crepitações bibasais. Escreva a hipótese principal, três exames prioritários e a conduta inicial justificada.",
-    expected: [
-      "insuficiencia cardiaca",
-      "ecocardiograma",
-      "eletrocardiograma",
-      "bnp",
-      "diuret",
-      "oxigen",
-      "monitor",
-    ],
-    explanation:
-      "O quadro sugere insuficiência cardíaca descompensada. A resposta deve integrar confirmação estrutural/funcional, avaliação de congestão e estabilização inicial.",
-  },
-  {
-    id: "case-rp",
-    topic: "Respiratório",
-    title: "Dor pleurítica e hipoxemia",
-    prompt:
-      "Homem de 44 anos apresenta dispneia súbita e dor torácica ventilatório-dependente após viagem longa. FC 116 bpm, FR 28 irpm, SpO₂ 89%, ausculta sem consolidação. Estruture hipótese, diferenciais, investigação inicial e medida imediata de segurança.",
-    expected: [
-      "tromboembol",
-      "embolia",
-      "angio",
-      "d dimero",
-      "oxigen",
-      "anticoag",
-      "estratifica",
-    ],
-    explanation:
-      "O caso exige reconhecer probabilidade de tromboembolismo pulmonar, avaliar estabilidade e selecionar exames conforme probabilidade clínica.",
-  },
-  {
-    id: "case-ne",
-    topic: "Neurológico",
-    title: "Déficit focal agudo",
-    prompt:
-      "Paciente de 67 anos inicia há 50 minutos fala arrastada, desvio da rima e fraqueza em braço direito. Glicemia capilar 104 mg/dL, PA 178/102 mmHg. Descreva localização provável, avaliação imediata e exames que não podem atrasar.",
-    expected: [
-      "avc",
-      "acidente vascular",
-      "tomografia",
-      "nihss",
-      "tempo",
-      "trombol",
-      "glicemia",
-    ],
-    explanation:
-      "O raciocínio deve priorizar AVC agudo, horário de início, escala neurológica e neuroimagem urgente para diferenciar isquemia de hemorragia.",
-  },
-];
-
 const QUIZ_TOPICS = ["Cardiovascular", "Respiratório", "Neurológico", "Abdome", "Anamnese", "Exame físico"];
 const topics = ["Todos", ...QUIZ_TOPICS];
 const QUIZ_AMOUNT_CHOICES = [5, 10, 20] as const;
-const normalized = (value: string) =>
-  value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+const PASS_RATE = 70;
+
+async function postJson<T>(url: string, body: unknown): Promise<{ ok: boolean; status: number; data: T }> {
+  const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const data = (await response.json().catch(() => ({}))) as T;
+  return { ok: response.ok, status: response.status, data };
+}
+
+function ScoreRing({ value, label = "pontos" }: { value: number; label?: string }) {
+  const r = 52;
+  const length = 2 * Math.PI * r;
+  const tone = value >= PASS_RATE ? "good" : value >= 50 ? "mid" : "low";
+  return (
+    <div className={`qf-ring tone-${tone}`} role="img" aria-label={`${value} ${label}`}>
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle className="track" cx="60" cy="60" r={r} />
+        <circle className="fill" cx="60" cy="60" r={r} strokeDasharray={length} strokeDashoffset={length * (1 - Math.max(0, Math.min(100, value)) / 100)} />
+      </svg>
+      <span>
+        <b>{value}</b>
+        <small>{label}</small>
+      </span>
+    </div>
+  );
+}
+
+function ClinicalGradeCard({ index, grade, pending, answer }: { index: number; grade?: CaseGrade; pending: boolean; answer: string }) {
+  const [open, setOpen] = useState(false);
+  if (pending || !grade) {
+    return (
+      <article className="qf-case pending" aria-busy="true">
+        <header>
+          <b>{index + 1}</b>
+          <span><small>CORRIGINDO</small><p>Analisando sua resposta...</p></span>
+        </header>
+        <p className="qf-skeleton"><span /><span /><span /></p>
+      </article>
+    );
+  }
+  const verdict = grade.score >= PASS_RATE ? "correct" : grade.score >= 50 ? "partial" : "wrong";
+  return (
+    <article className={`qf-case ${verdict} ${open ? "open" : ""}`}>
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+        <b>{index + 1}</b>
+        <span>
+          <small>{verdict === "correct" ? "CORRETO" : verdict === "partial" ? "PARCIAL" : "REVISAR"} · {grade.topic.toUpperCase()}</small>
+          <p>{grade.title}</p>
+        </span>
+        <em>{grade.score}</em>
+        <ChevronDown className="qf-chevron" />
+      </button>
+      <ul className="qf-rubric">
+        {grade.items.map((item) => (
+          <li key={item.id} className={item.status}>
+            <i>{item.status === "ok" ? <Check /> : item.status === "partial" ? <CircleAlert /> : <X />}</i>
+            <span>
+              <b>{item.label}</b>
+              {item.comment && <small>{item.comment}</small>}
+            </span>
+            <em>{item.earned}/{item.points}</em>
+          </li>
+        ))}
+      </ul>
+      {grade.errors.length > 0 && (
+        <div className="qf-case-errors">
+          <small><CircleAlert /> Pontos descontados por informação incorreta</small>
+          <ul>{grade.errors.map((e) => <li key={e}>{e}</li>)}</ul>
+        </div>
+      )}
+      {grade.feedback && <p className="qf-case-feedback">{grade.feedback}</p>}
+      {open && (
+        <div className="qf-review-body">
+          <p><b>Sua resposta:</b> {answer || "Sem resposta"}</p>
+          <p><b>Resposta esperada:</b> {grade.modelAnswer}</p>
+          <p><b>Raciocínio do caso:</b> {grade.explanation}</p>
+        </div>
+      )}
+      {!open && <button type="button" className="qf-more" onClick={() => setOpen(true)}>Ver resposta esperada e explicação <ChevronRight /></button>}
+    </article>
+  );
+}
 
 export default function QuizExperience({
   go,
@@ -129,29 +167,42 @@ export default function QuizExperience({
     if (firstQuiz) { sessionStorage.removeItem("semiolab:first-quiz-amount"); return Number(firstQuiz) || 10; }
     return 10;
   });
-  const [active, setActive] = useState<{ id: string; topic: string; difficulty: string; text: string; options: string[] }[]>([]);
+  const [active, setActive] = useState<QuizQuestion[]>([]);
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<number[]>([]);
-  const [quizResults, setQuizResults] = useState<{ questionId: string; correct: boolean; correctText: string; explanation: string }[]>([]);
+  const [quizFeedback, setQuizFeedback] = useState<AnswerFeedbackData | null>(null);
+  const [quizChecking, setQuizChecking] = useState(false);
+  const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
   const [quizStartLoading, setQuizStartLoading] = useState(false);
   const { summary: learning } = useLearningSummary();
   const [savedErrors, setSavedErrors] = useState<SavedError[]>([]);
-  const [attempts, setAttempts] = useState(0);
+  const [attemptRows, setAttemptRows] = useState<AttemptRow[]>([]);
   const [simuladoMode, setSimuladoMode] = useState<"config" | "play" | "result" | "blocked" | "insufficient">("config");
   const [simuladoAttemptId, setSimuladoAttemptId] = useState<string | null>(null);
-  const [simuladoQuestions, setSimuladoQuestions] = useState<{ id: string; topic: string; text: string; options: string[] }[]>([]);
+  const [simuladoQuestions, setSimuladoQuestions] = useState<{ id: string; topic: string; text: string; options: string[]; answered?: boolean }[]>([]);
   const [simuladoIndex, setSimuladoIndex] = useState(0);
   const [simuladoSelected, setSimuladoSelected] = useState<number | null>(null);
-  const [simuladoFeedback, setSimuladoFeedback] = useState<{ correct: boolean; correctIndex: number; explanation: string } | null>(null);
+  const [simuladoChecking, setSimuladoChecking] = useState(false);
+  const [simuladoFeedback, setSimuladoFeedback] = useState<(AnswerFeedbackData & { correctIndex: number }) | null>(null);
+  const [simuladoReview, setSimuladoReview] = useState<QuizResult[]>([]);
   const [simuladoResult, setSimuladoResult] = useState<{ total: number; correct: number; score: number } | null>(null);
   const [simuladoBlocked, setSimuladoBlocked] = useState<{ message: string; usedToday?: number; limitToday?: number; available?: number } | null>(null);
   const [simuladoLoading, setSimuladoLoading] = useState(false);
+  const [clinicalCases, setClinicalCases] = useState<PublicClinicalCase[]>([]);
+  const [clinicalLoading, setClinicalLoading] = useState(false);
+  const [clinicalError, setClinicalError] = useState("");
   const [caseIndex, setCaseIndex] = useState(0);
   const [caseAnswers, setCaseAnswers] = useState<string[]>([]);
+  const [caseGrades, setCaseGrades] = useState<Record<string, CaseGrade>>({});
   const [caseText, setCaseText] = useState("");
   const [examSeconds, setExamSeconds] = useState(900);
   const [topicCounts, setTopicCounts] = useState<Record<string, number>>({});
+  const examSavedRef = useRef(false);
+  const celebratedRef = useRef<string | null>(null);
+  const examLiveRef = useRef({ index: 0, text: "", answers: [] as string[], cases: [] as PublicClinicalCase[] });
+  useEffect(() => {
+    examLiveRef.current = { index: caseIndex, text: caseText, answers: caseAnswers, cases: clinicalCases };
+  });
 
   useEffect(() => {
     fetch("/api/learning")
@@ -159,7 +210,7 @@ export default function QuizExperience({
       .then((data) => {
         if (data) {
           setSavedErrors(data.errors || []);
-          setAttempts((data.attempts || []).length);
+          setAttemptRows(data.attempts || []);
         }
       })
       .catch(() => {});
@@ -171,22 +222,51 @@ export default function QuizExperience({
       .catch(() => {});
     clearQueuedQuizLaunch();
     if (pendingLaunch) startQuiz(pendingLaunch.topic, pendingLaunch.amount);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const maxAmount = Math.min(20, topic === "Todos" ? Object.values(topicCounts).reduce((a, b) => a + b, 0) : topicCounts[topic] ?? 0);
-  const score = quizResults.filter((r) => r.correct).length;
-  const caseScore = useMemo(
-    () =>
-      caseAnswers.reduce((total, answer, index) => {
-        const hits = clinicalCases[index].expected.filter((key) =>
-          normalized(answer).includes(normalized(key)),
-        ).length;
-        return (
-          total +
-          Math.round((hits / clinicalCases[index].expected.length) * 100)
-        );
-      }, 0) / clinicalCases.length,
-    [caseAnswers],
-  );
+  const quizScore = quizResults.filter((r) => r.correct).length;
+  const quizPct = active.length ? Math.round((quizScore / active.length) * 100) : 0;
+  const topicStats = aggregateTopicStats(attemptRows);
+
+  // Simulado clínico: nota = média dos casos já corrigidos.
+  const gradedList = clinicalCases.map((c) => caseGrades[c.id]).filter(Boolean) as CaseGrade[];
+  const allCasesGraded = clinicalCases.length > 0 && gradedList.length === clinicalCases.length;
+  const caseScore = gradedList.length ? Math.round(gradedList.reduce((s, g) => s + g.score, 0) / gradedList.length) : 0;
+
+  // Confete ao fim de qualquer atividade com aproveitamento ≥ 70%.
+  useEffect(() => {
+    let key: string | null = null;
+    if (mode === "quiz-result" && active.length && quizResults.length === active.length && quizPct >= PASS_RATE) key = `quiz-${active[0]?.id}`;
+    if (mode === "exam-result" && allCasesGraded && caseScore >= PASS_RATE) key = `exam-${clinicalCases[0]?.id}`;
+    if (simuladoMode === "result" && simuladoResult && simuladoResult.score >= PASS_RATE) key = `sim-${simuladoAttemptId}`;
+    if (key && celebratedRef.current !== key) {
+      celebratedRef.current = key;
+      celebrate();
+    }
+  }, [mode, simuladoMode, quizPct, quizResults.length, active, allCasesGraded, caseScore, clinicalCases, simuladoResult, simuladoAttemptId]);
+
+  // Grava o resultado do simulado clínico uma vez, quando tudo foi corrigido.
+  useEffect(() => {
+    if (mode !== "exam-result" || !allCasesGraded || examSavedRef.current) return;
+    examSavedRef.current = true;
+    const topicResults = gradedList.map((g) => ({ topic: g.topic, total: 1, correct: g.score >= PASS_RATE ? 1 : 0 }));
+    setAttemptRows((rows) => [{ topic: "Simulado clínico", topic_results: topicResults }, ...rows]);
+    fetch("/api/learning", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        action: "quiz_result",
+        topic: "Simulado clínico",
+        total: gradedList.length,
+        correct: topicResults.reduce((sum, item) => sum + item.correct, 0),
+        topicResults,
+        errors: [],
+      }),
+    })
+      .then((response) => { if (response.ok) window.dispatchEvent(new Event("semiolab:learning-updated")); })
+      .catch(() => {});
+  }, [mode, allCasesGraded, gradedList]);
 
   useEffect(() => {
     if (mode !== "exam") return;
@@ -203,36 +283,41 @@ export default function QuizExperience({
       1000,
     );
     return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
+  /* ─── Simulado objetivo ─── */
   async function startSimulado() {
     setSimuladoLoading(true);
     setSimuladoFeedback(null);
     try {
-      const response = await fetch("/api/simulados/start", { method: "POST" });
-      const data = await response.json().catch(() => ({}));
-      if (response.status === 403 && data.limitReached) {
-        setSimuladoBlocked({ message: data.error, usedToday: data.simuladosUsedToday, limitToday: data.simuladosLimitToday });
+      const { ok, status, data } = await postJson<{
+        error?: string; limitReached?: boolean; code?: string; simuladosUsedToday?: number; simuladosLimitToday?: number;
+        availableQuestions?: number; attemptId?: string; questions?: { id: string; topic: string; text: string; options: string[]; answered?: boolean }[];
+      }>("/api/simulados/start", {});
+      if (status === 403 && data.limitReached) {
+        setSimuladoBlocked({ message: data.error || "", usedToday: data.simuladosUsedToday, limitToday: data.simuladosLimitToday });
         setSimuladoMode("blocked");
         if (learning?.pro?.tier === "pro") openDailyLimitInfo();
         else openProUpgradeModal(learning?.pro?.tier === "free" ? "simulado" : "limit");
         return;
       }
-      if (response.status === 409 && data.code === "INSUFFICIENT_QUESTION_BANK") {
-        setSimuladoBlocked({ message: data.error, available: data.availableQuestions });
+      if (status === 409 && data.code === "INSUFFICIENT_QUESTION_BANK") {
+        setSimuladoBlocked({ message: data.error || "", available: data.availableQuestions });
         setSimuladoMode("insufficient");
         return;
       }
-      if (!response.ok) {
+      if (!ok) {
         setSimuladoBlocked({ message: data.error || "Não foi possível iniciar o simulado." });
         setSimuladoMode("blocked");
         return;
       }
-      setSimuladoAttemptId(data.attemptId);
+      setSimuladoAttemptId(data.attemptId ?? null);
       setSimuladoQuestions(data.questions || []);
-      const firstUnanswered = (data.questions || []).findIndex((q: { answered?: boolean }) => !q.answered);
+      const firstUnanswered = (data.questions || []).findIndex((q) => !q.answered);
       setSimuladoIndex(firstUnanswered === -1 ? 0 : firstUnanswered);
       setSimuladoSelected(null);
+      setSimuladoReview([]);
       setSimuladoResult(null);
       setSimuladoMode("play");
     } finally {
@@ -241,18 +326,46 @@ export default function QuizExperience({
   }
 
   async function answerSimulado() {
-    if (simuladoSelected === null || !simuladoAttemptId) return;
+    if (simuladoSelected === null || !simuladoAttemptId || simuladoChecking) return;
     const question = simuladoQuestions[simuladoIndex];
-    const response = await fetch("/api/simulados/answer", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ attemptId: simuladoAttemptId, questionId: question.id, selectedIndex: simuladoSelected }),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (response.ok) setSimuladoFeedback({ correct: data.correct, correctIndex: data.correctIndex, explanation: data.explanation });
+    const chosen = simuladoSelected;
+    setSimuladoChecking(true);
+    try {
+      const { ok, data } = await postJson<{ correct: boolean; correctIndex: number; correctText: string; explanation: string; correctWhy: string | null; whyWrong: string | null }>(
+        "/api/simulados/answer",
+        { attemptId: simuladoAttemptId, questionId: question.id, selectedIndex: chosen },
+      );
+      if (!ok) return;
+      const needsWhy = !data.correct && !data.whyWrong;
+      setSimuladoFeedback({ ...data, whyLoading: needsWhy });
+      const review: QuizResult = {
+        id: question.id,
+        questionId: question.id,
+        index: simuladoIndex,
+        topic: question.topic,
+        text: question.text,
+        correct: data.correct,
+        selectedText: question.options[chosen] ?? "",
+        correctText: data.correctText,
+        explanation: data.explanation,
+        correctWhy: data.correctWhy,
+        whyWrong: data.whyWrong,
+      };
+      setSimuladoReview((rows) => [...rows.filter((r) => r.id !== question.id), review]);
+      if (needsWhy) {
+        postJson<{ whyWrong: string | null }>("/api/quiz/why-wrong", { questionId: question.id, selectedText: question.options[chosen] })
+          .then(({ data: why }) => {
+            setSimuladoFeedback((f) => (f && f.correctText === data.correctText ? { ...f, whyWrong: why.whyWrong, whyLoading: false } : f));
+            setSimuladoReview((rows) => rows.map((r) => (r.id === question.id ? { ...r, whyWrong: why.whyWrong } : r)));
+          })
+          .catch(() => setSimuladoFeedback((f) => (f ? { ...f, whyLoading: false } : f)));
+      }
+    } finally {
+      setSimuladoChecking(false);
+    }
   }
 
-  async function nextSimuladoQuestion() {
+  function nextSimuladoQuestion() {
     if (simuladoIndex + 1 < simuladoQuestions.length) {
       setSimuladoIndex((i) => i + 1);
       setSimuladoSelected(null);
@@ -260,130 +373,177 @@ export default function QuizExperience({
       return;
     }
     if (!simuladoAttemptId) return;
-    const response = await fetch("/api/simulados/finish", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ attemptId: simuladoAttemptId }),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (response.ok) setSimuladoResult({ total: data.total, correct: data.correct, score: data.score });
+    // Resultado na hora, calculado com as correções que o aluno já viu; a
+    // confirmação do servidor chega em seguida e substitui se diferir
+    // (ex.: tentativa retomada com questões respondidas em outra sessão).
+    const total = simuladoQuestions.length;
+    const correct = simuladoReview.filter((r) => r.correct).length;
+    setSimuladoResult({ total, correct, score: total ? Math.round((correct / total) * 100) : 0 });
     setSimuladoMode("result");
+    postJson<{ total: number; correct: number; score: number }>("/api/simulados/finish", { attemptId: simuladoAttemptId })
+      .then(({ ok, data }) => {
+        if (ok) setSimuladoResult({ total: data.total, correct: data.correct, score: data.score });
+        window.dispatchEvent(new Event("semiolab:learning-updated"));
+      })
+      .catch(() => {});
   }
 
+  /* ─── Quiz rápido ─── */
   async function startQuiz(overrideTopic?: string, overrideAmount?: number) {
     const effectiveTopic = overrideTopic ?? topic;
     const effectiveAmount = overrideAmount ?? amount;
     setQuizStartLoading(true);
     try {
-      const response = await fetch("/api/quiz/questions", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ topic: effectiveTopic, amount: effectiveAmount }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.questions?.length) return;
+      const { ok, data } = await postJson<{ questions?: QuizQuestion[] }>("/api/quiz/questions", { topic: effectiveTopic, amount: effectiveAmount });
+      if (!ok || !data.questions?.length) return;
       setActive(data.questions);
       setCurrent(0);
-      setAnswers([]);
       setSelected(null);
+      setQuizFeedback(null);
       setQuizResults([]);
       setMode("quiz");
     } finally {
       setQuizStartLoading(false);
     }
   }
-  async function saveQuiz(finalAnswers: number[]) {
-    setAnswers(finalAnswers);
-    setMode("quiz-result");
+
+  async function checkQuizAnswer() {
+    if (selected === null || quizChecking || quizFeedback) return;
+    const question = active[current];
+    const selectedText = question.options[selected];
+    setQuizChecking(true);
     try {
-      const response = await fetch("/api/quiz/submit", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          topic,
-          answers: active.map((q, i) => ({
-            questionId: q.id,
-            selectedText: finalAnswers[i] !== undefined ? q.options[finalAnswers[i]] || "" : "",
-          })),
-        }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (response.ok && data.results) {
-        setQuizResults(data.results);
-        const wrong = data.results
-          .filter((r: { correct: boolean }) => !r.correct)
-          .map((r: { questionId: string; correctText: string; explanation: string }, i: number) => {
-            const q = active.find((item) => item.id === r.questionId);
-            return {
-              questionId: r.questionId,
-              topic: q?.topic || topic,
-              question: q?.text || "",
-              selectedAnswer: q ? q.options[finalAnswers[active.indexOf(q)]] || "Sem resposta" : "",
-              correctAnswer: r.correctText,
-              explanation: r.explanation,
-            };
-          });
-        setSavedErrors((old) => [...wrong, ...old]);
-        setAttempts((v) => v + 1);
-        window.dispatchEvent(new Event("semiolab:learning-updated"));
+      const { ok, data } = await postJson<{ correct: boolean; correctText: string; explanation: string; correctWhy: string | null; whyWrong: string | null }>(
+        "/api/quiz/check",
+        { questionId: question.id, selectedText },
+      );
+      if (!ok) return;
+      const needsWhy = !data.correct && !data.whyWrong;
+      setQuizFeedback({ ...data, whyLoading: needsWhy });
+      const result: QuizResult = {
+        id: question.id,
+        questionId: question.id,
+        index: current,
+        topic: question.topic,
+        text: question.text,
+        correct: data.correct,
+        selectedText,
+        correctText: data.correctText,
+        explanation: data.explanation,
+        correctWhy: data.correctWhy,
+        whyWrong: data.whyWrong,
+      };
+      setQuizResults((rows) => [...rows.filter((r) => r.id !== question.id), result]);
+      if (needsWhy) {
+        postJson<{ whyWrong: string | null }>("/api/quiz/why-wrong", { questionId: question.id, selectedText })
+          .then(({ data: why }) => {
+            setQuizFeedback((f) => (f && f.correctText === data.correctText ? { ...f, whyWrong: why.whyWrong, whyLoading: false } : f));
+            setQuizResults((rows) => rows.map((r) => (r.id === question.id ? { ...r, whyWrong: why.whyWrong } : r)));
+          })
+          .catch(() => setQuizFeedback((f) => (f ? { ...f, whyLoading: false } : f)));
       }
-    } catch {}
-  }
-  function answerQuestion(forced?: number) {
-    const value = forced ?? selected;
-    if (value === null) return;
-    const next = [...answers, value];
-    setSelected(null);
-    if (current === active.length - 1) saveQuiz(next);
-    else {
-      setAnswers(next);
-      setCurrent((v) => v + 1);
+    } finally {
+      setQuizChecking(false);
     }
   }
-  function startExam() {
-    setCaseIndex(0);
-    setCaseAnswers([]);
-    setCaseText("");
-    setExamSeconds(900);
-    setMode("exam");
-  }
-  function saveExamResult(completed: string[]) {
-    const topicResults = clinicalCases.map((item, index) => {
-      const hits = item.expected.filter((key) => normalized(completed[index] || "").includes(normalized(key))).length;
-      return { topic: item.topic, total: 1, correct: hits >= 3 ? 1 : 0 };
-    });
-    fetch("/api/learning", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        action: "quiz_result",
-        topic: "Simulado clínico",
-        total: clinicalCases.length,
-        correct: topicResults.reduce((sum, item) => sum + item.correct, 0),
-        topicResults,
-        errors: [],
-      }),
-    }).then((response) => {
-      if (response.ok) window.dispatchEvent(new Event("semiolab:learning-updated"));
-    }).catch(() => {});
-  }
-  function nextCase() {
-    const next = [...caseAnswers, caseText];
-    setCaseAnswers(next);
-    setCaseText("");
-    if (caseIndex === clinicalCases.length - 1) {
-      setMode("exam-result");
-      saveExamResult(next);
-    } else setCaseIndex((v) => v + 1);
-  }
-  function finishExam() {
-    const completed = [...caseAnswers, caseText];
-    while (completed.length < clinicalCases.length) completed.push("");
-    setCaseAnswers(completed);
-    setMode("exam-result");
-    saveExamResult(completed);
+
+  function nextQuizQuestion() {
+    if (current < active.length - 1) {
+      setCurrent((v) => v + 1);
+      setSelected(null);
+      setQuizFeedback(null);
+      return;
+    }
+    finishQuiz();
   }
 
+  function finishQuiz() {
+    // O resumo aparece na hora (todas as correções já foram feitas questão
+    // a questão); a gravação (XP, caderno de erros, temas) roda por trás.
+    setMode("quiz-result");
+    const wrong = quizResults.filter((r) => !r.correct);
+    setSavedErrors((old) => [
+      ...wrong.map((r) => ({ questionId: r.questionId, topic: r.topic, question: r.text, selectedAnswer: r.selectedText, correctAnswer: r.correctText, explanation: r.explanation })),
+      ...old,
+    ]);
+    const byTopic = new Map<string, { topic: string; total: number; correct: number }>();
+    for (const r of quizResults) {
+      const t = byTopic.get(r.topic) ?? { topic: r.topic, total: 0, correct: 0 };
+      t.total += 1;
+      if (r.correct) t.correct += 1;
+      byTopic.set(r.topic, t);
+    }
+    setAttemptRows((rows) => [{ topic, topic_results: [...byTopic.values()] }, ...rows]);
+    postJson("/api/quiz/submit", {
+      topic,
+      answers: quizResults.map((r) => ({ questionId: r.questionId, selectedText: r.selectedText })),
+    })
+      .then(({ ok }) => { if (ok) window.dispatchEvent(new Event("semiolab:learning-updated")); })
+      .catch(() => {});
+  }
+
+  /* ─── Simulado clínico ─── */
+  async function startExam() {
+    setClinicalLoading(true);
+    setClinicalError("");
+    try {
+      const { ok, data } = await postJson<{ cases?: PublicClinicalCase[]; error?: string }>("/api/clinical/start", {});
+      if (!ok || !data.cases?.length) {
+        setClinicalError(data.error || "Não foi possível montar o simulado agora. Tente de novo.");
+        return;
+      }
+      setClinicalCases(data.cases);
+      setCaseIndex(0);
+      setCaseAnswers([]);
+      setCaseGrades({});
+      setCaseText("");
+      setExamSeconds(900);
+      examSavedRef.current = false;
+      setMode("exam");
+    } finally {
+      setClinicalLoading(false);
+    }
+  }
+
+  function gradeInBackground(c: PublicClinicalCase, answer: string) {
+    postJson<CaseGrade>("/api/clinical/grade", { caseId: c.id, answer })
+      .then(({ ok, data }) => {
+        const grade: CaseGrade = ok
+          ? data
+          : { caseId: c.id, title: c.title, topic: c.topic, score: 0, items: [], errors: [], feedback: "Não foi possível corrigir este caso agora.", modelAnswer: "", explanation: "" };
+        setCaseGrades((g) => ({ ...g, [c.id]: grade }));
+      })
+      .catch(() =>
+        setCaseGrades((g) => ({ ...g, [c.id]: { caseId: c.id, title: c.title, topic: c.topic, score: 0, items: [], errors: [], feedback: "Sem conexão para corrigir este caso.", modelAnswer: "", explanation: "" } })),
+      );
+  }
+
+  function nextCase() {
+    const c = clinicalCases[caseIndex];
+    const next = [...caseAnswers];
+    next[caseIndex] = caseText;
+    setCaseAnswers(next);
+    // A correção começa já, enquanto o aluno lê o próximo caso.
+    gradeInBackground(c, caseText);
+    setCaseText("");
+    if (caseIndex === clinicalCases.length - 1) setMode("exam-result");
+    else setCaseIndex((v) => v + 1);
+  }
+
+  // Tempo esgotado: chamado de dentro do intervalo do cronômetro, então lê
+  // o estado mais recente pelos refs (o closure do intervalo é antigo).
+  function finishExam() {
+    const { index, text, answers, cases } = examLiveRef.current;
+    const completed = [...answers];
+    completed[index] = text;
+    cases.forEach((c, i) => {
+      if (i >= index) gradeInBackground(c, completed[i] || "");
+    });
+    setCaseAnswers(completed);
+    setMode("exam-result");
+  }
+
+  /* ─── Telas ─── */
   if (simuladoMode === "blocked" && simuladoBlocked) {
     return (
       <div className="page auscultation-lab-page patient-wait">
@@ -430,37 +590,34 @@ export default function QuizExperience({
             <i><b style={{ width: `${((simuladoIndex + 1) / simuladoQuestions.length) * 100}%` }} /></i>
           </span>
         </header>
-        <main>
+        <main key={q.id}>
           <small>{q.topic.toUpperCase()} · SIMULADO</small>
           <h1>{q.text}</h1>
-          <div>
-            {q.options.map((option, i) => (
-              <button
-                key={option}
-                className={`${simuladoSelected === i ? "selected" : ""} ${simuladoFeedback ? (i === simuladoFeedback.correctIndex ? "correct" : simuladoSelected === i ? "wrong" : "") : ""}`}
-                disabled={!!simuladoFeedback}
-                onClick={() => setSimuladoSelected(i)}
-              >
-                <i>{String.fromCharCode(65 + i)}</i>
-                {option}
-              </button>
-            ))}
+          <div className={`qf-options ${simuladoFeedback ? "revealed" : ""}`}>
+            {q.options.map((option, i) => {
+              const state = simuladoFeedback
+                ? i === simuladoFeedback.correctIndex ? "correct" : simuladoSelected === i ? "wrong" : "dim"
+                : simuladoSelected === i ? (simuladoChecking ? "selected checking" : "selected") : "";
+              return (
+                <button key={option} className={state} disabled={!!simuladoFeedback || simuladoChecking} onClick={() => setSimuladoSelected(i)}>
+                  <i>{simuladoFeedback && i === simuladoFeedback.correctIndex ? <Check /> : simuladoFeedback && simuladoSelected === i ? <X /> : letterOf(i)}</i>
+                  {option}
+                </button>
+              );
+            })}
           </div>
-          {simuladoFeedback && (
-            <p className="quiz-answer-explanation">
-              {simuladoFeedback.correct ? "Correto! " : "Não foi dessa vez. "}
-              {simuladoFeedback.explanation}
-            </p>
+          {simuladoFeedback && simuladoSelected !== null && (
+            <AnswerFeedback data={simuladoFeedback} selectedLetter={letterOf(simuladoSelected)} correctLetter={letterOf(simuladoFeedback.correctIndex)} />
           )}
           <footer>
             <button onClick={() => { setMode("home"); setSimuladoMode("config"); }}>Encerrar</button>
             {!simuladoFeedback ? (
-              <button className="primary" disabled={simuladoSelected === null} onClick={answerSimulado}>
-                Responder <ChevronRight />
+              <button className="primary" disabled={simuladoSelected === null || simuladoChecking} onClick={answerSimulado}>
+                {simuladoChecking ? "Corrigindo..." : "Responder"} <ChevronRight />
               </button>
             ) : (
               <button className="primary" onClick={nextSimuladoQuestion}>
-                {simuladoIndex + 1 === simuladoQuestions.length ? "Finalizar" : "Próxima"} <ChevronRight />
+                {simuladoIndex + 1 === simuladoQuestions.length ? "Ver resultado" : "Próxima"} <ChevronRight />
               </button>
             )}
           </footer>
@@ -469,15 +626,20 @@ export default function QuizExperience({
     );
   }
   if (simuladoMode === "result" && simuladoResult) {
+    const wrongCount = simuladoResult.total - simuladoResult.correct;
     return (
       <div className="page quiz-ui">
         <header className="simple-back">
-          <button onClick={() => setMode("home")}><ArrowLeft /></button>
+          <button onClick={() => { setMode("home"); setSimuladoMode("config"); }}><ArrowLeft /></button>
           <span><small>RESULTADO</small><b>Simulado concluído</b></span>
         </header>
-        <div className="quiz-config">
-          <h1>{simuladoResult.correct} de {simuladoResult.total} corretas</h1>
-          <p>Aproveitamento de {simuladoResult.score}%.</p>
+        <div className="quiz-result qf-result">
+          <ScoreRing value={simuladoResult.score} label="de 100" />
+          <h1>{simuladoResult.score >= PASS_RATE ? "Mandou bem! Simulado aprovado." : "Simulado concluído. Revise os pontos de atenção."}</h1>
+          <p>Você acertou {simuladoResult.correct} de {simuladoResult.total}{wrongCount ? ` e errou ${wrongCount}` : ""}. Toque em uma questão para ver a explicação completa.</p>
+          <div className="qf-review-list">
+            {[...simuladoReview].sort((a, b) => a.index - b.index).map((item) => <ReviewCard key={item.id} item={item} />)}
+          </div>
           {simuladoAttemptId && (
             <a className="smart-review-cta" href={`/revisao-inteligente/${simuladoAttemptId}`}>
               <i><Sparkles /></i>
@@ -497,8 +659,9 @@ export default function QuizExperience({
       </div>
     );
   }
-  if (mode === "quiz") {
+  if (mode === "quiz" && active[current]) {
     const question = active[current];
+    const correctIndex = quizFeedback ? question.options.indexOf(quizFeedback.correctText) : -1;
     return (
       <div className="quiz-ui quiz-play">
         <header>
@@ -508,43 +671,55 @@ export default function QuizExperience({
           <span>
             Questão {current + 1} de {active.length}
             <i>
-              <b
-                style={{ width: `${((current + 1) / active.length) * 100}%` }}
-              />
+              <b style={{ width: `${((current + 1) / active.length) * 100}%` }} />
             </i>
           </span>
         </header>
-        <main>
+        <main key={question.id}>
           <small>{question.topic.toUpperCase()} · QUIZ RÁPIDO</small>
           <h1>{question.text}</h1>
-          <div>
-            {question.options.map((option, i) => (
-              <button
-                key={option}
-                className={selected === i ? "selected" : ""}
-                onClick={() => setSelected(i)}
-              >
-                <i>{String.fromCharCode(65 + i)}</i>
-                {option}
-              </button>
-            ))}
+          <div className={`qf-options ${quizFeedback ? "revealed" : ""}`}>
+            {question.options.map((option, i) => {
+              const state = quizFeedback
+                ? i === correctIndex ? "correct" : selected === i ? "wrong" : "dim"
+                : selected === i ? (quizChecking ? "selected checking" : "selected") : "";
+              return (
+                <button key={option} className={state} disabled={!!quizFeedback || quizChecking} onClick={() => setSelected(i)}>
+                  <i>{quizFeedback && i === correctIndex ? <Check /> : quizFeedback && selected === i ? <X /> : letterOf(i)}</i>
+                  {option}
+                </button>
+              );
+            })}
           </div>
+          {quizFeedback && selected !== null && (
+            <AnswerFeedback data={quizFeedback} selectedLetter={letterOf(selected)} correctLetter={letterOf(correctIndex)} />
+          )}
           <footer>
             <button onClick={() => setMode("home")}>Encerrar quiz</button>
-            <button
-              className="primary"
-              disabled={selected === null}
-              onClick={() => answerQuestion()}
-            >
-              {current === active.length - 1 ? "Finalizar" : "Responder"}
-              <ChevronRight />
-            </button>
+            {!quizFeedback ? (
+              <button className="primary" disabled={selected === null || quizChecking} onClick={checkQuizAnswer}>
+                {quizChecking ? "Corrigindo..." : "Responder"} <ChevronRight />
+              </button>
+            ) : (
+              <button className="primary" onClick={nextQuizQuestion}>
+                {current === active.length - 1 ? "Ver resumo" : "Próxima"} <ChevronRight />
+              </button>
+            )}
           </footer>
         </main>
       </div>
     );
   }
-  if (mode === "quiz-result")
+  if (mode === "quiz-result") {
+    const thisQuizStats = aggregateTopicStats([
+      {
+        topic_results: [...new Set(quizResults.map((r) => r.topic))].map((t) => ({
+          topic: t,
+          total: quizResults.filter((r) => r.topic === t).length,
+          correct: quizResults.filter((r) => r.topic === t && r.correct).length,
+        })),
+      },
+    ]);
     return (
       <div className="page quiz-ui">
         <header className="simple-back">
@@ -552,46 +727,25 @@ export default function QuizExperience({
             <ArrowLeft />
           </button>
           <span>
-            <small>RESULTADO DO QUIZ</small>
+            <small>RESUMO DO QUIZ</small>
             <b>{topic}</b>
           </span>
         </header>
-        <div className="quiz-result">
-          <div className="score">
-            <b>
-              {active.length ? Math.round((score / active.length) * 100) : 0}
-            </b>
-            <small>pontos</small>
-          </div>
+        <div className="quiz-result qf-result">
+          <ScoreRing value={quizPct} />
           <h1>
-            {score === active.length
+            {quizScore === active.length
               ? "Excelente. Você acertou tudo."
-              : "Quiz concluído. Revise os pontos de atenção."}
+              : quizPct >= PASS_RATE
+                ? "Muito bom! Você passou dos 70%."
+                : "Quiz concluído. Revise os pontos de atenção."}
           </h1>
           <p>
-            Você acertou {score} de {active.length}. Cada erro foi registrado no
-            seu caderno.
+            Você acertou {quizScore} de {active.length}. {quizScore < active.length ? "Os erros foram para o seu caderno. " : ""}Toque em uma questão para ver a explicação completa.
           </p>
-          <div className="answer-list">
-            {active.map((q, i) => {
-              const result = quizResults.find((r) => r.questionId === q.id);
-              const isCorrect = result?.correct ?? false;
-              return (
-                <article
-                  key={q.id}
-                  className={isCorrect ? "correct" : "wrong"}
-                >
-                  <b>{i + 1}</b>
-                  <span>
-                    <small>
-                      {isCorrect ? "RESPOSTA CORRETA" : "REVISAR"}
-                    </small>
-                    <p>{q.text}</p>
-                    <em>{result?.explanation ?? ""}</em>
-                  </span>
-                </article>
-              );
-            })}
+          {thisQuizStats.length > 1 && <TopicErrorTable stats={thisQuizStats} title="Seus erros neste quiz" />}
+          <div className="qf-review-list">
+            {[...quizResults].sort((a, b) => a.index - b.index).map((item) => <ReviewCard key={item.id} item={item} />)}
           </div>
           <div className="result-actions">
             <button onClick={() => setMode("errors")}>
@@ -604,7 +758,8 @@ export default function QuizExperience({
         </div>
       </div>
     );
-  if (mode === "exam") {
+  }
+  if (mode === "exam" && clinicalCases[caseIndex]) {
     const item = clinicalCases[caseIndex],
       minutes = Math.floor(examSeconds / 60),
       secs = String(examSeconds % 60).padStart(2, "0");
@@ -624,17 +779,22 @@ export default function QuizExperience({
             <Clock3 /> {minutes}:{secs}
           </em>
         </header>
-        <main>
+        <main key={item.id}>
           <small>{item.topic.toUpperCase()}</small>
           <h1>{item.title}</h1>
           <p>{item.prompt}</p>
+          {item.asks.length > 0 && (
+            <ul className="qf-asks" aria-label="O que sua resposta precisa conter">
+              {item.asks.map((ask) => <li key={ask}><Check /> {ask}</li>)}
+            </ul>
+          )}
           <label>
             Sua resposta clínica
             <textarea
               autoFocus
               value={caseText}
               onChange={(e) => setCaseText(e.target.value)}
-              placeholder="Organize hipótese, diferenciais, exames e conduta. Justifique seu raciocínio..."
+              placeholder="Responda tudo o que o caso pede. Justifique seu raciocínio..."
             />
           </label>
           <div className="exam-note">
@@ -642,8 +802,7 @@ export default function QuizExperience({
             <span>
               <b>Resposta discursiva</b>
               <small>
-                A avaliação considera conceitos clínicos essenciais, não
-                palavras idênticas.
+                Você só perde pontos se errar ou se deixar de responder algo que o caso pediu. Sinônimos e outras palavras valem.
               </small>
             </span>
           </div>
@@ -661,7 +820,8 @@ export default function QuizExperience({
       </div>
     );
   }
-  if (mode === "exam-result")
+  if (mode === "exam-result") {
+    const correctCases = gradedList.filter((g) => g.score >= PASS_RATE).length;
     return (
       <div className="page quiz-ui">
         <header className="simple-back">
@@ -673,46 +833,26 @@ export default function QuizExperience({
             <b>Simulado clínico discursivo</b>
           </span>
         </header>
-        <div className="quiz-result clinical-result">
-          <div className="score">
-            <b>{Math.round(caseScore)}</b>
-            <small>pontos</small>
-          </div>
-          <h1>Avaliação do raciocínio clínico</h1>
-          <p>Confira quais conceitos essenciais apareceram em cada resposta.</p>
-          <div className="answer-list">
-            {clinicalCases.map((item, i) => {
-              const hits = item.expected.filter((key) =>
-                normalized(caseAnswers[i] || "").includes(normalized(key)),
-              );
-              return (
-                <article
-                  key={item.id}
-                  className={hits.length >= 3 ? "correct" : "wrong"}
-                >
-                  <b>{i + 1}</b>
-                  <span>
-                    <small>{hits.length} CONCEITOS IDENTIFICADOS</small>
-                    <p>{item.title}</p>
-                    <em>{item.explanation}</em>
-                    <p className="concepts">
-                      Conceitos reconhecidos:{" "}
-                      {hits.length
-                        ? hits.join(", ")
-                        : "nenhum dos conceitos essenciais"}
-                      .
-                    </p>
-                  </span>
-                </article>
-              );
-            })}
+        <div className="quiz-result clinical-result qf-result">
+          {allCasesGraded ? <ScoreRing value={caseScore} /> : <div className="qf-ring pending" aria-busy="true"><span><b>…</b><small>corrigindo</small></span></div>}
+          <h1>{allCasesGraded ? (caseScore >= PASS_RATE ? "Raciocínio clínico aprovado!" : "Avaliação do raciocínio clínico") : "Corrigindo seus casos..."}</h1>
+          <p>
+            {allCasesGraded
+              ? `${correctCases} de ${clinicalCases.length} casos corretos. A nota de cada caso só desconta o que faltou do que foi pedido ou o que estava errado.`
+              : "Os casos aparecem aqui assim que são corrigidos."}
+          </p>
+          <div className="qf-case-list">
+            {clinicalCases.map((c, i) => (
+              <ClinicalGradeCard key={c.id} index={i} grade={caseGrades[c.id]} pending={!caseGrades[c.id]} answer={caseAnswers[i] || ""} />
+            ))}
           </div>
           <button className="primary" onClick={() => setMode("exam-config")}>
-            Refazer simulado
+            Fazer outro simulado
           </button>
         </div>
       </div>
     );
+  }
   if (mode === "errors")
     return (
       <div className="page quiz-ui">
@@ -734,6 +874,7 @@ export default function QuizExperience({
             </span>
             <i>{savedErrors.length}</i>
           </header>
+          <TopicErrorTable stats={topicStats} />
           <div>
             {savedErrors.length ? (
               savedErrors.map((error, index) => (
@@ -775,8 +916,7 @@ export default function QuizExperience({
           <small>QUESTÕES OBJETIVAS</small>
           <h1>Monte seu quiz.</h1>
           <p>
-            Respostas de múltipla escolha, sem limite de tempo, e correção
-            imediata ao final.
+            Múltipla escolha, sem limite de tempo. A correção aparece logo depois de cada resposta, com a explicação.
           </p>
           <label>
             Tema
@@ -844,29 +984,18 @@ export default function QuizExperience({
           <small>CASOS DISCURSIVOS</small>
           <h1>Treine decisões clínicas completas.</h1>
           <p>
-            Três casos longos, campo livre para resposta e 15 minutos totais.
-            Sua resposta deve conter hipótese, investigação e conduta.
+            Três casos sorteados para você, campo livre para resposta e 15 minutos no total. A cada simulado os casos mudam.
           </p>
-          <div className="clinical-case-list">
-            {clinicalCases.map((item) => (
-              <span key={item.id}>
-                <BookOpenText />
-                <i>
-                  <b>{item.title}</b>
-                  <small>{item.topic}</small>
-                </i>
-              </span>
-            ))}
-          </div>
           <div className="config-summary">
             <Clock3 />
             <span>
               <b>15 minutos</b>
-              <small>3 casos · resposta aberta · avaliação por conceitos</small>
+              <small>3 casos · resposta aberta · correção por critério</small>
             </span>
           </div>
-          <button className="primary" onClick={startExam}>
-            Iniciar simulado clínico <ChevronRight />
+          {clinicalError && <p role="alert" className="qf-alert">{clinicalError}</p>}
+          <button className="primary" onClick={startExam} disabled={clinicalLoading}>
+            {clinicalLoading ? "Sorteando casos..." : "Iniciar simulado clínico"} <ChevronRight />
           </button>
         </div>
       </div>
@@ -878,8 +1007,8 @@ export default function QuizExperience({
       icon: Zap,
       kicker: "Quiz rápido",
       title: "Objetivo e visual",
-      text: "Questões rápidas com imagens clínicas e correção comentada ao final.",
-      chips: ["Sem tempo", "3–15 questões", "Feedback detalhado"],
+      text: "Questões rápidas com correção comentada logo após cada resposta.",
+      chips: ["Sem tempo", "5–20 questões", "Feedback na hora"],
       cta: "Iniciar",
       disabled: false,
       onClick: () => setMode("quiz-config"),
@@ -890,8 +1019,8 @@ export default function QuizExperience({
       icon: ClipboardCheck,
       kicker: "Simulado clínico",
       title: "Raciocínio completo",
-      text: "Casos extensos com tempo total e avaliação detalhada por conceitos.",
-      chips: ["15 min", "3 casos", "Avaliação por conceito"],
+      text: "Casos extensos com tempo total e correção detalhada por critério.",
+      chips: ["15 min", "3 casos", "Casos sempre novos"],
       cta: "Configurar",
       disabled: false,
       onClick: () => setMode("exam-config"),
@@ -924,7 +1053,7 @@ export default function QuizExperience({
         <p className="qh-band-lead">Treine decisões e evolua na prática — da revisão rápida ao caso clínico completo.</p>
         <div className="qh-band-stats">
           <div>
-            <b>{attempts}</b>
+            <b>{attemptRows.length}</b>
             <small>Atividades concluídas</small>
           </div>
           <button type="button" onClick={() => setMode("errors")}>
@@ -971,6 +1100,8 @@ export default function QuizExperience({
           </span>
           <span className="qh-row-cta">Começar <ChevronRight /></span>
         </button>
+
+        <TopicErrorTable stats={topicStats} />
 
         <button type="button" className="qh-errors-link" onClick={() => setMode("errors")}>
           <BookOpenText />

@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { CAKTO_CHECKOUT_URLS, isProActive } from "@/lib/pro";
 import { resolveUserAccess } from "@/lib/user-access";
-import { brasiliaDateKey } from "@/lib/ai-usage";
+import { brasiliaDateKey, startOfBrasiliaDayUtc } from "@/lib/ai-usage";
+import { getAuthUserId } from "@/lib/auth-fast";
 import { CANONICAL_TOPICS, toCanonicalTopic, type CanonicalTopic } from "@/lib/canonical-topics";
 
 export const dynamic = "force-dynamic";
@@ -203,7 +204,10 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return unauthorized();
 
-  const [profileRes, rankingRes, attemptsRes, errorsRes, topicsRes, loginDaysRes, patientAttemptsRes, consultSessionsRes, pro] = await Promise.all([
+  const [focusRes, profileRes, rankingRes, attemptsRes, errorsRes, topicsRes, loginDaysRes, patientAttemptsRes, consultSessionsRes, pro] = await Promise.all([
+    // Consulta separada: se a coluna ainda não existir no banco, só esta
+    // falha (e o foco fica vazio) — o resto do painel carrega normalmente.
+    supabase.from("profiles").select("study_focus").eq("id", user.id).maybeSingle(),
     supabase.from("profiles").select("name, email, xp").eq("id", user.id).single(),
     supabase.rpc("ranking"),
     supabase.from("quiz_attempts").select("id, topic, total, correct, topic_results, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
@@ -296,7 +300,10 @@ export async function GET(request: Request) {
     simuladoRows.filter((row) => beforeToday(firstOf(row.simulado_attempts)?.completed_at)),
     patientAttempts.filter((a) => beforeToday(a.created_at)),
   );
-  const focusTopic = pickFocusTopic(baselineMastery, todayKey);
+  // O que o estudante disse estar vendo na faculdade vence a escolha
+  // automática: o app acompanha a disciplina, e não o contrário.
+  const studyFocus = toCanonicalTopic((focusRes.data as { study_focus?: string | null } | null)?.study_focus);
+  const focusTopic = studyFocus ?? pickFocusTopic(baselineMastery, todayKey);
   const todayAttempts = attempts.filter((a) => isToday(a.created_at));
   const questionsToday = todayAttempts.reduce((sum, a) => sum + (a.total || 0), 0);
   const focusQuestionsToday = todayAttempts.reduce(
@@ -413,6 +420,11 @@ export async function GET(request: Request) {
       accuracy: weekQuestions > 0 ? Math.round((weekCorrect / weekQuestions) * 100) : null,
       activeDays: loginDays.filter((day) => weekKeys.has(day)).length,
     },
+    studyFocus,
+    // false enquanto a coluna não existir no banco (migração 20261111
+    // pendente): a tela esconde o seletor em vez de oferecer algo que
+    // não consegue salvar.
+    studyFocusAvailable: !focusRes.error,
     mission: {
       date: todayKey,
       focusTopic,
@@ -425,7 +437,7 @@ export async function GET(request: Request) {
 }
 
 async function bumpTopicActivity(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createServiceClient>,
   userId: string,
   topic: string,
   delta: { questions?: number; correct?: number; consultations?: number; reviews?: number },
@@ -451,90 +463,72 @@ async function bumpTopicActivity(
   );
 }
 
+/* Único resultado que ainda chega declarado pelo cliente: o Simulado
+   clínico (3 casos discursivos corrigidos um a um em /api/clinical/grade).
+   Quiz e simulados objetivos são recorrigidos no servidor em rotas
+   próprias. Por isso aqui tudo é limitado: tema fixo, no máximo 3 casos e
+   poucas gravações por dia — não dá para fabricar XP à vontade. */
+const CLINICAL_TOPIC = "Simulado clínico";
+const CLINICAL_MAX_CASES = 3;
+const CLINICAL_MAX_PER_DAY = 6;
+
 export async function POST(request: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return unauthorized();
+  const userId = await getAuthUserId(supabase);
+  if (!userId) return unauthorized();
 
   const body = (await request.json().catch(() => ({}))) as {
     action?: string;
-    topic?: string;
-    total?: number;
-    correct?: number;
-    topicResults?: TopicResult[];
-    errors?: { questionId: string; topic: string; question: string; selectedAnswer: string; correctAnswer: string; explanation: string }[];
-    score?: number;
-    historyScore?: number;
-    physicalScore?: number;
-    examsScore?: number;
-    reasoningScore?: number;
-    activityDate?: string;
+    topicResults?: unknown;
   };
+  // Escritas sempre pelo service role, com o user_id vindo da sessão:
+  // o cliente não precisa (nem deve) ter permissão de INSERT nessas tabelas.
+  const service = createServiceClient();
 
   if (body.action === "quiz_result") {
-    const total = Number(body.total) || 0;
-    const correct = Number(body.correct) || 0;
+    const topicResults: TopicResult[] = (Array.isArray(body.topicResults) ? body.topicResults : [])
+      .slice(0, CLINICAL_MAX_CASES)
+      .map((item) => {
+        const row = (item && typeof item === "object" ? item : {}) as Record<string, unknown>;
+        return {
+          topic: typeof row.topic === "string" && row.topic.trim() ? row.topic.trim().slice(0, 60) : "Geral",
+          total: 1,
+          correct: Number(row.correct) >= 1 ? 1 : 0,
+        };
+      });
+    const total = topicResults.length;
+    const correct = topicResults.reduce((sum, item) => sum + item.correct, 0);
     if (total <= 0) return Response.json({ message: "Dados inválidos." }, { status: 400 });
 
-    const { error: insertError } = await supabase.from("quiz_attempts").insert({
-      user_id: user.id,
-      topic: body.topic || "Geral",
+    const { count: savedToday } = await service
+      .from("quiz_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("topic", CLINICAL_TOPIC)
+      .gte("created_at", startOfBrasiliaDayUtc());
+    if ((savedToday ?? 0) >= CLINICAL_MAX_PER_DAY) {
+      return Response.json({ message: "Limite diário de simulados clínicos registrados atingido." }, { status: 429 });
+    }
+
+    const { error: insertError } = await service.from("quiz_attempts").insert({
+      user_id: userId,
+      topic: CLINICAL_TOPIC,
       total,
       correct,
-      topic_results: body.topicResults || [],
+      topic_results: topicResults,
     });
     if (insertError) return Response.json({ message: "Não foi possível salvar o resultado." }, { status: 500 });
 
-    for (const result of body.topicResults || []) {
-      await bumpTopicActivity(supabase, user.id, result.topic, { questions: result.total, correct: result.correct });
+    // Um tema pode aparecer em mais de um caso: soma antes de gravar, uma
+    // atualização por tema, todas em paralelo.
+    const byTopic = new Map<string, { questions: number; correct: number }>();
+    for (const result of topicResults) {
+      const bucket = byTopic.get(result.topic) ?? { questions: 0, correct: 0 };
+      bucket.questions += result.total;
+      bucket.correct += result.correct;
+      byTopic.set(result.topic, bucket);
     }
-
-    if (body.errors?.length) {
-      await supabase.from("error_notebook").insert(
-        body.errors.map((item) => ({
-          user_id: user.id,
-          question_id: item.questionId,
-          topic: item.topic,
-          question: item.question,
-          selected_answer: item.selectedAnswer,
-          correct_answer: item.correctAnswer,
-          explanation: item.explanation,
-        })),
-      );
-      for (const item of body.errors) {
-        await bumpTopicActivity(supabase, user.id, item.topic, { reviews: 1 });
-      }
-    }
-    return Response.json({ ok: true });
-  }
-
-  if (body.action === "patient_result") {
-    // Recurso Pro: protegido no servidor, não só na interface. Um usuário
-    // sem assinatura ativa não consegue gravar atendimentos mesmo
-    // manipulando a chamada diretamente.
-    const pro = await getProStatus(supabase, user.id);
-    if (!pro.active) {
-      return Response.json(
-        { message: "Este recurso é exclusivo do plano Pro.", requiresPro: true, checkoutUrls: pro.checkoutUrls },
-        { status: 403 },
-      );
-    }
-
-    const score = Number(body.score) || 0;
-    const { error: insertError } = await supabase.from("patient_attempts").insert({
-      user_id: user.id,
-      topic: body.topic || "Cardiovascular",
-      score,
-      history_score: body.historyScore ?? null,
-      physical_score: body.physicalScore ?? null,
-      exams_score: body.examsScore ?? null,
-      reasoning_score: body.reasoningScore ?? null,
-    });
-    if (insertError) return Response.json({ message: "Não foi possível salvar o atendimento." }, { status: 500 });
-
-    await bumpTopicActivity(supabase, user.id, body.topic || "Cardiovascular", { consultations: 1 });
+    await Promise.all([...byTopic].map(([topic, delta]) => bumpTopicActivity(service, userId, topic, delta)));
     return Response.json({ ok: true });
   }
 
@@ -543,9 +537,9 @@ export async function POST(request: Request) {
     // nunca a partir do que o cliente envia (fuso do navegador não é
     // confiável nem consistente com o cálculo do streak).
     const activityDate = brasiliaDateKey();
-    await supabase
+    await service
       .from("login_days")
-      .upsert({ user_id: user.id, activity_date: activityDate }, { onConflict: "user_id,activity_date", ignoreDuplicates: true });
+      .upsert({ user_id: userId, activity_date: activityDate }, { onConflict: "user_id,activity_date", ignoreDuplicates: true });
     return Response.json({ ok: true, activityDate });
   }
 

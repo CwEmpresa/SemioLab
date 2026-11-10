@@ -1995,7 +1995,7 @@ em {
   overflow: hidden;
   isolation: isolate;
   color: #f7fbfa;
-  background: #041014 url("/patient-room.png") center 48% / cover no-repeat;
+  background: #041014 url("/patient-room.webp") center 48% / cover no-repeat;
 }
 .patient-wait-shade {
   position: absolute;
@@ -10576,6 +10576,22 @@ body.pwa-modal-open { overflow: hidden; }
 .admin-subheading { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 22px 0 12px; }
 .admin-note { margin-top: 10px; }
 .admin-text-warn { color: #f0a84e; }
+/* Aba Comportamento (admin) */
+.admin-table-static td { cursor: default; }
+.admin-table-static tr:hover td { background: transparent; }
+.admin-diff-up { color: #35c9b1; font-weight: 700; }
+.admin-diff-down { color: #f0a84e; font-weight: 700; }
+.admin-hour-bars { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; height: 130px; align-items: end; }
+.admin-hour-bars span { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; min-width: 0; }
+.admin-hour-bars i { display: block; width: 100%; border-radius: 4px 4px 0 0; background: #35c9b1; }
+.admin-hour-bars small { height: 16px; font-size: 10px; color: var(--muted); white-space: nowrap; }
+.admin-timeline { list-style: none; margin: 0; padding: 0; max-height: 340px; overflow-y: auto; border-left: 2px solid var(--line); }
+.admin-timeline li { position: relative; display: grid; grid-template-columns: 96px 1fr; gap: 10px; padding: 7px 0 7px 14px; font-size: 13px; line-height: 1.4; }
+.admin-timeline li::before { content: ""; position: absolute; left: -5px; top: 13px; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.admin-timeline time { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.admin-timeline-signup::before, .admin-timeline-consult_finish::before, .admin-timeline-first_experience::before { background: #35c9b1 !important; }
+.admin-timeline-paywall::before { background: #f0a84e !important; }
+.admin-timeline-screen span { color: var(--muted); }
 .admin-events-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; margin-bottom: 14px; }
 .admin-events-card h3 { font-size: 14px; margin-bottom: 12px; }
 
@@ -10632,6 +10648,9 @@ body.pwa-modal-open { overflow: hidden; }
 .fmc-intro p { color: var(--muted); font-size: 15px; line-height: 1.6; margin-bottom: 28px; }
 .fmc-cta { display: inline-flex; align-items: center; gap: 8px; padding: 14px 22px; border-radius: 14px; font-weight: 700; font-size: 15px; }
 .fmc-cta-centered { display: flex; justify-content: center; margin: 4px auto 0; width: 100%; max-width: 420px; }
+.fmc-next-hint { max-width: 420px; margin: 6px auto 14px; text-align: center; color: #b9d6d0; font-size: 14px; line-height: 1.55; }
+.fmc-skip-link { display: block; margin: 12px auto 0; min-height: 44px; padding: 10px 16px; background: none; border: 0; color: #9fbdb7; font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.fmc-skip-link:hover, .fmc-skip-link:focus-visible { color: #eafdf8; }
 .fmc-stage h2 { font-size: 19px; margin-bottom: 18px; }
 .fmc-patient-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
 .fmc-avatar { width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(145deg, #315b63, #17363e); display: grid; place-items: center; font-weight: 800; flex-shrink: 0; }

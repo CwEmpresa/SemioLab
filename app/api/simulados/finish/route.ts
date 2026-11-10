@@ -1,14 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { getAuthUserId } from "@/lib/auth-fast";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
+  const userId = await getAuthUserId(supabase);
+  if (!userId) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
 
   const body = (await request.json().catch(() => ({}))) as { attemptId?: string };
   const attemptId = body.attemptId;
@@ -22,7 +21,7 @@ export async function POST(request: Request) {
     .from("simulado_attempts")
     .update({ status: "completed", completed_at: new Date().toISOString() })
     .eq("id", attemptId)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("status", "in_progress")
     .select("id")
     .maybeSingle();

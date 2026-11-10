@@ -23,12 +23,23 @@ import {
   Square,
   Video,
   Volume2,
+  Headphones,
   X,
 } from "lucide-react";
 
 import { useUser } from "./user-context";
 import { useLearningSummary } from "./use-learning-summary";
 import { openProUpgradeModal, openDailyLimitInfo } from "./pro-upgrade-modal";
+import ConsultAuscultation, { type ConsultAuscultationSound } from "./consult-auscultation";
+import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
+import { useRealtimeVoice } from "./use-realtime-voice";
+import ConsultGuide, { ConsultModePicker, OsceTimer, OSCE_SECONDS, consultModeKey, readConsultMode, type ConsultMode } from "./consult-guide";
+
+type DoctorTitle = "doutor" | "doutora";
+const doctorTitleKey = (userId: string) => `semiolab:${userId}:doctor-title`;
+// Campos do exame físico que viram SOM na ausculta (o texto só aparece
+// quando o aluno pede para revelar).
+const AUSCULTATION_KEYS = new Set(["pulmonar", "cardiovascular", "torax", "respiratorio"]);
 
 type Phase = "wait" | "chat" | "finish" | "result";
 type LabRow = {
@@ -61,6 +72,8 @@ type Message = {
   report?: ExamReport;
   createdAt: number;
   id?: string;
+  /** Troca da conversa por voz em tempo real a que esta bolha pertence. */
+  rtKey?: string;
 };
 type ConsultHistory = {
   id: string;
@@ -157,7 +170,32 @@ export default function PatientExperience({
     [serverEvaluation, setServerEvaluation] = useState<{
       score: number; historyScore: number; physicalScore: number; examsScore: number; reasoningScore: number;
       strengths: string[]; gaps: string[]; examLearning: string[]; feedback: string; correctDiagnosis: string;
+      checklist?: { item: string; done: boolean }[];
     } | null>(null);
+  // Modo da consulta: guiada (roteiro visível), livre ou prova prática
+  // (cronometrada). Quem ainda não escolheu começa na guiada — é o
+  // estudante iniciante que trava diante do paciente sem saber o que
+  // perguntar.
+  const [consultMode, setConsultMode] = useState<ConsultMode>("guided");
+  const [osceEndsAt, setOsceEndsAt] = useState<number | null>(null);
+  const [osceLeft, setOsceLeft] = useState(OSCE_SECONDS);
+  const [timeUp, setTimeUp] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [guideHeight, setGuideHeight] = useState(0);
+  const user = useUser();
+  const [doctorTitle, setDoctorTitle] = useState<DoctorTitle | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const cached = window.localStorage.getItem(doctorTitleKey(user.id));
+      return cached === "doutor" || cached === "doutora" ? cached : null;
+    } catch {
+      return null;
+    }
+  });
+  const [auscSounds, setAuscSounds] = useState<ConsultAuscultationSound[]>([]);
+  const [auscLocked, setAuscLocked] = useState(false);
+  const [auscOpen, setAuscOpen] = useState(false);
+  const [auscLoading, setAuscLoading] = useState(false);
   const chatRef = useRef<HTMLElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
@@ -175,7 +213,6 @@ export default function PatientExperience({
     },
     [],
   );
-  const user = useUser();
   const { summary: learning } = useLearningSummary();
   // Consulta por voz (gravar pergunta + ouvir resposta) é liberada para
   // Pro e para quem ainda está no período de teste — só quem já virou
@@ -184,8 +221,61 @@ export default function PatientExperience({
   // Só verdadeiro na primeira consulta real do aluno (nenhuma atividade
   // concluída ainda) — o roteiro guiado nunca aparece depois disso.
   const isFirstConsultation = (learning?.stats?.activities ?? 0) === 0;
+
+  // Conversa por voz em tempo real: o paciente começa a responder ~1 s
+  // depois que o aluno para de falar. As falas continuam virando mensagens
+  // da consulta (aparecem no modo texto e entram na avaliação final).
+  const live = useRealtimeVoice(sessionId, doctorTitle, {
+    onStudentStart: (key) =>
+      setMessages((m) => [...m, { who: "student", text: "…", createdAt: Date.now(), rtKey: `s:${key}` }]),
+    onStudentText: (key, text) =>
+      setMessages((m) =>
+        text ? m.map((msg) => (msg.rtKey === `s:${key}` ? { ...msg, text } : msg)) : m.filter((msg) => msg.rtKey !== `s:${key}`),
+      ),
+    onPatientText: (key, text) =>
+      setMessages((m) =>
+        m.some((msg) => msg.rtKey === `p:${key}`)
+          ? m.map((msg) => (msg.rtKey === `p:${key}` ? { ...msg, text } : msg))
+          : [...m, { who: "patient", text, createdAt: Date.now(), rtKey: `p:${key}` }],
+      ),
+    onTurnSaved: (key, saved) => {
+      if (saved.messageId) setMessages((m) => m.map((msg) => (msg.rtKey === `p:${key}` ? { ...msg, id: saved.messageId! } : msg)));
+      setQuota((q) => (q ? { ...q, questionsUsed: saved.questionsUsed, questionsLimit: saved.questionsLimit } : q));
+    },
+    onError: (message) => setMicError(message),
+    onEnded: (reason) => {
+      if (reason === "limit") setMicError("Você chegou ao limite de perguntas desta consulta. Finalize o atendimento.");
+      if (reason === "idle") setMicError("A conversa por voz foi pausada por falta de fala. Toque no microfone para retomar.");
+    },
+  });
+  // Sair do modo áudio ou da consulta desliga a ligação.
+  useEffect(() => {
+    if (chatMode !== "audio" || phase !== "chat") live.stop("user");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatMode, phase]);
   const sessionStorageKey = patientSessionKey(user.id);
   const historyStorageKey = patientHistoryKey(user.id);
+
+  // Como o paciente chama o aluno (doutor/doutora): escolha do próprio
+  // aluno, guardada na conta (vale em qualquer aparelho) e em cache local
+  // para aparecer na hora.
+  useEffect(() => {
+    createBrowserSupabase()
+      .auth.getUser()
+      .then(({ data }) => {
+        const saved = data.user?.user_metadata?.doctor_title;
+        if (saved === "doutor" || saved === "doutora") {
+          setDoctorTitle(saved);
+          try { window.localStorage.setItem(doctorTitleKey(user.id), saved); } catch { /* opcional */ }
+        }
+      })
+      .catch(() => {});
+  }, [user.id]);
+  function chooseDoctorTitle(title: DoctorTitle) {
+    setDoctorTitle(title);
+    try { window.localStorage.setItem(doctorTitleKey(user.id), title); } catch { /* opcional */ }
+    createBrowserSupabase().auth.updateUser({ data: { doctor_title: title } }).catch(() => {});
+  }
 
   useEffect(() => {
     try {
@@ -220,6 +310,13 @@ export default function PatientExperience({
             createdAt: message.createdAt || base + index * 60_000,
           })));
         }
+        if (hasValidSession && (session.consultMode === "guided" || session.consultMode === "free" || session.consultMode === "osce")) {
+          setConsultMode(session.consultMode);
+          if (session.consultMode === "osce" && typeof session.osceEndsAt === "number") setOsceEndsAt(session.osceEndsAt);
+        } else {
+          const savedMode = readConsultMode(user.id);
+          if (savedMode) setConsultMode(savedMode);
+        }
         if (typeof session.physical === "boolean") setPhysical(session.physical);
         if (typeof session.examText === "string") setExamText(session.examText);
         if (typeof session.examOrder === "string") setExamOrder(session.examOrder);
@@ -229,6 +326,10 @@ export default function PatientExperience({
         if (!hasValidSession && session.phase && session.phase !== "wait") {
           window.localStorage.removeItem(sessionStorageKey);
         }
+      }
+      if (!saved) {
+        const savedMode = readConsultMode(user.id);
+        if (savedMode) setConsultMode(savedMode);
       }
       const savedHistory = window.localStorage.getItem(historyStorageKey);
       if (savedHistory) {
@@ -291,6 +392,8 @@ export default function PatientExperience({
         hypothesis,
         differentials,
         conduct,
+        consultMode,
+        osceEndsAt,
       }),
     );
   }, [
@@ -305,9 +408,33 @@ export default function PatientExperience({
     hypothesis,
     differentials,
     conduct,
+    consultMode,
+    osceEndsAt,
     user.id,
     sessionStorageKey,
   ]);
+
+  // Prova prática: cronômetro baseado no horário de término (sobrevive a
+  // recarregar a página). No zero, abre o registro de hipótese e conduta.
+  useEffect(() => {
+    if (consultMode !== "osce" || !osceEndsAt || (phase !== "chat" && phase !== "finish")) return;
+    const tick = () => {
+      const left = Math.round((osceEndsAt - Date.now()) / 1000);
+      setOsceLeft(Math.max(0, left));
+      if (left <= 0) {
+        setTimeUp(true);
+        setPhase((current) => (current === "chat" ? "finish" : current));
+      }
+    };
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [consultMode, osceEndsAt, phase]);
+
+  function chooseConsultMode(mode: ConsultMode) {
+    setConsultMode(mode);
+    try { window.localStorage.setItem(consultModeKey(user.id), mode); } catch { /* opcional */ }
+  }
 
   useEffect(() => {
     const update = () => {
@@ -327,7 +454,7 @@ export default function PatientExperience({
 
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, typing]);
+  }, [messages, typing, guideHeight]);
   const score = serverEvaluation?.score ?? 0,
     level =
       score >= 85
@@ -358,9 +485,19 @@ export default function PatientExperience({
     setServerEvaluation(null);
     setLoadError("");
     setMessages([]);
+    setAuscSounds([]);
+    setAuscLocked(false);
+    setPhysicalFindings({});
+    setTimeUp(false);
+    setOsceEndsAt(null);
+    setOsceLeft(OSCE_SECONDS);
     setPhase("chat");
     try {
-      const response = await fetch("/api/patient/session", { method: "POST" });
+      const response = await fetch("/api/patient/session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ doctorTitle }),
+      });
       const data = await response.json().catch(() => ({}));
       if (response.status === 403 && data.limitReached) {
         setPhase("wait");
@@ -388,6 +525,8 @@ export default function PatientExperience({
         weekly: data.consultationWindow === "semana",
       });
       setMessages([{ who: "patient", text: data.openingLine, createdAt: Date.now() }]);
+      // O relógio da prova prática só começa quando o paciente entra.
+      if (consultMode === "osce") setOsceEndsAt(Date.now() + OSCE_SECONDS * 1000);
     } catch {
       setLoadError("Não foi possível conectar ao servidor. Tente novamente.");
     }
@@ -429,7 +568,7 @@ export default function PatientExperience({
       const response = await fetch("/api/patient/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sessionId, message: question, voice: wantsVoice }),
+        body: JSON.stringify({ sessionId, message: question, voice: wantsVoice, doctorTitle }),
       });
       if (response.status === 404) {
         setTyping(false);
@@ -512,7 +651,9 @@ export default function PatientExperience({
   // o toque em "parar". É o que mais encurta a espera e deixa a conversa
   // natural. Se ninguém falar, descarta sem enviar nada (não gasta
   // transcrição nem pergunta).
-  const SILENCE_END_MS = 1100;
+  // 800 ms de silêncio já é pausa de fim de frase numa conversa; mais que
+  // isso deixava a resposta com cara de demora.
+  const SILENCE_END_MS = 800;
   const NO_SPEECH_TIMEOUT_MS = 8000;
   const MIN_SPEECH_MS = 250;
 
@@ -757,6 +898,20 @@ export default function PatientExperience({
         if (response.status === 403 && data.limitReached && data.tier === "free") openProUpgradeModal("exams");
         return;
       }
+      if (Array.isArray(data.auscultation)) {
+        // Pedido de ausculta: o resultado é o SOM, não um laudo escrito.
+        setAuscSounds(data.auscultation);
+        setAuscLocked(!!data.auscultationLocked);
+        setPhysical(true);
+        setAuscOpen(true);
+        setMessages((m) => [...m, {
+          who: "exam",
+          text: "AUSCULTA LIBERADA",
+          report: { summary: "Ausculte e tire sua conclusão. Toque em \"Ausculta\" para ouvir de novo quando quiser.", labs: [], imaging: [] },
+          createdAt: Date.now(),
+        }]);
+        return;
+      }
       setMessages((m) => [...m, { who: "exam", text: "RESULTADOS LIBERADOS", report: data.report, createdAt: Date.now() }]);
       // Busca imagens educacionais reais para cada exame de imagem liberado
       // (só entrega porque o exame já foi solicitado nesta sessão — ver
@@ -825,9 +980,44 @@ export default function PatientExperience({
         return;
       }
       const data = await response.json().catch(() => ({}));
-      if (response.ok) setPhysicalFindings(data.physicalExam || {});
+      if (response.ok) {
+        setPhysicalFindings(data.physicalExam || {});
+        if (Array.isArray(data.auscultation)) setAuscSounds(data.auscultation);
+        setAuscLocked(!!data.auscultationLocked);
+      }
     } catch {
       /* mantém o modal com estado vazio; não é crítico */
+    }
+  }
+  // Ausculta com som real: abre na hora se já carregou (exame físico ou
+  // pedido anterior); senão busca os sons do caso desta consulta.
+  async function openAuscultation() {
+    if (!sessionId) return;
+    setPhysicalOpen(false);
+    setAuscOpen(true);
+    if (auscSounds.length || auscLocked) return;
+    setAuscLoading(true);
+    try {
+      const response = await fetch("/api/patient/exam", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sessionId, auscultation: true }),
+      });
+      if (response.status === 404) {
+        setAuscOpen(false);
+        resetToWaitDueToInvalidSession("Esta consulta não está mais disponível. Chame um novo paciente.");
+        return;
+      }
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        setAuscSounds(Array.isArray(data.auscultation) ? data.auscultation : []);
+        setAuscLocked(!!data.auscultationLocked);
+        setPhysical(true);
+      }
+    } catch {
+      /* o modal mostra o estado de carregamento; o aluno pode tentar de novo */
+    } finally {
+      setAuscLoading(false);
     }
   }
   function finishConsult() {
@@ -908,8 +1098,11 @@ export default function PatientExperience({
             </small>
             <h1>Um novo paciente está aguardando atendimento.</h1>
             <p>
-              Conduza a consulta sem pistas. Investigue, examine e tome sua
-              decisão clínica.
+              {consultMode === "guided"
+                ? "Converse com o paciente seguindo o roteiro da anamnese. Depois examine e tome sua decisão clínica."
+                : consultMode === "osce"
+                  ? "Você tem 10 minutos, sem pistas. No fim, um checklist mostra o que foi cumprido."
+                  : "Conduza a consulta sem pistas. Investigue, examine e tome sua decisão clínica."}
             </p>
           </section>
 
@@ -922,7 +1115,25 @@ export default function PatientExperience({
           </aside>
 
           <section className="patient-call-panel">
-            <button className="primary" onClick={start}>
+            <div className="doctor-title-picker" role="radiogroup" aria-label="Como o paciente deve te chamar">
+              <small>{doctorTitle ? "O paciente vai te chamar de" : "Antes de começar: como o paciente deve te chamar?"}</small>
+              <div>
+                {(["doutor", "doutora"] as const).map((title) => (
+                  <button
+                    key={title}
+                    type="button"
+                    role="radio"
+                    aria-checked={doctorTitle === title}
+                    className={doctorTitle === title ? "active" : ""}
+                    onClick={() => chooseDoctorTitle(title)}
+                  >
+                    {title === "doutor" ? "Doutor" : "Doutora"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <ConsultModePicker mode={consultMode} onChange={chooseConsultMode} />
+            <button className="primary" onClick={start} disabled={!doctorTitle}>
               <span>Chamar próximo paciente</span>
               <DoorOpen />
             </button>
@@ -1067,6 +1278,24 @@ export default function PatientExperience({
             </article>
           </div>
 
+          {(serverEvaluation?.checklist ?? []).length > 0 && (
+            <section className="rx-panel rx-checklist">
+              <header>
+                <i><ClipboardCheck /></i>
+                <span><small>Checklist da consulta</small><h2>O que um avaliador esperava ver</h2></span>
+                <em>{(serverEvaluation?.checklist ?? []).filter((c) => c.done).length}/{(serverEvaluation?.checklist ?? []).length}</em>
+              </header>
+              <ul>
+                {(serverEvaluation?.checklist ?? []).map((c) => (
+                  <li key={c.item} className={c.done ? "" : "missed"}>
+                    {c.done ? <Check /> : <b>–</b>}
+                    {c.item}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section className="rx-panel rx-learning">
             <header>
               <i><Lightbulb /></i>
@@ -1095,7 +1324,15 @@ export default function PatientExperience({
   }
   const patientName = caseInfo?.patientName || "Paciente";
   const patientInitials = patientName.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "P";
-  const voiceStatus = transcribing
+  const liveStatus: Record<typeof live.state, string> = {
+    idle: "Toque no microfone para começar a conversa",
+    connecting: "Conectando a ligação...",
+    listening: "Ao vivo · pode falar",
+    userSpeaking: "Ouvindo você...",
+    thinking: `${patientName} vai responder...`,
+    speaking: `${patientName} está falando...`,
+  };
+  const voiceStatus = chatMode === "audio" ? liveStatus[live.state] : transcribing
     ? "Entendendo o que você disse..."
     : recording
       ? "Ouvindo... fale normalmente, envio quando você parar"
@@ -1123,7 +1360,7 @@ export default function PatientExperience({
           </button>
         </div>
         <em>
-          <Clock3 /> {clock}
+          {consultMode === "osce" && osceEndsAt ? <OsceTimer secondsLeft={osceLeft} /> : <><Clock3 /> {clock}</>}
         </em>
       </header>
       <main ref={chatRef}>
@@ -1162,7 +1399,10 @@ export default function PatientExperience({
         </div>
         {chatMode === "audio" && canUseAudio && (
           <div className="voice-call-panel">
-            <div className={`voice-call-avatar ${recording ? "is-listening" : typing || playingMessageId ? "is-speaking" : ""}`} aria-hidden="true">
+            <div
+              className={`voice-call-avatar ${live.state === "userSpeaking" || live.state === "listening" ? "is-listening" : live.state === "speaking" || live.state === "thinking" ? "is-speaking" : ""}`}
+              aria-hidden="true"
+            >
               {patientInitials}
             </div>
             <p className="voice-call-status">{voiceStatus}</p>
@@ -1319,6 +1559,7 @@ export default function PatientExperience({
             <div className="typing-bubble"><span /><span /><span /></div>
           </div>
         )}
+        {guideHeight > 0 && <div aria-hidden="true" style={{ height: guideHeight, flexShrink: 0 }} />}
       </main>
       <footer>
         <div className="consult-tools">
@@ -1327,6 +1568,9 @@ export default function PatientExperience({
             onClick={requestPhysicalExam}
           >
             <Stethoscope /> {physical ? "Exame realizado" : "Exame físico"}
+          </button>
+          <button className={auscSounds.length ? "completed" : ""} onClick={openAuscultation}>
+            <Headphones /> Ausculta
           </button>
           <button
             className={examOrder ? "completed" : ""}
@@ -1339,6 +1583,19 @@ export default function PatientExperience({
           </button>
           <span>Consulta educacional</span>
         </div>
+        {consultMode === "guided" && !(chatMode === "audio" && canUseAudio) && (
+          <ConsultGuide
+            studentMessages={messages.filter((m) => m.who === "student").map((m) => m.text)}
+            physicalDone={physical}
+            examsDone={!!examOrder}
+            disabled={typing || transcribing}
+            onHeight={setGuideHeight}
+            onPick={(text) => {
+              setInput(text);
+              inputRef.current?.focus();
+            }}
+          />
+        )}
         {chatMode === "audio" && canUseAudio ? (
           <div className="chat-audio-bar">
             <button className="chat-attach" aria-label="Solicitar exame" onClick={() => setExamOpen(true)} type="button">
@@ -1347,12 +1604,16 @@ export default function PatientExperience({
             <div className="chat-audio-center">
               <button
                 type="button"
-                className={`chat-audio-record ${recording ? "is-recording" : ""}`}
-                disabled={typing || transcribing}
-                onClick={recording ? stopRecording : startRecording}
-                aria-label={recording ? "Parar e enviar a pergunta" : "Toque para perguntar"}
+                className={`chat-audio-record ${live.active ? "is-recording" : ""}`}
+                disabled={live.state === "connecting"}
+                onClick={() => {
+                  setMicError("");
+                  if (live.active) live.stop("user");
+                  else void live.start();
+                }}
+                aria-label={live.active ? "Encerrar a conversa por voz" : "Começar a conversa por voz"}
               >
-                {recording ? <Square size={24} /> : <Mic size={24} />}
+                {live.active ? <Square size={24} /> : <Mic size={24} />}
               </button>
               <span className="chat-audio-status">{voiceStatus}</span>
             </div>
@@ -1363,6 +1624,7 @@ export default function PatientExperience({
               <Plus />
             </button>
             <input
+              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !typing && send()}
@@ -1411,19 +1673,39 @@ export default function PatientExperience({
             <small>EXAME FÍSICO REALIZADO</small>
             <h2>Achados clínicos</h2>
             {Object.keys(physicalFindings).length ? (
-              Object.entries(physicalFindings).map(([key, value]) => (
-                <p key={key}>
-                  <b>{key.replace(/_/g, " ")}:</b> {value}
-                </p>
-              ))
+              Object.entries(physicalFindings)
+                // Com ausculta liberada, pulmão e coração são OUVIDOS, não lidos:
+                // o achado escrito só aparece no player, se o aluno pedir.
+                .filter(([key]) => !(auscSounds.length && AUSCULTATION_KEYS.has(key.toLowerCase())))
+                .map(([key, value]) => (
+                  <p key={key}>
+                    <b>{key.replace(/_/g, " ")}:</b> {value}
+                  </p>
+                ))
             ) : (
               <p>Examinando o paciente...</p>
+            )}
+            {auscSounds.length > 0 && (
+              <button type="button" className="physical-ausc-cta" onClick={openAuscultation}>
+                <Headphones />
+                <span><b>Auscultar pulmão e coração</b><small>Ouça o som real e conclua você mesmo</small></span>
+                <ChevronRight />
+              </button>
             )}
             <button className="primary" onClick={() => setPhysicalOpen(false)}>
               Registrar e continuar <ChevronRight />
             </button>
           </section>
         </div>
+      )}
+      {auscOpen && (
+        <ConsultAuscultation
+          sounds={auscSounds}
+          locked={auscLocked}
+          loading={auscLoading}
+          onClose={() => setAuscOpen(false)}
+          onUpgrade={() => { setAuscOpen(false); openProUpgradeModal("auscultation"); }}
+        />
       )}
       {examOpen && (
         <div className="overlay">
@@ -1491,9 +1773,12 @@ export default function PatientExperience({
       {phase === "finish" && (
         <div className="overlay">
           <section className="finish">
-            <button className="close" onClick={() => setPhase("chat")}>
-              <X />
-            </button>
+            {!timeUp && (
+              <button className="close" onClick={() => setPhase("chat")}>
+                <X />
+              </button>
+            )}
+            {timeUp && <p className="cg-finish-timeup">Tempo esgotado. Registre sua hipótese e conduta com o que conseguiu investigar.</p>}
             <div className="finish-heading">
               <i><ClipboardCheck /></i>
               <span><small>CONCLUIR ATENDIMENTO</small><h2>Registre seu raciocínio clínico</h2><p>A avaliação só considera o que você realmente investigou e escreveu.</p></span>

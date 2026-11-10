@@ -630,3 +630,27 @@
   .mission-task-meter em, .topic-row-score em { transition: none; }
   .mission-task.skeleton, .mission-ring img, .mission-ring-glow { animation: none; }
 }
+
+/* Tema da faculdade: o estudante diz o que está vendo e a missão acompanha. */
+.mission-focus-select {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.92;
+}
+.mission-focus-select select {
+  min-height: 34px;
+  padding: 4px 10px;
+  color: inherit;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 700;
+}
+.mission-focus-select select option { color: #10262b; background: #fff; }

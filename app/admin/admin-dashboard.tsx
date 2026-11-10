@@ -5,8 +5,9 @@ import Link from "next/link";
 import {
   LayoutDashboard, Wallet, Users, TrendingUp, Settings, ShieldCheck, BookOpen,
   ArrowUpRight, ArrowDownRight, Activity, Stethoscope, ClipboardCheck,
-  RefreshCw, Menu, X, Crown, Compass,
+  RefreshCw, Menu, X, Crown, Compass, Footprints,
 } from "lucide-react";
+import { BehaviorSection, UserTimeline } from "./behavior-section";
 import Avatar from "../avatar";
 import { useScreenTransition, useStaggerReveal, useCountUp, usePulseGlow } from "@/components/animations";
 
@@ -118,6 +119,7 @@ const SECTIONS = [
   { id: "revenue", label: "Receita", icon: Wallet },
   { id: "users", label: "Usuários", icon: Users },
   { id: "activation", label: "Ativação", icon: TrendingUp },
+  { id: "behavior", label: "Comportamento", icon: Footprints },
   { id: "engagement", label: "Uso do produto", icon: Compass },
   { id: "content", label: "Conteúdo", icon: BookOpen },
   { id: "operations", label: "Operação", icon: Settings },
@@ -536,6 +538,8 @@ export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: 
           </>
         )}
 
+        {section === "behavior" && <BehaviorSection />}
+
         {section === "engagement" && (
           <>
             {!engagement ? (
@@ -810,6 +814,8 @@ export default function AdminDashboard({ adminEmail, adminRole }: { adminEmail: 
                 <span><small>Notificações</small><b>{selected.pushSubscriptions > 0 ? `${selected.pushSubscriptions} dispositivo${selected.pushSubscriptions > 1 ? "s" : ""} ativo${selected.pushSubscriptions > 1 ? "s" : ""}` : "Nenhum dispositivo ativo"}</b></span>
               </div>
             </div>
+
+            <UserTimeline userId={selected.id} />
 
             <div className="admin-detail-block">
               <h3>Suporte</h3>

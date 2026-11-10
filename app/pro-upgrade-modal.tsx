@@ -5,6 +5,7 @@ import { pwaInstallPending } from "./pwa-onboarding";
 import { createPortal } from "react-dom";
 import { ArrowLeft, Check, HeartPulse, ShieldCheck, Sparkles, X } from "lucide-react";
 import { useLearningSummary } from "./use-learning-summary";
+import { track } from "@/lib/track";
 
 export type ProUpgradeReason = "daily" | "patient" | "simulado" | "auscultation" | "audio" | "limit" | "weekly" | "exams" | "flashcards" | "backend";
 
@@ -115,6 +116,9 @@ export default function ProUpgradeModal({ userId }: { userId: string }) {
 
   useEffect(() => {
     if (!reason) return;
+    // Mede quantas vezes o paywall aparece e por qual motivo — sem isso o
+    // admin só via os cliques em "assinar", nunca a taxa de conversão.
+    track("paywall_shown", "pro_upgrade_modal", { reason });
     document.body.classList.add("pwa-modal-open");
     return () => document.body.classList.remove("pwa-modal-open");
   }, [reason]);

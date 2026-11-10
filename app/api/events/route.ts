@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { getAuthUserId } from "@/lib/auth-fast";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,8 @@ export const dynamic = "force-dynamic";
 const ALLOWED_EVENTS = [
   "checkout_clicked", "onboarding_started", "onboarding_skipped", "onboarding_completed",
   "first_experience_viewed", "first_challenge_started", "first_question_answered", "first_challenge_completed", "next_activity_selected",
+  // Rota do usuário dentro do app (painel de comportamento do admin).
+  "screen_viewed", "paywall_shown", "consult_abandoned",
 ] as const;
 
 const BodySchema = z.object({
@@ -19,16 +22,17 @@ const BodySchema = z.object({
     plan: z.enum(["monthly", "annual"]).optional(),
     reason: z.string().max(40).optional(),
     step: z.string().max(40).optional(),
+    // Nome interno da tela (home, patient, quiz…) — nunca URL nem texto livre.
+    screen: z.string().regex(/^[a-z-]{1,24}$/).optional(),
   }).strict().optional(),
 });
 
-const MAX_EVENTS_PER_MINUTE = 20;
+const MAX_EVENTS_PER_MINUTE = 40;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const userId = await getAuthUserId(supabase);
+  const user = userId ? { id: userId } : null;
   if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
   const parsed = BodySchema.safeParse(await request.json().catch(() => ({})));

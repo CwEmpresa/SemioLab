@@ -15,6 +15,14 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
       localStorage.setItem(SPLASH_STORAGE_KEY, "1");
       onDone();
     };
+    // Só na primeira abertura: a chave era gravada mas nunca lida, então
+    // todo mundo esperava 2 s de animação a cada vez que abria o app.
+    let seen = false;
+    try { seen = localStorage.getItem(SPLASH_STORAGE_KEY) === "1"; } catch { /* sem storage: mostra */ }
+    if (seen) {
+      const t = window.setTimeout(onDone, 0);
+      return () => window.clearTimeout(t);
+    }
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
     if (reduced) {

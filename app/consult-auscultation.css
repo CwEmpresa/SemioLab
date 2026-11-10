@@ -1,0 +1,152 @@
+/* Ausculta dentro da consulta + escolha de tratamento (Doutor/Doutora). */
+
+.ca-modal { display: grid; gap: 12px; }
+.ca-modal h2 { margin: 6px 0 4px; }
+.ca-tip,
+.ca-source,
+.ca-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #b9d3cf;
+}
+.ca-tip svg { width: 16px; height: 16px; flex: none; color: #62e8cf; }
+.ca-source { font-size: 11px; color: #7f9c98; }
+.ca-sound {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #0d2a2f;
+  border: 1px solid #23514c;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.ca-sound.is-playing { border-color: #35c9b1; box-shadow: 0 0 0 3px #35c9b133; }
+.ca-sound > header { display: flex; align-items: center; gap: 12px; }
+.ca-sound > header > i {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: #62e8cf;
+  background: #123b35;
+}
+.ca-sound > header > i svg { width: 20px; height: 20px; }
+.ca-sound > header > span { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.ca-sound > header b { color: #fff; font-size: 15px; }
+.ca-sound > header small { color: #9fbab6; font-size: 12px; }
+.ca-play {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  color: #04201b;
+  background: linear-gradient(145deg, #4fe0c6, #1aa38d);
+  border: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.ca-play:active { transform: scale(0.94); }
+.ca-play svg { width: 22px; height: 22px; }
+.ca-wave { display: flex; align-items: center; gap: 3px; height: 34px; padding: 0 2px; }
+.ca-wave i {
+  flex: 1;
+  height: 20%;
+  border-radius: 3px;
+  background: #2f6a62;
+}
+.ca-sound.is-playing .ca-wave i {
+  background: #35c9b1;
+  animation: ca-bar 0.9s ease-in-out infinite alternate;
+}
+.ca-sound.is-playing .ca-wave i:nth-child(3n) { animation-duration: 0.7s; }
+.ca-sound.is-playing .ca-wave i:nth-child(4n) { animation-duration: 1.1s; }
+.ca-reveal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 12px;
+  color: #cfe9e4;
+  background: transparent;
+  border: 1px dashed #3d7a72;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ca-reveal svg { width: 16px; height: 16px; }
+.ca-finding {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: #e3f4f1;
+  background: #123b35;
+  font-size: 13px;
+  line-height: 1.55;
+  animation: ca-in 0.3s ease both;
+}
+.ca-finding b { color: #fff; }
+.ca-locked { display: grid; gap: 12px; justify-items: center; text-align: center; color: #d4e7e4; }
+.ca-locked svg { width: 28px; height: 28px; color: #f0c14e; }
+.ca-locked .primary { width: 100%; min-height: 48px; }
+
+.physical-ausc-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 14px;
+  text-align: left;
+  color: #fff;
+  background: #123b35;
+  border: 1px solid #35c9b1;
+  border-radius: 16px;
+  cursor: pointer;
+}
+.physical-ausc-cta > svg:first-child { width: 22px; height: 22px; color: #62e8cf; flex: none; }
+.physical-ausc-cta > span { flex: 1; display: grid; gap: 2px; }
+.physical-ausc-cta small { color: #a9c9c4; font-size: 12px; }
+.physical-ausc-cta > svg:last-child { width: 18px; height: 18px; flex: none; }
+
+.doctor-title-picker { display: grid; gap: 8px; margin-bottom: 14px; }
+.doctor-title-picker > small { color: #b9d3cf; font-size: 13px; font-weight: 600; }
+.doctor-title-picker > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 14px;
+  background: #0a2a2d;
+  border: 1px solid #1d5650;
+}
+.doctor-title-picker button {
+  min-height: 42px;
+  color: #cfe9e4;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.doctor-title-picker button.active { color: #04201b; background: #35c9b1; }
+.patient-wait .patient-call-panel .primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@keyframes ca-bar { from { height: 15%; } to { height: 100%; } }
+@keyframes ca-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .ca-sound.is-playing .ca-wave i { animation: none; height: 60%; }
+  .ca-finding { animation: none; }
+}

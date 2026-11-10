@@ -1,3 +1,4 @@
+import { getAuthUserId } from "@/lib/auth-fast";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { brasiliaDateKey } from "@/lib/ai-usage";
@@ -19,9 +20,8 @@ function computeStreak(loginDays: string[]): number {
 
 export async function GET(request: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const authUserId = await getAuthUserId(supabase);
+  const user = authUserId ? { id: authUserId } : null;
   if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
   const targetUserId = new URL(request.url).searchParams.get("userId");

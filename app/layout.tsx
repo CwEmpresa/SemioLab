@@ -9,7 +9,6 @@ import "./redesign.css";
 export const metadata: Metadata = {
   title: "SemioLab",
   description: "Estude, pratique e evolua em Semiologia Médica.",
-  other: { "codex-preview": "development" },
   icons: { icon: "/semiolab-fox.png", apple: "/icon-192.png" },
   manifest: "/manifest.json",
 };

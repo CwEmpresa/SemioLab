@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUserId } from "@/lib/auth-fast";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getOpenAIClient, OPENAI_TRANSCRIPTION_MODEL, estimateTranscriptionCostUsd, safeErrorMeta } from "@/lib/openai";
 import { logAudioUsage, isRateLimited } from "@/lib/ai-usage";
@@ -33,14 +34,12 @@ function sniffAudioSignature(bytes: Uint8Array): boolean {
 
 export async function POST(request: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
+  const userId = await getAuthUserId(supabase);
+  if (!userId) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
 
   // Validação do formulário e checagem de plano rodam em paralelo (eram
   // sequenciais): cada ida ao banco a menos é tempo a menos de espera.
-  const [access, form] = await Promise.all([resolveUserAccess(supabase, user.id), request.formData().catch(() => null)]);
+  const [access, form] = await Promise.all([resolveUserAccess(supabase, userId), request.formData().catch(() => null)]);
   // Recurso do plano Pro e do período de teste — não disponível no free.
   if (access.tier !== "pro" && access.tier !== "trial") {
     return Response.json({ error: "A pergunta por voz é exclusiva do plano Pro e do período de teste.", code: "PRO_REQUIRED" }, { status: 403 });
@@ -71,7 +70,7 @@ export async function POST(request: Request) {
   // leitura do arquivo em paralelo.
   const [{ data: session }, rateLimited, buffer] = await Promise.all([
     supabase.from("patient_sessions").select("id, status").eq("id", sessionId).maybeSingle(),
-    isRateLimited(service, { userId: user.id, operation: "transcription", maxPerWindow: 10, windowSeconds: 120 }),
+    isRateLimited(service, { userId: userId, operation: "transcription", maxPerWindow: 10, windowSeconds: 120 }),
     audio.arrayBuffer().then((b) => new Uint8Array(b)),
   ]);
   if (!session || session.status !== "active") {
@@ -101,7 +100,7 @@ export async function POST(request: Request) {
     const inputTokens = usage?.type === "tokens" ? (usage.input_tokens ?? 0) : 0;
     const outputTokens = usage?.type === "tokens" ? (usage.output_tokens ?? 0) : 0;
     await logAudioUsage(service, {
-      userId: user.id,
+      userId: userId,
       sessionId,
       operation: "transcription",
       model: OPENAI_TRANSCRIPTION_MODEL,

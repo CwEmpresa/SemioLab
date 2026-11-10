@@ -1,3 +1,4 @@
+import { getAuthUserId } from "@/lib/auth-fast";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { resolveUserAccess } from "@/lib/user-access";
@@ -14,9 +15,8 @@ const MAX_QUERY = 80;
 
 async function getContext() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const authUserId = await getAuthUserId(supabase);
+  const user = authUserId ? { id: authUserId } : null;
   return { supabase, user };
 }
 

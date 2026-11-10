@@ -525,7 +525,7 @@
   {
     "slug": "avc-isquemico-01",
     "title": "Fraqueza súbita de um lado do corpo",
-    "specialty": "Neurológico",
+    "specialty": "Neurologia",
     "difficulty": "dificil",
     "openingLine": "Doutor, meu braço e minha perna do lado direito ficaram fracos de repente.",
     "hiddenCase": {
@@ -611,7 +611,7 @@
   {
     "slug": "meningite-01",
     "title": "Dor de cabeça forte com febre",
-    "specialty": "Neurológico",
+    "specialty": "Neurologia",
     "difficulty": "dificil",
     "openingLine": "Doutor, estou com uma dor de cabeça horrível e febre, e a luz está incomodando muito meus olhos.",
     "hiddenCase": {
@@ -700,7 +700,7 @@
   {
     "slug": "crise-convulsiva-01",
     "title": "Episódio de convulsão presenciado",
-    "specialty": "Neurológico",
+    "specialty": "Neurologia",
     "difficulty": "moderado",
     "openingLine": "Doutor, minha família disse que eu 'tive um treco', tremi todo e desmaiei, mas eu não lembro de nada.",
     "hiddenCase": {
@@ -789,7 +789,7 @@
   {
     "slug": "apendicite-01",
     "title": "Dor de barriga que mudou de lugar",
-    "specialty": "Gastrointestinal",
+    "specialty": "Gastroenterologia",
     "difficulty": "moderado",
     "openingLine": "Doutor, comecei com uma dor perto do umbigo e agora ela desceu pro lado direito, bem forte.",
     "hiddenCase": {
@@ -869,7 +869,7 @@
   {
     "slug": "pancreatite-01",
     "title": "Dor forte na boca do estômago após bebedeira",
-    "specialty": "Gastrointestinal",
+    "specialty": "Gastroenterologia",
     "difficulty": "moderado",
     "openingLine": "Doutor, estou com uma dor muito forte na boca do estômago que vai para as costas, comecei ontem à noite depois de beber bastante.",
     "hiddenCase": {
@@ -956,7 +956,7 @@
   {
     "slug": "colecistite-01",
     "title": "Dor no lado direito da barriga após comida gordurosa",
-    "specialty": "Gastrointestinal",
+    "specialty": "Gastroenterologia",
     "difficulty": "facil",
     "openingLine": "Doutor, depois que comi uma feijoada comecei a sentir uma dor forte do lado direito da barriga.",
     "hiddenCase": {
@@ -1035,7 +1035,7 @@
   {
     "slug": "pielonefrite-01",
     "title": "Dor nas costas e febre com ardência ao urinar",
-    "specialty": "Renal e urinário",
+    "specialty": "Nefrologia",
     "difficulty": "moderado",
     "openingLine": "Doutor, estou com muita dor nas costas, febre, e está ardendo muito quando vou fazer xixi.",
     "hiddenCase": {
@@ -1122,7 +1122,7 @@
   {
     "slug": "colica-renal-01",
     "title": "Dor lombar em cólica muito forte",
-    "specialty": "Renal e urinário",
+    "specialty": "Nefrologia",
     "difficulty": "facil",
     "openingLine": "Doutor, estou com uma dor horrível do lado das costas, vem em ondas, é a pior dor que já senti.",
     "hiddenCase": {
@@ -1201,7 +1201,7 @@
   {
     "slug": "cetoacidose-diabetica-01",
     "title": "Muita sede, urina frequente e mal-estar",
-    "specialty": "Endócrino",
+    "specialty": "Endocrinologia",
     "difficulty": "dificil",
     "openingLine": "Doutor, estou com muita sede, fazendo xixi toda hora, e me sinto muito mal, meio enjoada.",
     "hiddenCase": {
@@ -1288,7 +1288,7 @@
   {
     "slug": "hipotireoidismo-01",
     "title": "Cansaço, ganho de peso e pele seca",
-    "specialty": "Endócrino",
+    "specialty": "Endocrinologia",
     "difficulty": "facil",
     "openingLine": "Doutor, estou muito cansada ultimamente, ganhei peso sem motivo e minha pele está muito seca.",
     "hiddenCase": {
@@ -1719,7 +1719,7 @@
   {
     "slug": "drge-01",
     "title": "Azia e queimação que piora deitado",
-    "specialty": "Gastrointestinal",
+    "specialty": "Gastroenterologia",
     "difficulty": "facil",
     "openingLine": "Doutor, tenho uma queimação forte no peito e na garganta, principalmente depois de comer e quando deito.",
     "hiddenCase": {

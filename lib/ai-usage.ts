@@ -13,10 +13,15 @@ export async function logAiUsage(
     provider?: string;
     model: string;
     usage: UsageTokens;
+    /** Tempo até a primeira palavra chegar ao estudante (ms, medido no
+     * servidor desde a entrada da requisição). */
+    ttftMs?: number | null;
+    /** Tempo até a resposta inteira terminar (ms). */
+    durationMs?: number | null;
   },
 ) {
   try {
-    await service.from("ai_usage_logs").insert({
+    const base = {
       user_id: params.userId,
       session_id: params.sessionId,
       operation: params.operation,
@@ -27,7 +32,18 @@ export async function logAiUsage(
       output_tokens: params.usage.outputTokens,
       reasoning_tokens: params.usage.reasoningTokens,
       estimated_cost_usd: estimateCostUsd(params.usage),
-    });
+    };
+    const hasLatency = params.ttftMs != null || params.durationMs != null;
+    if (!hasLatency) {
+      await service.from("ai_usage_logs").insert(base);
+      return;
+    }
+    const { error } = await service
+      .from("ai_usage_logs")
+      .insert({ ...base, ttft_ms: params.ttftMs ?? null, duration_ms: params.durationMs ?? null });
+    // Banco ainda sem as colunas de latência (migração 20261110 pendente):
+    // o registro de custo nunca pode se perder por causa disso.
+    if (error) await service.from("ai_usage_logs").insert(base);
   } catch {
     // Falha ao registrar consumo nunca deve derrubar o atendimento.
     console.error("[ai-usage] falha ao registrar consumo", { operation: params.operation });
@@ -42,7 +58,7 @@ export async function logAudioUsage(
   params: {
     userId: string | null;
     sessionId: string | null;
-    operation: "transcription" | "tts" | "question_generation" | "research";
+    operation: "chat" | "transcription" | "tts" | "question_generation" | "research";
     model: string;
     inputTokens?: number;
     outputTokens?: number;
@@ -72,15 +88,17 @@ export async function logAudioUsage(
  * operação o usuário fez nos últimos `windowSeconds`. */
 export async function isRateLimited(
   service: ReturnType<typeof createServiceClient>,
-  params: { userId: string; operation: "transcription" | "tts"; maxPerWindow: number; windowSeconds: number },
+  params: { userId: string; operation: "chat" | "transcription" | "tts"; maxPerWindow: number; windowSeconds: number; model?: string },
 ): Promise<boolean> {
   const since = new Date(Date.now() - params.windowSeconds * 1000).toISOString();
-  const { count } = await service
+  let query = service
     .from("ai_usage_logs")
     .select("id", { count: "exact", head: true })
     .eq("user_id", params.userId)
     .eq("operation", params.operation)
     .gte("created_at", since);
+  if (params.model) query = query.eq("model", params.model);
+  const { count } = await query;
   return (count ?? 0) >= params.maxPerWindow;
 }
 

@@ -1,10 +1,14 @@
+import { getAuthUserId } from "@/lib/auth-fast";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { resolveUserAccess } from "@/lib/user-access";
 import { CAKTO_CHECKOUT_URLS } from "@/lib/pro";
 import { startOfBrasiliaDayUtc } from "@/lib/ai-usage";
+import { after } from "next/server";
+import { ensureOptionExplanations } from "@/lib/option-explanations";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const QUESTIONS_PER_SIMULADO = 10;
 
@@ -32,9 +36,8 @@ async function loadAttemptQuestions(service: ReturnType<typeof createServiceClie
 
 export async function POST() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const authUserId = await getAuthUserId(supabase);
+  const user = authUserId ? { id: authUserId } : null;
   if (!user) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
 
   const access = await resolveUserAccess(supabase, user.id);
@@ -174,5 +177,8 @@ export async function POST() {
   }
 
   const questions = await loadAttemptQuestions(service, created.id);
+  // Prepara em segundo plano a explicação de cada alternativa (quando há
+  // cache), para o "por que errei" aparecer junto da correção.
+  after(() => ensureOptionExplanations(service, chosen, { warmOnly: true }).then(() => undefined));
   return Response.json({ attemptId: created.id, resumed: false, questions, totalQuestions: QUESTIONS_PER_SIMULADO, simuladosUsedToday: simuladosUsedToday + 1, simuladosLimitToday: dailyLimit });
 }

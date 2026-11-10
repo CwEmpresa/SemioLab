@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUserId } from "@/lib/auth-fast";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getOpenAIClient, OPENAI_TTS_MODEL, resolvePatientVoice, estimateTtsCostUsd, safeErrorMeta } from "@/lib/openai";
 import { logAudioUsage, isRateLimited } from "@/lib/ai-usage";
@@ -15,10 +16,8 @@ export const maxDuration = 30;
 // embeds de terceiros), sessionId/messageId na URL não são segredo.
 export async function GET(request: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
+  const userId = await getAuthUserId(supabase);
+  if (!userId) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
 
   const url = new URL(request.url);
   const sessionId = url.searchParams.get("sessionId");
@@ -39,7 +38,7 @@ export async function GET(request: Request) {
   // ao banco antes do primeiro byte de voz).
   const service = createServiceClient();
   const [access, { data: session }, { data: message }, rateLimited] = await Promise.all([
-    resolveUserAccess(supabase, user.id),
+    resolveUserAccess(supabase, userId),
     supabase.from("patient_sessions").select("id, case_id").eq("id", sessionId).maybeSingle(),
     sentenceMode
       ? Promise.resolve({ data: { id: "sentence", content: sentenceText } })
@@ -50,7 +49,7 @@ export async function GET(request: Request) {
           .eq("session_id", sessionId)
           .eq("role", "patient")
           .maybeSingle(),
-    isRateLimited(service, { userId: user.id, operation: "tts", maxPerWindow: 80, windowSeconds: 120 }),
+    isRateLimited(service, { userId: userId, operation: "tts", maxPerWindow: 80, windowSeconds: 120 }),
   ]);
   // Recurso do plano Pro e do período de teste — não disponível no free.
   if (access.tier !== "pro" && access.tier !== "trial") {
@@ -93,7 +92,7 @@ export async function GET(request: Request) {
     // reais) — loga sem bloquear a resposta, para o primeiro byte de áudio
     // chegar ao navegador o quanto antes.
     logAudioUsage(service, {
-      userId: user.id,
+      userId: userId,
       sessionId,
       operation: "tts",
       model: OPENAI_TTS_MODEL,

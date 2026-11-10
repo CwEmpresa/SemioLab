@@ -25,6 +25,7 @@ import { WeekRhythm } from "@/components/ui/week-rhythm";
 import { createPortal } from "react-dom";
 import { useUser } from "./user-context";
 import { createClient } from "@/lib/supabase/client";
+import { track } from "@/lib/track";
 import { levelFromXp, safeDisplayName } from "@/lib/level";
 import { useLearningSummary, queueQuizLaunch, queueQuizView, type MasteryRecord, type MissionAction, type QuizView } from "./use-learning-summary";
 import {
@@ -539,6 +540,16 @@ function HomePage({ go, checkin }: { go:(s:Screen)=>void; checkin:()=>void }) {
           streakDays={streak}
           generalMastery={generalMastery}
           onAction={runMissionAction}
+          studyFocus={learning?.studyFocus}
+          onStudyFocusChange={!learning?.studyFocusAvailable ? undefined : (topic) => {
+            fetch("/api/profile/focus", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ focus: topic || null }),
+            })
+              .then((response) => { if (response.ok) window.dispatchEvent(new Event("semiolab:learning-updated")); })
+              .catch(() => {});
+          }}
         />
 
         <section className="quick-hub">
@@ -1507,6 +1518,14 @@ export default function SemioLab() {
   }
 
   const go = (s: Screen) => setScreen(s);
+  // Rota do usuário: cada troca de tela vira um evento (só o nome interno
+  // da tela). É o que mostra, no admin, por onde as pessoas andam e em qual
+  // tela estavam quando pararam de usar. Não conta enquanto o microcaso
+  // inicial ainda cobre o app.
+  const trackingReady = !microcaseState.loading && !microcaseState.eligible;
+  useEffect(() => {
+    if (trackingReady) track("screen_viewed", "app", { screen });
+  }, [screen, trackingReady]);
   const view =
     screen==="home"         ? <HomePage go={go} checkin={() => setCheckin(true)} /> :
     screen==="study"        ? <Study go={go} theme={theme} /> :

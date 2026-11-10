@@ -1,3 +1,4 @@
+import { getAuthUserId } from "@/lib/auth-fast";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -7,9 +8,8 @@ const SIGNED_URL_TTL_SECONDS = 120;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const authUserId = await getAuthUserId(supabase);
+  const user = authUserId ? { id: authUserId } : null;
   if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
   const body = (await request.json().catch(() => ({}))) as { sessionId?: string; examId?: string };

@@ -1,3 +1,4 @@
+import { getAuthUserId } from "@/lib/auth-fast";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -19,6 +20,9 @@ const EvaluationSchema = z.object({
   examLearning: z.array(z.string()).default([]),
   feedback: z.string().default(""),
   basic: z.boolean().default(false),
+  /** Checklist no estilo de prova prática (OSCE): cada item esperado e se
+   * o estudante cumpriu. Montado no servidor a partir do gabarito. */
+  checklist: z.array(z.object({ item: z.string(), done: z.boolean() })).default([]),
 });
 type Evaluation = z.infer<typeof EvaluationSchema>;
 type HistoryRow = { role: string; content: string };
@@ -52,11 +56,66 @@ function normalizeEvaluation(raw: unknown): Evaluation {
   });
 }
 
+/** Itens do checklist: as perguntas-chave do caso (marcadas pelos números
+ * que o avaliador devolveu, ou por palavras em comum no modo sem IA) mais
+ * as duas ações objetivas da consulta. */
+function buildChecklist(hidden: HiddenCase, historyRows: HistoryRow[], askedNumbers: number[] | null) {
+  const studentText = historyRows.filter((r) => r.role === "student").map((r) => r.content).join(" \n ");
+  const asked = askedNumbers ? new Set(askedNumbers) : null;
+  const items = hidden.keyQuestions.map((question, index) => ({
+    item: question,
+    done: asked ? asked.has(index + 1) : anyWordMatches(studentText, question),
+  }));
+  const didPhysical = historyRows.some((r) => r.role === "exam" && r.content === "Exame físico realizado");
+  const askedExams = historyRows.some((r) => r.role === "exam" && r.content !== "Exame físico realizado");
+  return [
+    ...items,
+    { item: "Realizou o exame físico", done: didPhysical },
+    { item: "Solicitou exames complementares", done: askedExams },
+  ];
+}
+
+/** A tela promete que "a nota usa apenas perguntas, ações e respostas
+ * preenchidas nesta consulta" — mas o avaliador de IA chegava a dar 95 a
+ * quem fez uma única pergunta, porque contava o que o paciente dizia
+ * sozinho. Aqui o servidor impõe o que é verificável na transcrição:
+ * sem exame físico, sem pontos de exame físico; sem exames pedidos, sem
+ * pontos de exames; anamnese limitada pela fração de perguntas-chave que
+ * o estudante realmente fez. */
+function enforceEvidence(evaluation: Evaluation, hidden: HiddenCase, historyRows: HistoryRow[]): Evaluation {
+  const studentTurns = historyRows.filter((r) => r.role === "student").length;
+  const didPhysical = historyRows.some((r) => r.role === "exam" && r.content === "Exame físico realizado");
+  const askedExams = historyRows.some((r) => r.role === "exam" && r.content !== "Exame físico realizado");
+  const keyItems = evaluation.checklist.slice(0, hidden.keyQuestions.length);
+  const keyDone = keyItems.filter((item) => item.done).length;
+  // +1 de folga: uma boa anamnese pode cobrir um ponto com outras palavras.
+  const historyCap = studentTurns === 0 ? 0 : Math.round((30 * Math.min(keyItems.length, keyDone + 1)) / Math.max(1, keyItems.length));
+
+  const historyScore = Math.min(evaluation.historyScore, historyCap);
+  const physicalScore = didPhysical ? evaluation.physicalScore : 0;
+  const examsScore = askedExams ? evaluation.examsScore : 0;
+  const reasoningScore = studentTurns < 3 ? Math.min(evaluation.reasoningScore, 20) : evaluation.reasoningScore;
+  return {
+    ...evaluation,
+    historyScore,
+    physicalScore,
+    examsScore,
+    reasoningScore,
+    score: historyScore + physicalScore + examsScore + reasoningScore,
+  };
+}
+
+function parseAskedNumbers(raw: unknown, total: number): number[] | null {
+  const list = (raw && typeof raw === "object" ? (raw as Record<string, unknown>).askedKeyQuestions : null);
+  if (!Array.isArray(list)) return null;
+  return list.filter((n): n is number => typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= total);
+}
+
 async function revertToActive(service: ReturnType<typeof createServiceClient>, sessionId: string) {
   await service.from("patient_sessions").update({ status: "active" }).eq("id", sessionId);
 }
 
-// ── Avaliação determinística (fallback quando o Gemini está indisponível) ──
+// ── Avaliação determinística (fallback quando a IA está indisponível) ──
 function normalizeText(s: string): string {
   return s
     .toLowerCase()
@@ -133,10 +192,11 @@ function buildDeterministicEvaluation(
     strengths,
     gaps,
     examLearning: [],
+    checklist: buildChecklist(hidden, historyRows, null),
     feedback:
       "Avaliação básica gerada automaticamente: o serviço de IA está temporariamente indisponível (cota excedida), " +
       "então esta nota foi calculada a partir dos pontos investigados na consulta, do exame físico, dos exames " +
-      "solicitados e da aderência da sua hipótese e conduta ao caso — sem análise textual do Gemini.",
+      "solicitados e da aderência da sua hipótese e conduta ao caso — sem a análise textual da IA.",
     basic: true,
   };
 }
@@ -144,9 +204,8 @@ function buildDeterministicEvaluation(
 
 export async function POST(request: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const authUserId = await getAuthUserId(supabase);
+  const user = authUserId ? { id: authUserId } : null;
   if (!user) return Response.json({ error: "Não autenticado", code: "UNAUTHENTICATED" }, { status: 401 });
 
   const body = (await request.json().catch(() => ({}))) as {
@@ -241,7 +300,7 @@ export async function POST(request: Request) {
     `Diagnóstico correto (gabarito, NÃO mostrar ao estudante): ${hidden.diagnosis}`,
     `Diferenciais esperados: ${hidden.differentials.join(", ")}`,
     `Conduta ideal: ${hidden.idealConduct.join("; ")}`,
-    `Perguntas-chave esperadas na anamnese: ${hidden.keyQuestions.join("; ")}`,
+    `Perguntas-chave esperadas na anamnese (numeradas): ${hidden.keyQuestions.map((q, i) => `${i + 1}) ${q}`).join("; ")}`,
     "",
     "Transcrição do atendimento:",
     transcript || "(sem perguntas registradas)",
@@ -254,8 +313,15 @@ export async function POST(request: Request) {
     conduct,
     "",
     "Responda APENAS com um objeto JSON válido, sem markdown, sem cercas de código, no formato exato:",
-    '{"score":0-100,"historyScore":0-30,"physicalScore":0-15,"examsScore":0-15,"reasoningScore":0-40,"strengths":["..."],"gaps":["..."],"examLearning":["..."],"feedback":"texto curto em português"}',
+    '{"score":0-100,"historyScore":0-30,"physicalScore":0-15,"examsScore":0-15,"reasoningScore":0-40,"strengths":["..."],"gaps":["..."],"examLearning":["..."],"feedback":"texto curto em português","askedKeyQuestions":[1,3]}',
+    "askedKeyQuestions: os NÚMEROS das perguntas-chave que o estudante de fato investigou na transcrição (lista vazia se nenhuma).",
     "score deve ser a soma dos quatro sub-escores. Seja justo e educativo, em português do Brasil.",
+    "REGRAS DE PONTUAÇÃO (obrigatórias):",
+    "- Só conta como investigado o que o ESTUDANTE perguntou. O que o paciente contou por conta própria (inclusive na primeira fala) NÃO conta para historyScore nem para askedKeyQuestions.",
+    "- historyScore é proporcional às perguntas-chave que o estudante de fato fez; com uma ou duas perguntas genéricas, fica baixo.",
+    "- Sem a linha 'Exame: Exame físico realizado' na transcrição, physicalScore = 0.",
+    "- Sem nenhum exame complementar solicitado na transcrição, examsScore = 0.",
+    "- reasoningScore avalia hipótese, diferenciais e conduta, mas não passa de 20 se a anamnese do estudante não sustenta a hipótese.",
   ].join("\n");
 
   // ── Etapa 1: chamada ao provedor (com fallback determinístico obrigatório
@@ -335,7 +401,14 @@ export async function POST(request: Request) {
         });
         parsedJson = JSON.parse(stripCodeFences(repair.output_text ?? "{}"));
       }
-      evaluation = normalizeEvaluation(parsedJson);
+      evaluation = enforceEvidence(
+        {
+          ...normalizeEvaluation(parsedJson),
+          checklist: buildChecklist(hidden, historyRows, parseAskedNumbers(parsedJson, hidden.keyQuestions.length)),
+        },
+        hidden,
+        historyRows,
+      );
     } catch (err) {
       console.error("[patient/finish] etapa=parse_ou_validacao status=error", {
         sessionId,

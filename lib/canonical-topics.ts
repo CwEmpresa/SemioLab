@@ -26,6 +26,9 @@ const TOPIC_ALIASES: Record<string, CanonicalTopic> = {
   [normalize("Abdome")]: "Abdome e digestório",
   [normalize("Abdome e digestório")]: "Abdome e digestório",
   [normalize("Gastroenterologia")]: "Abdome e digestório",
+  [normalize("Gastrointestinal")]: "Abdome e digestório",
+  [normalize("Cardiologia")]: "Cardiovascular",
+  [normalize("Pneumologia")]: "Respiratório",
   [normalize("Exame físico")]: "Exame físico",
 };
 

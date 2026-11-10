@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUserId } from "@/lib/auth-fast";
 import { createServiceClient } from "@/lib/supabase/service";
 import { resolveUserAccess } from "@/lib/user-access";
 import type { HiddenCase } from "@/lib/patient-case-schema";
 import { resolveExamOrder, type ResolvedItem } from "@/lib/exam-resolver";
 import { logAiUsage } from "@/lib/ai-usage";
 import { OPENAI_MODEL } from "@/lib/openai";
+import { auscultationForCase, requestedAuscultation, type AuscultationArea } from "@/lib/auscultation-sounds";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -14,22 +16,24 @@ const ALREADY_REQUESTED_MESSAGE = "Este exame já foi solicitado.";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
+  const userId = await getAuthUserId(supabase);
+  if (!userId) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
-  const body = (await request.json().catch(() => ({}))) as { sessionId?: string; order?: string; physical?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { sessionId?: string; order?: string; physical?: boolean; auscultation?: boolean };
   const sessionId = body.sessionId;
   const wantsPhysical = body.physical === true;
   const order = typeof body.order === "string" ? body.order.trim().slice(0, 400) : "";
-  if (!sessionId || (!order && !wantsPhysical)) return Response.json({ error: "Dados inválidos." }, { status: 400 });
+  // Ausculta: pelo botão próprio da consulta ou quando o pedido de exame
+  // menciona ausculta (ex.: "ausculta pulmonar"). Devolve o SOM real, não
+  // só o laudo — o aluno ouve e conclui sozinho.
+  const auscAreas: AuscultationArea[] | null =
+    body.auscultation === true ? ["pulmonar", "cardiaca"] : !wantsPhysical && order ? requestedAuscultation(order) : null;
+  if (!sessionId || (!order && !wantsPhysical && !auscAreas)) return Response.json({ error: "Dados inválidos." }, { status: 400 });
 
-  const { data: session } = await supabase
-    .from("patient_sessions")
-    .select("id, case_id, status")
-    .eq("id", sessionId)
-    .maybeSingle();
+  const [{ data: session }, access] = await Promise.all([
+    supabase.from("patient_sessions").select("id, case_id, status").eq("id", sessionId).maybeSingle(),
+    resolveUserAccess(supabase, userId),
+  ]);
   if (!session || session.status !== "active") {
     return Response.json({ error: "Sessão inválida ou já encerrada." }, { status: 404 });
   }
@@ -38,8 +42,7 @@ export async function POST(request: Request) {
 
   // Exame físico não conta no limite de exames laboratoriais/imagem — é uma
   // etapa central da anamnese, não um "exame solicitado".
-  if (!wantsPhysical) {
-    const access = await resolveUserAccess(supabase, user.id);
+  if (!wantsPhysical && !auscAreas) {
     const { count: examsUsed } = await supabase
       .from("patient_messages")
       .select("id", { count: "exact", head: true })
@@ -72,6 +75,33 @@ export async function POST(request: Request) {
   if (!caseDetails) return Response.json({ error: "Caso clínico indisponível." }, { status: 500 });
   const hidden = caseDetails.hidden_case as HiddenCase;
 
+  const auscultationAllowed = access.limits.auscultationAllowed;
+  const sounds = (areas: AuscultationArea[] | null) =>
+    auscultationAllowed ? auscultationForCase(hidden).filter((s) => !areas || areas.includes(s.area)) : [];
+
+  if (auscAreas) {
+    // Ausculta faz parte do exame físico: conta como exame físico realizado
+    // (uma vez só) e não gasta o limite de exames complementares.
+    const picked = sounds(auscAreas);
+    if (auscultationAllowed) {
+      const { count: physicalDone } = await service
+        .from("patient_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("session_id", sessionId)
+        .eq("role", "exam")
+        .eq("content", "Exame físico realizado");
+      if (!physicalDone) {
+        await service.from("patient_messages").insert({
+          session_id: sessionId,
+          role: "exam",
+          content: "Exame físico realizado",
+          exam_report: { summary: "Ausculta realizada.", findings: picked.map((s) => `${s.label}: ${s.finding}`).join(" · ") },
+        });
+      }
+    }
+    return Response.json({ auscultation: picked, auscultationLocked: !auscultationAllowed });
+  }
+
   if (wantsPhysical) {
     const findings = Object.entries(hidden.physicalExam).map(([key, value]) => `${key}: ${value}`).join(" · ");
     await service.from("patient_messages").insert({
@@ -80,7 +110,7 @@ export async function POST(request: Request) {
       content: "Exame físico realizado",
       exam_report: { summary: "Exame físico direcionado.", findings },
     });
-    return Response.json({ physicalExam: hidden.physicalExam });
+    return Response.json({ physicalExam: hidden.physicalExam, auscultation: sounds(null), auscultationLocked: !auscultationAllowed });
   }
 
   // Impede solicitação duplicada: busca todos os exames já liberados nesta
@@ -102,7 +132,7 @@ export async function POST(request: Request) {
   // do exame), e só chama o modelo para o que as regras não entenderam.
   const resolution = await resolveExamOrder(hidden, order);
   if (resolution.usage) {
-    await logAiUsage(service, { userId: user.id, sessionId, operation: "chat", model: OPENAI_MODEL, usage: resolution.usage });
+    await logAiUsage(service, { userId: userId, sessionId, operation: "chat", model: OPENAI_MODEL, usage: resolution.usage });
   }
 
   const idsOf = (item: ResolvedItem) => (item.kind === "registered" ? item.exam.examIds : [item.id]);

@@ -384,14 +384,28 @@ export default function FirstMicrocase({ initialStep, onComplete }: { initialSte
           )}
 
           <BlurFade delay={0.68}>
+            {/* Quem termina uma consulta real no 1º dia volta ~3x mais do que
+                quem só faz este microcaso — por isso o caminho principal
+                leva direto ao primeiro paciente, sem passar pelo painel. */}
+            <p className="fmc-next-hint">Esse foi guiado. Agora atenda um paciente de verdade: você pergunta o que quiser e recebe nota e feedback no final.</p>
             <button
               className="primary fmc-cta fmc-cta-centered"
+              onClick={() => {
+                logEvent("next_activity_selected", "first_microcase", "patient");
+                try { sessionStorage.setItem("semiolab:auto-start-patient", "1"); } catch { /* segue sem auto-início */ }
+                onComplete("patient");
+              }}
+            >
+              Atender meu primeiro paciente <ChevronRight />
+            </button>
+            <button
+              className="fmc-skip-link"
               onClick={() => {
                 logEvent("next_activity_selected", "first_microcase", "dashboard");
                 onComplete();
               }}
             >
-              Começar no SemioLab <ChevronRight />
+              Conhecer o app primeiro
             </button>
           </BlurFade>
         </section>

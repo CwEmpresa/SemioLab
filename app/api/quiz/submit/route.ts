@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { getAuthUserId } from "@/lib/auth-fast";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +32,8 @@ async function bumpTopicActivity(
 
 export async function POST(request: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
+  const userId = await getAuthUserId(supabase);
+  if (!userId) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
   const body = (await request.json().catch(() => ({}))) as {
     topic?: string;
@@ -87,33 +86,41 @@ export async function POST(request: Request) {
   if (total === 0) return Response.json({ error: "Nenhuma questão válida encontrada." }, { status: 400 });
 
   // Mesma gravação já usada pelo quiz — sem duplicar XP: 1 insert por
-  // envio, disparando o mesmo trigger de XP de sempre.
-  await service.from("quiz_attempts").insert({
-    user_id: user.id,
-    topic: body.topic || "Geral",
-    total,
-    correct,
-    topic_results: Object.values(byTopic),
-  });
-
-  for (const bucket of Object.values(byTopic)) {
-    await bumpTopicActivity(service, user.id, bucket.topic, { questions: bucket.total, correct: bucket.correct });
-  }
-
-  if (errors.length) {
-    await service.from("error_notebook").insert(
-      errors.map((item) => ({
-        user_id: user.id,
-        question_id: item.questionId,
-        topic: item.topic,
-        question: item.question,
-        selected_answer: item.selectedAnswer,
-        correct_answer: item.correctAnswer,
-        explanation: item.explanation,
-      })),
-    );
-    for (const item of errors) await bumpTopicActivity(service, user.id, item.topic, { reviews: 1 });
-  }
+  // envio, disparando o mesmo trigger de XP de sempre. Tentativa, caderno
+  // de erros e atividade por tema são independentes: rodam em paralelo.
+  const reviewsByTopic: Record<string, number> = {};
+  for (const item of errors) reviewsByTopic[item.topic] = (reviewsByTopic[item.topic] ?? 0) + 1;
+  await Promise.all([
+    service.from("quiz_attempts").insert({
+      user_id: userId,
+      topic: body.topic || "Geral",
+      total,
+      correct,
+      topic_results: Object.values(byTopic),
+    }),
+    errors.length
+      ? service.from("error_notebook").insert(
+          errors.map((item) => ({
+            user_id: userId,
+            question_id: item.questionId,
+            topic: item.topic,
+            question: item.question,
+            selected_answer: item.selectedAnswer,
+            correct_answer: item.correctAnswer,
+            explanation: item.explanation,
+          })),
+        )
+      : Promise.resolve(),
+    // Uma atualização por tema (questões, acertos e revisões juntos), em
+    // vez de uma por tema + uma por erro, uma depois da outra.
+    ...Object.values(byTopic).map((bucket) =>
+      bumpTopicActivity(service, userId, bucket.topic, {
+        questions: bucket.total,
+        correct: bucket.correct,
+        reviews: reviewsByTopic[bucket.topic] ?? 0,
+      }),
+    ),
+  ]);
 
   return Response.json({ total, correct, results });
 }

@@ -10,12 +10,17 @@ type MissionHeroProps = {
   streakDays: number;
   generalMastery: number | null;
   onAction: (action: MissionAction) => void;
+  /** Tema da faculdade escolhido pelo estudante ("" = automático). */
+  studyFocus?: string | null;
+  onStudyFocusChange?: (topic: string) => void;
 };
+
+const STUDY_FOCUS_OPTIONS = ["Cardiovascular", "Respiratório", "Neurológico", "Abdome e digestório", "Anamnese", "Exame físico"];
 
 const RING_RADIUS = 42;
 const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
 
-export function MissionHero({ mission, loading, streakDays, generalMastery, onAction }: MissionHeroProps) {
+export function MissionHero({ mission, loading, streakDays, generalMastery, onAction, studyFocus, onStudyFocusChange }: MissionHeroProps) {
   const total = mission?.total ?? 3;
   const completed = mission?.completed ?? 0;
   const allDone = !!mission && completed >= total;
@@ -42,6 +47,15 @@ export function MissionHero({ mission, loading, streakDays, generalMastery, onAc
                 ? `Foco do dia: ${mission.focusTopic}.`
                 : "Tarefas escolhidas a partir do seu desempenho real."}
           </p>
+          {onStudyFocusChange && (
+            <label className="mission-focus-select">
+              Na faculdade estou vendo
+              <select value={studyFocus ?? ""} onChange={(event) => onStudyFocusChange(event.target.value)}>
+                <option value="">Escolher por mim</option>
+                {STUDY_FOCUS_OPTIONS.map((topic) => <option key={topic} value={topic}>{topic}</option>)}
+              </select>
+            </label>
+          )}
         </span>
         <div className={`mission-ring ${allDone ? "done" : ""}`} role="img" aria-label={`${completed} de ${total} tarefas concluídas`}>
           <span className="mission-ring-glow" aria-hidden="true" />

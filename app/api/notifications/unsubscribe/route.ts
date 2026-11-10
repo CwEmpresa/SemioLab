@@ -1,12 +1,12 @@
+import { getAuthUserId } from "@/lib/auth-fast";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const authUserId = await getAuthUserId(supabase);
+  const user = authUserId ? { id: authUserId } : null;
   if (!user) return Response.json({ error: "Não autenticado" }, { status: 401 });
 
   const body = (await request.json().catch(() => ({}))) as { endpoint?: string };

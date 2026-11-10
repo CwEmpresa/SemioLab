@@ -124,6 +124,9 @@ export type LearningSummary = {
   weeklyActivity?: number[];
   week?: WeekStats;
   rhythm?: RhythmDay[];
+  /** Tema que o estudante disse estar vendo na faculdade (ou null). */
+  studyFocus?: string | null;
+  studyFocusAvailable?: boolean;
   mission?: DailyMission;
   recentConsultations?: RecentConsultation[];
   pro?: ProStatus;

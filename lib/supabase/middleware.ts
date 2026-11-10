@@ -26,9 +26,21 @@ export async function updateSession(request: NextRequest) {
   );
 
   // IMPORTANTE: não remover. Renova o token de sessão se necessário.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  //
+  // getClaims() valida o JWT localmente (chave assimétrica ES256, JWKS em
+  // cache) e só vai à rede quando o token expirou e precisa ser renovado.
+  // Antes era getUser(), que fazia uma ida ao servidor de Auth (us-west-2)
+  // em TODA requisição — inclusive antes de cada pergunta ao Paciente IA.
+  // As rotas e páginas continuam validando a sessão por conta própria.
+  let user: { id: string } | null = null;
+  try {
+    const { data, error } = await supabase.auth.getClaims();
+    const sub = data?.claims?.sub;
+    if (!error && typeof sub === "string" && sub) user = { id: sub };
+  } catch {
+    const { data } = await supabase.auth.getUser();
+    user = data.user ? { id: data.user.id } : null;
+  }
 
   const isPublicPath = PUBLIC_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
   const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
