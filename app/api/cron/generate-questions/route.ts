@@ -75,6 +75,16 @@ async function handle(request: Request): Promise<Response> {
 
   const service = createServiceClient();
 
+  // Execução "running" há mais de 10 minutos é órfã: a função foi encerrada
+  // (timeout) antes de fechar o job. Sem esta limpeza, uma única execução
+  // presa bloqueava todas as seguintes — foi o que deixou o banco sem
+  // questões novas de 25/08 em diante.
+  await service
+    .from("question_generation_jobs")
+    .update({ status: "failed", finished_at: new Date().toISOString(), error_message: "execução órfã encerrada automaticamente" })
+    .eq("status", "running")
+    .lt("started_at", new Date(Date.now() - 10 * 60 * 1000).toISOString());
+
   // Trava: só uma execução por vez (índice único parcial em status='running').
   const { data: job, error: jobError } = await service
     .from("question_generation_jobs")
